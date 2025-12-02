@@ -2,25 +2,6 @@
 #define HG_LEVIKNO_H
 
 
-// memory
-#if defined(LVN_MALLOC) && defined(LVN_FREE) && defined(LVN_REALLOC)
-// ok
-#elif !defined(LVN_MALLOC) && !defined(LVN_FREE) && !defined(LVN_REALLOC)
-// ok
-#else
-#error "must have all or none of LVN_MALLOC(sz), LVN_FREE(p), and LVN_REALLOC(p,sz) defined"
-#endif
-
-#ifndef LVN_MALLOC
-#define LVN_MALLOC(sz) lvnMemAlloc(sz)
-#endif
-#ifndef LVN_FREE
-#define LVN_FREE(p) lvnMemFree(p)
-#endif
-#ifndef LVN_REALLOC
-#define LVN_REALLOC(p,sz) lvnMemRealloc(p,sz)
-#endif
-
 #include "lvn_config.h"
 
 #include <stdint.h>
@@ -88,14 +69,6 @@ typedef struct LvnContextCreateInfo
         const LvnSink* pCoreSinks;
         uint32_t coreSinkCount;
     } logging;
-
-    struct
-    {
-        LvnMemAllocFn memAllocCallback;
-        LvnMemFreeFn memFreeCallback;
-        LvnMemReallocFn memReallocCallback;
-        void* memAllocUserData;
-    } memory;
 } LvnContextCreateInfo;
 
 
@@ -107,13 +80,7 @@ extern "C" {
 LVN_API LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo);
 LVN_API void      lvnDestroyContext(LvnContext* ctx);
 
-LVN_API void*     lvnMemAlloc(size_t size);
-LVN_API void      lvnMemFree(void* ptr);
-LVN_API void*     lvnMemRealloc(void* ptr, size_t size);
-
-LVN_API void*     lvnCtxMemAlloc(LvnContext* ctx, size_t size);
-LVN_API void      lvnCtxMemFree(LvnContext* ctx, void* ptr);
-LVN_API size_t    lvnCtxGetMemAllocCount(LvnContext* ctx);
+LVN_API LvnResult lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData);
 
 #ifdef __cplusplus
 }

@@ -3,12 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
 #define LVN_ABORT(rc) exit(rc)
 
 
 static void*   mallocWrapper(size_t size, void* userData)               { (void)userData; return malloc(size); }
 static void    freeWrapper(void* ptr, void* userData)                   { (void)userData; free(ptr); }
 static void*   reallocWrapper(void* ptr, size_t size, void* userData)   { (void)userData; return realloc(ptr, size); }
+static LvnMemAllocFn s_LvnMemAllocFnCallback = mallocWrapper;
+static LvnMemFreeFn s_LvnMemFreeFnCallback = freeWrapper;
+static LvnMemReallocFn s_LvnMemReallocFnCallback = reallocWrapper;
+static void* s_LvnMemUserData = NULL;
 
 
 LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
@@ -16,10 +21,7 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     if (!ctx)
         return Lvn_Result_Failure;
 
-    if (createInfo && createInfo->memory.memAllocCallback)
-        *ctx = createInfo->memory.memAllocCallback(sizeof(LvnContext), createInfo->memory.memAllocUserData);
-    else
-        *ctx = LVN_MALLOC(sizeof(LvnContext));
+    *ctx = lvn_calloc(sizeof(LvnContext));
 
     if (!*ctx)
         return Lvn_Result_Failure;
@@ -31,21 +33,39 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     {
         ctxPtr->enableLogging = createInfo->logging.enableLogging;
         ctxPtr->enableCoreLogging = createInfo->logging.enableCoreLogging;
-
-        ctxPtr->memAllocCallback = createInfo->memory.memAllocCallback;
-        ctxPtr->memFreeCallback = createInfo->memory.memFreeCallback;
-        ctxPtr->memReallocCallback = createInfo->memory.memReallocCallback;
-        ctxPtr->memAllocUserData = createInfo->memory.memAllocUserData;
     }
     else
     {
         ctxPtr->enableLogging = true;
         ctxPtr->enableCoreLogging = true;
+    }
 
-        ctxPtr->memAllocCallback = mallocWrapper;
-        ctxPtr->memFreeCallback = freeWrapper;
-        ctxPtr->memReallocCallback = reallocWrapper;
-        ctxPtr->memAllocUserData = NULL;
+    if (createInfo && createInfo->appName)
+        ctxPtr->coreLogger.loggerName = lvn_strcon(createInfo->appName);
+    else
+        ctxPtr->coreLogger.loggerName = lvn_strcon("CORE");
+
+    if (createInfo && createInfo->logging.coreLogFormat)
+        ctxPtr->coreLogger.logPatternFormat = lvn_strcon(createInfo->logging.coreLogFormat);
+    else
+        ctxPtr->coreLogger.logPatternFormat = lvn_strcon(LVN_DEFAULT_LOG_PATTERN);
+
+    if (createInfo && createInfo->logging.coreLogLevel)
+        ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
+    else
+        ctxPtr->coreLogger.logLevel = Lvn_LogLevel_None;
+
+    if (createInfo && createInfo->logging.pCoreSinks)
+    {
+        ctxPtr->coreLogger.pSinks = lvn_calloc(sizeof(LvnSink) * createInfo->logging.coreSinkCount);
+        memcpy(ctxPtr->coreLogger.pSinks, createInfo->logging.pCoreSinks, sizeof(LvnSink) * createInfo->logging.coreSinkCount);
+        ctxPtr->coreLogger.sinkCount = createInfo->logging.coreSinkCount;
+    }
+    else
+    {
+        ctxPtr->coreLogger.pSinks = lvn_calloc(sizeof(LvnSink));
+        ctxPtr->coreLogger.pSinks->logFunc = NULL;
+        ctxPtr->coreLogger.sinkCount = 1;
     }
 
     return Lvn_Result_Success;
@@ -56,46 +76,49 @@ void lvnDestroyContext(LvnContext* ctx)
     if (!ctx)
         return;
 
-    if (ctx->memFreeCallback)
-        ctx->memFreeCallback(ctx, ctx->memAllocUserData);
-    else
-        LVN_FREE(ctx);
+    lvn_free(ctx->coreLogger.loggerName);
+    lvn_free(ctx->coreLogger.logPatternFormat);
+    lvn_free(ctx->coreLogger.pLogPatterns);
+    lvn_free(ctx->coreLogger.pSinks);
+
+    lvn_free(ctx);
 }
 
-void* lvnMemAlloc(size_t size)
+LvnResult lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData)
 {
-    return mallocWrapper(size, NULL);
+    if (!allocFn || ! !freeFn || !reallocFn)
+        return Lvn_Result_Failure;
+
+    s_LvnMemAllocFnCallback = allocFn;
+    s_LvnMemFreeFnCallback = freeFn;
+    s_LvnMemReallocFnCallback = reallocFn;
+    s_LvnMemUserData = userData;
+
+    return Lvn_Result_Success;
 }
 
-void lvnMemFree(void* ptr)
+void* lvn_calloc(size_t size)
 {
-    freeWrapper(ptr, NULL);
+    void* result = s_LvnMemAllocFnCallback(size, s_LvnMemUserData);
+    if (!result) { return NULL; }
+    memset(result, 0, size);
+    return result;
 }
 
-void* lvnMemRealloc(void* ptr, size_t size)
+void lvn_free(void* ptr)
 {
-    return reallocWrapper(ptr, size, NULL);
+    s_LvnMemFreeFnCallback(ptr, s_LvnMemUserData);
 }
 
-void* lvnCtxMemAlloc(LvnContext* ctx, size_t size)
+void* lvn_realloc(void* ptr, size_t size)
 {
-    if (!ctx || size == 0) { return NULL; }
-    void* allocmem = ctx->memAllocCallback(size, ctx->memAllocUserData);
-    // if (!allocmem) { LVN_CORE_ERROR("malloc failure, could not allocate memory!"); LVN_ABORT; }
-    memset(allocmem, 0, size);
-    ctx->memAllocCount++;
-    return allocmem;
+    return s_LvnMemReallocFnCallback(ptr, size, s_LvnMemUserData);
 }
 
-void lvnCtxMemFree(LvnContext* ctx, void* ptr)
+char* lvn_strcon(const char* str)
 {
-    if (!ctx || !ptr) { return; }
-    ctx->memFreeCallback(ptr, ctx->memAllocUserData);
-    ctx->memAllocCount--;
-}
-
-size_t lvnCtxGetMemAllocCount(LvnContext* ctx)
-{
-    LVN_ASSERT(ctx, "ctx is nullptr");
-    return ctx->memAllocCount;
+    const size_t length = strlen(str) + 1;
+    char* result = lvn_calloc(length);
+    memcpy(result, str, length);
+    return result;
 }
