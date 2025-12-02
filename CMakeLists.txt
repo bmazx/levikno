@@ -4,6 +4,8 @@ set(CMAKE_C_STANDARD 99)
 
 project(levikno)
 
+# options
+option(LVN_BUILD_EXAMPLES "Build example programs" TRUE)
 
 # output dirs
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -33,6 +35,7 @@ endif()
 set(LVN_SRC
     include/levikno/levikno.h
     src/levikno.c
+    src/levikno_internal.h
 )
 
 add_library(levikno STATIC
@@ -46,8 +49,13 @@ target_include_directories(levikno
 )
 
 
-# Build definitions
+# build definitions
 target_compile_definitions(levikno PRIVATE
     $<$<CONFIG:Debug>:LVN_CONFIG_DEBUG>
     $<$<CONFIG:Release>:LVN_CONFIG_RELEASE>
 )
+
+# build examples
+if(LVN_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
