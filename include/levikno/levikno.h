@@ -96,8 +96,8 @@ LVN_API long long               lvnDateGetSecondsSinceEpoch(void);              
 
 LVN_API const char*             lvnDateGetMonthName(void);                                 // get the current month name (eg. January, April)
 LVN_API const char*             lvnDateGetMonthNameShort(void);                            // get the current month shortened name (eg. Jan, Apr)
-LVN_API const char*             lvnDateGetWeekDayName(void);                               // get the current day name in the week (eg. Monday, Friday)
-LVN_API const char*             lvnDateGetWeekDayNameShort(void);                          // get the current day shortened name in the week (eg. Mon, Fri)
+LVN_API const char*             lvnDateGetDayName(void);                                   // get the current day name in the week (eg. Monday, Friday)
+LVN_API const char*             lvnDateGetDayNameShort(void);                              // get the current day shortened name in the week (eg. Mon, Fri)
 LVN_API const char*             lvnDateGetTimeMeridiem(void);                              // get the time meridiem of the current day (eg. AM, PM)
 LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
 LVN_API char*                   lvnLogCreateOneShotStrMsg(const char* str);

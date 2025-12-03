@@ -1,11 +1,11 @@
 #include "levikno_internal.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
-#define LVN_ABORT(rc) exit(rc)
 
 
 static void*   mallocWrapper(size_t size, void* userData)               { (void)userData; return malloc(size); }
@@ -16,6 +16,178 @@ static LvnMemFreeFn s_LvnMemFreeFnCallback = freeWrapper;
 static LvnMemReallocFn s_LvnMemReallocFnCallback = reallocWrapper;
 static void* s_LvnMemUserData = NULL;
 
+static const char* lvn_getLogLevelName(LvnLogLevel level);
+static const char* lvn_getLogLevelColor(LvnLogLevel level);
+static char* lvn_logPatternStrNewLine(LvnLogMessage* msg);
+static char* lvn_logPatternStrLoggerName(LvnLogMessage* msg);
+static char* lvn_logPatternStrLogLevelName(LvnLogMessage* msg);
+static char* lvn_logPatternStrLogLevelColor(LvnLogMessage* msg);
+static char* lvn_logPatternStrLogLevelReset(LvnLogMessage* msg);
+static char* lvn_logPatternStrMsg(LvnLogMessage* msg);
+static char* lvn_logPatternStrPercent(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateMonthName(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateMonthNameShort(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateDayName(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateDayNameShort(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateTimeMeridiem(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateTimeMeridiemLower(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateTimeHHMMSS(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateTimeHHMMSS12(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateYear(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateYear02d(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateMonth(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateDay(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateHour(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateHour12(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateMinute(LvnLogMessage* msg);
+static char* lvn_logPatternStrDateSecond(LvnLogMessage* msg);
+
+static const char* lvn_getLogLevelName(LvnLogLevel level)
+{
+    switch (level)
+    {
+        case Lvn_LogLevel_None:     { return "none"; }
+        case Lvn_LogLevel_Trace:    { return "trace"; }
+        case Lvn_LogLevel_Debug:    { return "debug"; }
+        case Lvn_LogLevel_Info:     { return "info"; }
+        case Lvn_LogLevel_Warn:     { return "warn"; }
+        case Lvn_LogLevel_Error:    { return "error"; }
+        case Lvn_LogLevel_Fatal:    { return "fatal"; }
+    }
+
+    return NULL;
+}
+
+static const char* lvn_getLogLevelColor(LvnLogLevel level)
+{
+    switch (level)
+    {
+        case Lvn_LogLevel_None:     { return LVN_LOG_COLOR_RESET; }
+        case Lvn_LogLevel_Trace:    { return LVN_LOG_COLOR_TRACE; }
+        case Lvn_LogLevel_Debug:    { return LVN_LOG_COLOR_DEBUG; }
+        case Lvn_LogLevel_Info:     { return LVN_LOG_COLOR_INFO; }
+        case Lvn_LogLevel_Warn:     { return LVN_LOG_COLOR_WARN; }
+        case Lvn_LogLevel_Error:    { return LVN_LOG_COLOR_ERROR; }
+        case Lvn_LogLevel_Fatal:    { return LVN_LOG_COLOR_FATAL; }
+    }
+
+    return NULL;
+}
+
+static char* lvn_logPatternStrNewLine(LvnLogMessage* msg) { return lvn_strdup("\n"); }
+static char* lvn_logPatternStrLoggerName(LvnLogMessage* msg) { return lvn_strdup(msg->loggerName); }
+static char* lvn_logPatternStrLogLevelName(LvnLogMessage* msg) { return lvn_strdup(lvn_getLogLevelName(msg->level)); }
+static char* lvn_logPatternStrLogLevelColor(LvnLogMessage* msg) { return lvn_strdup(lvn_getLogLevelColor(msg->level)); }
+static char* lvn_logPatternStrLogLevelReset(LvnLogMessage* msg) { return lvn_strdup(LVN_LOG_COLOR_RESET); }
+static char* lvn_logPatternStrMsg(LvnLogMessage* msg) { return lvn_strdup(msg->msg); }
+static char* lvn_logPatternStrPercent(LvnLogMessage* msg) { return lvn_strdup("%"); }
+static char* lvn_logPatternStrDateMonthName(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetMonthName()); }
+static char* lvn_logPatternStrDateMonthNameShort(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetMonthNameShort()); }
+static char* lvn_logPatternStrDateDayName(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetDayName()); }
+static char* lvn_logPatternStrDateDayNameShort(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetDayNameShort()); }
+static char* lvn_logPatternStrDateTimeMeridiem(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetTimeMeridiem()); }
+static char* lvn_logPatternStrDateTimeMeridiemLower(LvnLogMessage* msg) { return lvn_strdup(lvnDateGetTimeMeridiemLower()); }
+
+static char* lvn_logPatternStrDateTimeHHMMSS(LvnLogMessage* msg)
+{
+    char buff[9];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    snprintf(buff, 9, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateTimeHHMMSS12(LvnLogMessage* msg)
+{
+    char buff[9];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    snprintf(buff, 9, "%02d:%02d:%02d", ((tm.tm_hour + 11) % 12) + 1, tm.tm_min, tm.tm_sec);
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateYear(LvnLogMessage* msg)
+{
+    char buff[5];
+    snprintf(buff, 5, "%d", lvnDateGetYear());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateYear02d(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%d", lvnDateGetYear02d());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateMonth(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetMonth());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateDay(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetDay());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateHour(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetHour());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateHour12(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetHour12());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateMinute(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetMinute());
+    return lvn_strdup(buff);
+}
+
+static char* lvn_logPatternStrDateSecond(LvnLogMessage* msg)
+{
+    char buff[3];
+    snprintf(buff, 3, "%02d", lvnDateGetSecond());
+    return lvn_strdup(buff);
+}
+
+static LvnLogPattern s_LvnLogPatterns[] =
+{
+    { .symbol = '$', .func = lvn_logPatternStrNewLine },
+    { .symbol = 'n', .func = lvn_logPatternStrLoggerName },
+    { .symbol = 'l', .func = lvn_logPatternStrLogLevelName },
+    { .symbol = '#', .func = lvn_logPatternStrLogLevelColor },
+    { .symbol = '^', .func = lvn_logPatternStrLogLevelReset },
+    { .symbol = 'v', .func = lvn_logPatternStrMsg },
+    { .symbol = '%', .func = lvn_logPatternStrPercent },
+    { .symbol = 'T', .func = lvn_logPatternStrDateTimeHHMMSS },
+    { .symbol = 't', .func = lvn_logPatternStrDateTimeHHMMSS12 },
+    { .symbol = 'Y', .func = lvn_logPatternStrDateYear },
+    { .symbol = 'y', .func = lvn_logPatternStrDateYear02d },
+    { .symbol = 'm', .func = lvn_logPatternStrDateMonth },
+    { .symbol = 'B', .func = lvn_logPatternStrDateMonthName },
+    { .symbol = 'b', .func = lvn_logPatternStrDateMonthNameShort },
+    { .symbol = 'd', .func = lvn_logPatternStrDateDay },
+    { .symbol = 'A', .func = lvn_logPatternStrDateDayName },
+    { .symbol = 'a', .func = lvn_logPatternStrDateDayNameShort },
+    { .symbol = 'H', .func = lvn_logPatternStrDateHour },
+    { .symbol = 'h', .func = lvn_logPatternStrDateHour12 },
+    { .symbol = 'M', .func = lvn_logPatternStrDateMinute },
+    { .symbol = 'S', .func = lvn_logPatternStrDateSecond },
+    { .symbol = 'P', .func = lvn_logPatternStrDateTimeMeridiem },
+    { .symbol = 'p', .func = lvn_logPatternStrDateTimeMeridiemLower },
+};
 
 LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
 {
@@ -42,14 +214,14 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     }
 
     if (createInfo && createInfo->appName)
-        ctxPtr->coreLogger.loggerName = lvn_strcon(createInfo->appName);
+        ctxPtr->coreLogger.loggerName = lvn_strdup(createInfo->appName);
     else
-        ctxPtr->coreLogger.loggerName = lvn_strcon("CORE");
+        ctxPtr->coreLogger.loggerName = lvn_strdup("CORE");
 
     if (createInfo && createInfo->logging.coreLogFormat)
-        ctxPtr->coreLogger.logPatternFormat = lvn_strcon(createInfo->logging.coreLogFormat);
+        ctxPtr->coreLogger.logPatternFormat = lvn_strdup(createInfo->logging.coreLogFormat);
     else
-        ctxPtr->coreLogger.logPatternFormat = lvn_strcon(LVN_DEFAULT_LOG_PATTERN);
+        ctxPtr->coreLogger.logPatternFormat = lvn_strdup(LVN_DEFAULT_LOG_PATTERN);
 
     if (createInfo && createInfo->logging.coreLogLevel)
         ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
@@ -69,6 +241,10 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
         ctxPtr->coreLogger.sinkCount = 1;
     }
 
+    ctxPtr->coreLogger.pLogPatterns = (LvnLogPattern*) lvn_calloc(sizeof(s_LvnLogPatterns));
+    memcpy(ctxPtr->coreLogger.pLogPatterns, s_LvnLogPatterns, sizeof(s_LvnLogPatterns));
+    ctxPtr->coreLogger.logPatternCount = LVN_ARRAY_LEN(s_LvnLogPatterns);
+
     return Lvn_Result_Success;
 }
 
@@ -79,8 +255,8 @@ void lvnDestroyContext(LvnContext* ctx)
 
     lvn_free(ctx->coreLogger.loggerName);
     lvn_free(ctx->coreLogger.logPatternFormat);
-    lvn_free(ctx->coreLogger.pLogPatterns);
     lvn_free(ctx->coreLogger.pSinks);
+    lvn_free(ctx->coreLogger.pLogPatterns);
 
     lvn_free(ctx);
 }
@@ -178,14 +354,14 @@ const char* lvnDateGetMonthNameShort(void)
     return s_LvnMonthNameShort[tm.tm_mon];
 }
 
-const char* lvnDateGetWeekDayName(void)
+const char* lvnDateGetDayName(void)
 {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     return s_LvnWeekDayName[tm.tm_wday];
 }
 
-const char* lvnDateGetWeekDayNameShort(void)
+const char* lvnDateGetDayNameShort(void)
 {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
@@ -214,7 +390,7 @@ const char* lvnDateGetTimeMeridiemLower(void)
 
 char* lvnLogCreateOneShotStrMsg(const char* str)
 {
-    return lvn_strcon(str);
+    return lvn_strdup(str);
 }
 
 void* lvn_calloc(size_t size)
@@ -235,7 +411,7 @@ void* lvn_realloc(void* ptr, size_t size)
     return s_LvnMemReallocFnCallback(ptr, size, s_LvnMemUserData);
 }
 
-char* lvn_strcon(const char* str)
+char* lvn_strdup(const char* str)
 {
     const size_t length = strlen(str) + 1;
     char* result = (char*) lvn_calloc(length);

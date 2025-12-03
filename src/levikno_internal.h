@@ -24,4 +24,4 @@ void*     lvn_calloc(size_t size);
 void      lvn_free(void* ptr);
 void*     lvn_realloc(void* ptr, size_t size);
 
-char*     lvn_strcon(const char* str);
+char*     lvn_strdup(const char* str);
