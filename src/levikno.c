@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
 #define LVN_ABORT(rc) exit(rc)
@@ -21,7 +22,7 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     if (!ctx)
         return Lvn_Result_Failure;
 
-    *ctx = lvn_calloc(sizeof(LvnContext));
+    *ctx = (LvnContext*) lvn_calloc(sizeof(LvnContext));
 
     if (!*ctx)
         return Lvn_Result_Failure;
@@ -57,13 +58,13 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
 
     if (createInfo && createInfo->logging.pCoreSinks)
     {
-        ctxPtr->coreLogger.pSinks = lvn_calloc(sizeof(LvnSink) * createInfo->logging.coreSinkCount);
+        ctxPtr->coreLogger.pSinks = (LvnSink*) lvn_calloc(sizeof(LvnSink) * createInfo->logging.coreSinkCount);
         memcpy(ctxPtr->coreLogger.pSinks, createInfo->logging.pCoreSinks, sizeof(LvnSink) * createInfo->logging.coreSinkCount);
         ctxPtr->coreLogger.sinkCount = createInfo->logging.coreSinkCount;
     }
     else
     {
-        ctxPtr->coreLogger.pSinks = lvn_calloc(sizeof(LvnSink));
+        ctxPtr->coreLogger.pSinks = (LvnSink*) lvn_calloc(sizeof(LvnSink));
         ctxPtr->coreLogger.pSinks->logFunc = NULL;
         ctxPtr->coreLogger.sinkCount = 1;
     }
@@ -97,6 +98,125 @@ LvnResult lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, Lv
     return Lvn_Result_Success;
 }
 
+int lvnDateGetYear(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_year + 1900;
+}
+
+int lvnDateGetYear02d(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return (tm.tm_year + 1900) % 100;
+}
+
+int lvnDateGetMonth(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_mon + 1;
+}
+
+int lvnDateGetDay(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_mday;
+}
+
+int lvnDateGetHour(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_hour;
+}
+
+int lvnDateGetHour12(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return ((tm.tm_hour + 11) % 12) + 1;
+}
+
+int lvnDateGetMinute(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_min;
+}
+
+int lvnDateGetSecond(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_sec;
+}
+
+long long lvnDateGetSecondsSinceEpoch(void)
+{
+    return time(NULL);
+}
+
+static const char* const s_LvnMonthName[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+static const char* const s_LvnMonthNameShort[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+static const char* const s_LvnWeekDayName[7] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+static const char* const s_LvnWeekDayNameShort[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+const char* lvnDateGetMonthName(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return s_LvnMonthName[tm.tm_mon];
+}
+
+const char* lvnDateGetMonthNameShort(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return s_LvnMonthNameShort[tm.tm_mon];
+}
+
+const char* lvnDateGetWeekDayName(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return s_LvnWeekDayName[tm.tm_wday];
+}
+
+const char* lvnDateGetWeekDayNameShort(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return s_LvnWeekDayNameShort[tm.tm_wday];
+}
+
+const char* lvnDateGetTimeMeridiem(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    if (tm.tm_hour < 12)
+        return "AM";
+    else
+        return "PM";
+}
+
+const char* lvnDateGetTimeMeridiemLower(void)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    if (tm.tm_hour < 12)
+        return "am";
+    else
+        return "pm";
+}
+
+char* lvnLogCreateOneShotStrMsg(const char* str)
+{
+    return lvn_strcon(str);
+}
+
 void* lvn_calloc(size_t size)
 {
     void* result = s_LvnMemAllocFnCallback(size, s_LvnMemUserData);
@@ -118,7 +238,7 @@ void* lvn_realloc(void* ptr, size_t size)
 char* lvn_strcon(const char* str)
 {
     const size_t length = strlen(str) + 1;
-    char* result = lvn_calloc(length);
+    char* result = (char*) lvn_calloc(length);
     memcpy(result, str, length);
     return result;
 }

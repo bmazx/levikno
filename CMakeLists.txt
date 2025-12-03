@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 17)
 
 project(levikno)
 
@@ -24,10 +25,8 @@ endif()
 
 # compiler options
 if (MSVC)
-    # warning level 4
     add_compile_options(/W4)
 else()
-    # additional warnings
     add_compile_options(-Wall -Wpedantic)
 endif()
 
