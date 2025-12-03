@@ -16,31 +16,32 @@ static LvnMemFreeFn s_LvnMemFreeFnCallback = freeWrapper;
 static LvnMemReallocFn s_LvnMemReallocFnCallback = reallocWrapper;
 static void* s_LvnMemUserData = NULL;
 
-static const char* lvn_getLogLevelName(LvnLogLevel level);
-static const char* lvn_getLogLevelColor(LvnLogLevel level);
-static char* lvn_logPatternStrNewLine(LvnLogMessage* msg);
-static char* lvn_logPatternStrLoggerName(LvnLogMessage* msg);
-static char* lvn_logPatternStrLogLevelName(LvnLogMessage* msg);
-static char* lvn_logPatternStrLogLevelColor(LvnLogMessage* msg);
-static char* lvn_logPatternStrLogLevelReset(LvnLogMessage* msg);
-static char* lvn_logPatternStrMsg(LvnLogMessage* msg);
-static char* lvn_logPatternStrPercent(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateMonthName(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateMonthNameShort(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateDayName(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateDayNameShort(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateTimeMeridiem(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateTimeMeridiemLower(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateTimeHHMMSS(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateTimeHHMMSS12(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateYear(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateYear02d(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateMonth(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateDay(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateHour(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateHour12(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateMinute(LvnLogMessage* msg);
-static char* lvn_logPatternStrDateSecond(LvnLogMessage* msg);
+static const char*    lvn_getLogLevelName(LvnLogLevel level);
+static const char*    lvn_getLogLevelColor(LvnLogLevel level);
+static char*          lvn_logPatternStrNewLine(LvnLogMessage* msg);
+static char*          lvn_logPatternStrLoggerName(LvnLogMessage* msg);
+static char*          lvn_logPatternStrLogLevelName(LvnLogMessage* msg);
+static char*          lvn_logPatternStrLogLevelColor(LvnLogMessage* msg);
+static char*          lvn_logPatternStrLogLevelReset(LvnLogMessage* msg);
+static char*          lvn_logPatternStrMsg(LvnLogMessage* msg);
+static char*          lvn_logPatternStrPercent(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateMonthName(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateMonthNameShort(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateDayName(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateDayNameShort(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateTimeMeridiem(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateTimeMeridiemLower(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateTimeHHMMSS(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateTimeHHMMSS12(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateYear(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateYear02d(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateMonth(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateDay(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateHour(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateHour12(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateMinute(LvnLogMessage* msg);
+static char*          lvn_logPatternStrDateSecond(LvnLogMessage* msg);
+static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt, uint32_t* logPatternCount);
 
 static const char* lvn_getLogLevelName(LvnLogLevel level)
 {
@@ -99,10 +100,11 @@ static char* lvn_logPatternStrDateTimeHHMMSS(LvnLogMessage* msg)
 
 static char* lvn_logPatternStrDateTimeHHMMSS12(LvnLogMessage* msg)
 {
-    char buff[9];
+    // make buff size larger to supress gcc truncate warning
+    char buff[16];
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    snprintf(buff, 9, "%02d:%02d:%02d", ((tm.tm_hour + 11) % 12) + 1, tm.tm_min, tm.tm_sec);
+    snprintf(buff, 16, "%02d:%02d:%02d", ((tm.tm_hour + 11) % 12) + 1, tm.tm_min, tm.tm_sec);
     return lvn_strdup(buff);
 }
 
@@ -189,6 +191,60 @@ static LvnLogPattern s_LvnLogPatterns[] =
     { .symbol = 'p', .func = lvn_logPatternStrDateTimeMeridiemLower },
 };
 
+static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt, uint32_t* logPatternCount)
+{
+    LVN_ASSERT(ctx && fmt && logPatternCount && fmt[0] != '\0', "ctx and fmt and logPatternCount cannot not be null or empty");
+
+    LvnLogPattern* patterns = NULL;
+    uint32_t patternCount = 0;
+
+    for (uint32_t i = 0; i < strlen(fmt) - 1; i++)
+    {
+        if (fmt[i] != '%') // other characters in format
+        {
+            LvnLogPattern pattern = { .symbol = fmt[i], .func = NULL };
+            patterns = lvn_realloc(patterns, ++patternCount * sizeof(LvnLogPattern));
+            memcpy(&patterns[patternCount - 1], &pattern, sizeof(LvnLogPattern));
+            continue;
+        }
+
+        // find pattern with matching symbol
+        bool skip = false;
+        for (uint32_t j = 0; j < LVN_ARRAY_LEN(s_LvnLogPatterns); j++)
+        {
+            if (fmt[i + 1] == s_LvnLogPatterns[j].symbol)
+            {
+                patterns = lvn_realloc(patterns, ++patternCount * sizeof(LvnLogPattern));
+                memcpy(&patterns[patternCount - 1], &s_LvnLogPatterns[j], sizeof(LvnLogPattern));
+                skip = true;
+                break;
+            }
+        }
+
+        if (skip)
+        {
+            i++;
+            continue;
+        }
+
+        // find and add user defined patterns
+        for (uint32_t j = 0; j < ctx->userLogPatternCount; j++)
+        {
+            if (fmt[i + 1] != ctx->pUserLogPatterns[j].symbol)
+                continue;
+
+            patterns = lvn_realloc(patterns, ++patternCount * sizeof(LvnLogPattern));
+            memcpy(&patterns[patternCount - 1], &ctx->pUserLogPatterns[j], sizeof(LvnLogPattern));
+        }
+
+        i++; // incramant past symbol on next character in format
+    }
+
+    *logPatternCount = patternCount;
+
+    return patterns;
+}
+
 LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
 {
     if (!ctx)
@@ -241,9 +297,7 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
         ctxPtr->coreLogger.sinkCount = 1;
     }
 
-    ctxPtr->coreLogger.pLogPatterns = (LvnLogPattern*) lvn_calloc(sizeof(s_LvnLogPatterns));
-    memcpy(ctxPtr->coreLogger.pLogPatterns, s_LvnLogPatterns, sizeof(s_LvnLogPatterns));
-    ctxPtr->coreLogger.logPatternCount = LVN_ARRAY_LEN(s_LvnLogPatterns);
+    ctxPtr->coreLogger.pLogPatterns = lvn_logParseFormat(ctxPtr, LVN_DEFAULT_LOG_PATTERN, &ctxPtr->coreLogger.logPatternCount);
 
     return Lvn_Result_Success;
 }

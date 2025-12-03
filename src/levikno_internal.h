@@ -17,6 +17,8 @@ struct LvnContext
     bool               enableLogging;
     bool               enableCoreLogging;
     LvnLogger          coreLogger;
+    LvnLogPattern*     pUserLogPatterns;
+    uint32_t           userLogPatternCount;
 };
 
 
