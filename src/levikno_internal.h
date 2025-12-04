@@ -10,12 +10,11 @@ struct LvnLogger
     uint32_t logPatternCount;
     LvnSink* pSinks;
     uint32_t sinkCount;
+    bool logging;
 };
 
 struct LvnContext
 {
-    bool               enableLogging;
-    bool               enableCoreLogging;
     LvnLogger          coreLogger;
     LvnLogPattern*     pUserLogPatterns;
     uint32_t           userLogPatternCount;

@@ -55,16 +55,13 @@ typedef struct LvnLoggerCreateContext
 
 typedef struct LvnContextCreateInfo
 {
-    const char* appName;
-
     struct
     {
-        bool enableLogging;
-        bool enableCoreLogging;
-        const char* coreLogFormat;
-        LvnLogLevel coreLogLevel;
-        const LvnSink* pCoreSinks;
-        uint32_t coreSinkCount;
+        bool enableLogging;                // enable logging for the core logger
+        const char* coreLogFormat;         // the log format for the core logger
+        LvnLogLevel coreLogLevel;          // the log level for the core logger
+        const LvnSink* pCoreSinks;         // array of output sinks for the core logger
+        uint32_t coreSinkCount;            // number of output sinks in pCoreSinks
     } logging;
 } LvnContextCreateInfo;
 
@@ -100,7 +97,24 @@ LVN_API const char*             lvnDateGetDayName(void);                        
 LVN_API const char*             lvnDateGetDayNameShort(void);                              // get the current day shortened name in the week (eg. Mon, Fri)
 LVN_API const char*             lvnDateGetTimeMeridiem(void);                              // get the time meridiem of the current day (eg. AM, PM)
 LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
+
+LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                      // get the core logger from the context
+LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                 // get the ANSI color code string of the log level
+
+LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);       // enable or disable logging for the logger
+LVN_API void                    lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg);             // prints the log message
+LVN_API uint32_t                lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg); // formats the log message into the log pattern set by the logger
+LVN_API void                    lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg);   // log message with given log level
+LVN_API bool                    lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level);                 // check level witht the logger, returns true if larger or equal to the level of the logger, returns false otherwise
+LVN_API void                    lvnLogSetLevel(LvnLogger* logger, LvnLogLevel level);                         // sets the log level of logger, will only print messages with set log level and higher
+LVN_API void                    lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...);            // log message with level trace; ANSI code "\x1b[0;37m"
+LVN_API void                    lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...);            // log message with level debug; ANSI code "\x1b[0;34m"
+LVN_API void                    lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...);             // log message with level info;  ANSI code "\x1b[0;32m"
+LVN_API void                    lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...);             // log message with level warn;  ANSI code "\x1b[1;33m"
+LVN_API void                    lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...);            // log message with level error; ANSI code "\x1b[1;31m"
+LVN_API void                    lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...);            // log message with level fatal; ANSI code "\x1b[1;37;41m"
 LVN_API char*                   lvnLogCreateOneShotStrMsg(const char* str);
+
 
 #ifdef __cplusplus
 }

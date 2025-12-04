@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
+
+// ansi color terminal logging support on windows
+#ifdef LVN_PLATFORM_WINDOWS
+#include <windows.h>
+#endif
 
 #define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
 
@@ -42,6 +48,19 @@ static char*          lvn_logPatternStrDateHour12(LvnLogMessage* msg);
 static char*          lvn_logPatternStrDateMinute(LvnLogMessage* msg);
 static char*          lvn_logPatternStrDateSecond(LvnLogMessage* msg);
 static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt, uint32_t* logPatternCount);
+
+#ifdef LVN_PLATFORM_WINDOWS
+static void lvn_enableLogANSIcodeColors()
+{
+    DWORD consoleMode;
+    HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (GetConsoleMode(outputHandle, &consoleMode))
+    {
+        SetConsoleMode(outputHandle, consoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
+}
+#endif
+
 
 static const char* lvn_getLogLevelName(LvnLogLevel level)
 {
@@ -258,31 +277,25 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     memset(*ctx, 0, sizeof(LvnContext));
     LvnContext* ctxPtr = *ctx;
 
+#ifdef LVN_PLATFORM_WINDOWS
+    lvn_enableLogANSIcodeColors();
+#endif
+
     if (createInfo)
     {
-        ctxPtr->enableLogging = createInfo->logging.enableLogging;
-        ctxPtr->enableCoreLogging = createInfo->logging.enableCoreLogging;
+        ctxPtr->coreLogger.logging = createInfo->logging.enableLogging;
+        ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
     }
     else
     {
-        ctxPtr->enableLogging = true;
-        ctxPtr->enableCoreLogging = true;
+        ctxPtr->coreLogger.logging = true;
+        ctxPtr->coreLogger.logLevel = Lvn_LogLevel_None;
     }
-
-    if (createInfo && createInfo->appName)
-        ctxPtr->coreLogger.loggerName = lvn_strdup(createInfo->appName);
-    else
-        ctxPtr->coreLogger.loggerName = lvn_strdup("CORE");
 
     if (createInfo && createInfo->logging.coreLogFormat)
         ctxPtr->coreLogger.logPatternFormat = lvn_strdup(createInfo->logging.coreLogFormat);
     else
         ctxPtr->coreLogger.logPatternFormat = lvn_strdup(LVN_DEFAULT_LOG_PATTERN);
-
-    if (createInfo && createInfo->logging.coreLogLevel)
-        ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
-    else
-        ctxPtr->coreLogger.logLevel = Lvn_LogLevel_None;
 
     if (createInfo && createInfo->logging.pCoreSinks)
     {
@@ -297,7 +310,9 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
         ctxPtr->coreLogger.sinkCount = 1;
     }
 
+    ctxPtr->coreLogger.loggerName = lvn_strdup("CORE");
     ctxPtr->coreLogger.pLogPatterns = lvn_logParseFormat(ctxPtr, LVN_DEFAULT_LOG_PATTERN, &ctxPtr->coreLogger.logPatternCount);
+
 
     return Lvn_Result_Success;
 }
@@ -442,10 +457,286 @@ const char* lvnDateGetTimeMeridiemLower(void)
         return "pm";
 }
 
+LvnLogger* lvnCtxGetCoreLogger(LvnContext* ctx)
+{
+    LVN_ASSERT(ctx, "ctx cannot be null");
+    return &ctx->coreLogger;
+}
+
+const char* lvnLogGetANSIcodeColor(LvnLogLevel level)
+{
+    switch (level)
+    {
+        case Lvn_LogLevel_None:     { return LVN_LOG_COLOR_RESET; }
+        case Lvn_LogLevel_Trace:    { return LVN_LOG_COLOR_TRACE; }
+        case Lvn_LogLevel_Debug:    { return LVN_LOG_COLOR_DEBUG; }
+        case Lvn_LogLevel_Info:     { return LVN_LOG_COLOR_INFO; }
+        case Lvn_LogLevel_Warn:     { return LVN_LOG_COLOR_WARN; }
+        case Lvn_LogLevel_Error:    { return LVN_LOG_COLOR_ERROR; }
+        case Lvn_LogLevel_Fatal:    { return LVN_LOG_COLOR_FATAL; }
+    }
+
+    return NULL;
+}
+
+void lvnLogEnableLogging(LvnLogger* logger, bool enable)
+{
+    LVN_ASSERT(logger, "logger cannot be null");
+    logger->logging = enable;
+}
+
+void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
+{
+    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
+
+    if (!logger->logging) { return; }
+
+    char* msgstr = NULL;
+    int msglen = 0;
+
+    for (uint32_t i = 0; i < logger->logPatternCount; i++)
+    {
+        if (!logger->pLogPatterns[i].func) // no special format character '%' found
+        {
+            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char));
+            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
+        }
+        else // call func of special format
+        {
+            char* logmsg = logger->pLogPatterns[i].func(msg);
+            int loglen = strlen(logmsg);
+            msglen += loglen;
+            msgstr = lvn_realloc(msgstr, msglen * sizeof(char));
+            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
+            lvn_free(logmsg);
+        }
+    }
+
+    printf("%.*s", msglen, msgstr);
+
+    lvn_free(msgstr);
+}
+
+uint32_t lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg)
+{
+    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
+
+    LvnLogMessage logMsg =
+    {
+        .msg = msg,
+        .loggerName = logger->loggerName,
+        .level = level,
+        .timeEpoch = lvnDateGetSecondsSinceEpoch(),
+    };
+
+    char* msgstr = NULL;
+    int msglen = 0;
+
+    for (uint32_t i = 0; i < logger->logPatternCount; i++)
+    {
+        if (!logger->pLogPatterns[i].func) // no special format character '%' found
+        {
+            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char));
+            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
+        }
+        else // call func of special format
+        {
+            char* logmsg = logger->pLogPatterns[i].func(&logMsg);
+            int loglen = strlen(logmsg);
+            msglen += loglen;
+            msgstr = lvn_realloc(msgstr, msglen * sizeof(char));
+            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
+            lvn_free(logmsg);
+        }
+    }
+
+    if (dst)
+        memcpy(dst, msgstr, length <= msglen ? length * sizeof(char) : msglen * sizeof(char));
+
+    lvn_free(msgstr);
+    return msglen;
+}
+
+void lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg)
+{
+    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
+
+    if (!logger->logging) { return; }
+
+    LvnLogMessage logMsg =
+    {
+        .msg = msg,
+        .loggerName = logger->loggerName,
+        .level = level,
+        .timeEpoch = lvnDateGetSecondsSinceEpoch(),
+    };
+
+    lvnLogOutputMessage(logger, &logMsg);
+}
+
+bool lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level)
+{
+    LVN_ASSERT(logger, "logger cannot be null");
+    return (level >= logger->logLevel);
+}
+
+void lvnLogSetLevel(LvnLogger* logger, LvnLogLevel level)
+{
+    LVN_ASSERT(logger, "logger cannot be null");
+    logger->logLevel = level;
+}
+
+void lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Trace)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Trace, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
+void lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Debug)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Debug, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
+void lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...)
+{
+
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Info)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Info, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
+void lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...)
+{
+
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Warn)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Warn, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
+void lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Error)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Error, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
+void lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    if (!logger->logging) { return; }
+    if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Fatal)) { return; }
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    lvnLogMessage(logger, Lvn_LogLevel_Fatal, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+}
+
 char* lvnLogCreateOneShotStrMsg(const char* str)
 {
     return lvn_strdup(str);
 }
+
 
 void* lvn_calloc(size_t size)
 {
