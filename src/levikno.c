@@ -557,6 +557,29 @@ uint32_t lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length
     return msglen;
 }
 
+uint32_t lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    char* buff;
+
+    va_list argptr, argcopy;
+    va_start(argptr, fmt);
+    va_copy(argcopy, argptr);
+
+    int len = vsnprintf(NULL, 0, fmt, argptr);
+    buff = lvn_calloc((len + 1) * sizeof(char));
+    vsnprintf(buff, len + 1, fmt, argcopy);
+    uint32_t msgLen = lvnLogFormatMessage(logger, dst, length, level, buff);
+
+    va_end(argcopy);
+    va_end(argptr);
+
+    lvn_free(buff);
+
+    return msgLen;
+}
+
 void lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg)
 {
     LVN_ASSERT(logger && msg, "logger and msg cannot be null");

@@ -19,10 +19,10 @@ int main(int argc, char** argv)
     lvnLogMessageError(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
     lvnLogMessageFatal(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
 
-    uint32_t len = lvnLogFormatMessage(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world");
+    uint32_t len = lvnLogFormatMessageArgs(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
     printf("%u\n", len);
     char* str = (char*) malloc(len * sizeof(char));
-    lvnLogFormatMessage(logger, str, len, Lvn_LogLevel_Warn, "hello world");
+    lvnLogFormatMessageArgs(logger, str, len, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
 
     printf("%.*s", len, str);
     free(str);
