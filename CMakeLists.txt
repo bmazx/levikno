@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 project(levikno)
 
 # options
-option(LVN_BUILD_EXAMPLES "Build example programs" TRUE)
+option(LVN_BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+set(LVN_LIB_TYPE "${LVN_LIB_TYPE}" CACHE STRING
+    "Library type override for levikno (SHARED, STATIC, OBJECT, or empty to follow BUILD_SHARED_LIBS)")
 
 # output dirs
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -30,6 +34,9 @@ else()
     add_compile_options(-Wall -Wpedantic)
 endif()
 
+# library type
+set(LVN_LIB_TYPE )
+
 
 set(LVN_SRC
     include/levikno/levikno.h
@@ -37,7 +44,7 @@ set(LVN_SRC
     src/levikno_internal.h
 )
 
-add_library(levikno STATIC
+add_library(levikno ${LVN_LIB_TYPE}
     ${LVN_SRC}
 )
 

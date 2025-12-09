@@ -2,6 +2,14 @@
 #define HG_LEVIKNO_H
 
 
+#define LVN_LOG_COLOR_TRACE                     "\x1b[0;37m"
+#define LVN_LOG_COLOR_DEBUG                     "\x1b[0;34m"
+#define LVN_LOG_COLOR_INFO                      "\x1b[0;32m"
+#define LVN_LOG_COLOR_WARN                      "\x1b[1;33m"
+#define LVN_LOG_COLOR_ERROR                     "\x1b[1;31m"
+#define LVN_LOG_COLOR_FATAL                     "\x1b[1;37;41m"
+#define LVN_LOG_COLOR_RESET                     "\x1b[0m"
+
 #include "lvn_config.h"
 
 #include <stdint.h>
@@ -44,14 +52,14 @@ typedef struct LvnLogPattern
     char* (*func)(LvnLogMessage*);
 } LvnLogPattern;
 
-typedef struct LvnLoggerCreateContext
+typedef struct LvnLoggerCreateInfo
 {
     const char* name;
     const char* format;
     LvnLogLevel level;
     const LvnSink* pSinks;
     uint32_t sinkCount;
-} LvnLoggerCreateContext;
+} LvnLoggerCreateInfo;
 
 typedef struct LvnContextCreateInfo
 {
@@ -70,6 +78,8 @@ typedef struct LvnContextCreateInfo
 typedef void* (*LvnMemAllocFn)(size_t, void*);
 typedef void  (*LvnMemFreeFn)(void*, void*);
 typedef void* (*LvnMemReallocFn)(void*, size_t, void*);
+
+typedef void  (*LvnLogOutputMessageFn)(const LvnLogger*, LvnLogMessage*);
 
 
 #ifdef __cplusplus
@@ -98,10 +108,9 @@ LVN_API const char*             lvnDateGetDayNameShort(void);                   
 LVN_API const char*             lvnDateGetTimeMeridiem(void);                              // get the time meridiem of the current day (eg. AM, PM)
 LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
 
-LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                      // get the core logger from the context
-LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                 // get the ANSI color code string of the log level
-
-LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);       // enable or disable logging for the logger
+LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                                         // get the core logger from the context
+LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
+LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
 LVN_API void                    lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg);             // prints the log message
 LVN_API uint32_t                lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg); // formats the log message into the log pattern set by the logger, returns the length of the formatted log message
 LVN_API uint32_t                lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...); // formats the log message with args into the log pattern set by the logger, returns the length of the formatted log message
@@ -116,6 +125,9 @@ LVN_API void                    lvnLogMessageError(const LvnLogger* logger, cons
 LVN_API void                    lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...);            // log message with level fatal; ANSI code "\x1b[1;37;41m"
 LVN_API char*                   lvnLogCreateOneShotStrMsg(const char* str);
 
+LVN_API LvnResult               lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLoggerCreateInfo* createInfo);   // create logger object
+LVN_API void                    lvnDestroyLogger(LvnLogger* logger);                                                                 // destroy logger object
+
 
 #ifdef __cplusplus
 }
@@ -129,7 +141,7 @@ namespace lvn
 
 }
 
-#endif /* !__cplusplus */
+#endif // !__cplusplus
 
 
-#endif /* !HG_LEVIKNO_H */
+#endif // !HG_LEVIKNO_H

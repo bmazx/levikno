@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void myPrint(const char* msg)
+{
+    printf("%s", msg);
+}
+
 int main(int argc, char** argv)
 {
     LvnContext* ctx;
@@ -26,6 +31,28 @@ int main(int argc, char** argv)
 
     printf("%.*s", len, str);
     free(str);
+
+    LvnSink sink =
+    {
+        .logFunc = myPrint,
+    };
+
+    LvnLoggerCreateInfo logCreateInfo =
+    {
+        .name = "myLog",
+        .level = Lvn_LogLevel_None,
+        .format = "[%Y-%m-%d] [%T] [%#%l%^] >>> %n: %v%$",
+        .pSinks = &sink,
+        .sinkCount = 1,
+    };
+
+    LvnLogger* mylog;
+    lvnCreateLogger(ctx, &mylog, &logCreateInfo);
+
+    lvnLogMessageDebug(mylog, "hello there %f", 3.1415);
+    lvnLogMessageError(mylog, "hello there %f", 3.1415);
+
+    lvnDestroyLogger(mylog);
 
     lvnDestroyContext(ctx);
 }

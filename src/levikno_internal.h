@@ -1,3 +1,6 @@
+#ifndef HG_LVN_INTERNAL_H
+#define HG_LVN_INTERNAL_H
+
 #include "levikno.h"
 
 
@@ -26,3 +29,6 @@ void      lvn_free(void* ptr);
 void*     lvn_realloc(void* ptr, size_t size);
 
 char*     lvn_strdup(const char* str);
+
+
+#endif // !HG_LVN_INTERNAL_H

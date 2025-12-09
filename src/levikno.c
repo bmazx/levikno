@@ -14,6 +14,7 @@
 #define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
 
 
+// memory
 static void*   mallocWrapper(size_t size, void* userData)               { (void)userData; return malloc(size); }
 static void    freeWrapper(void* ptr, void* userData)                   { (void)userData; free(ptr); }
 static void*   reallocWrapper(void* ptr, size_t size, void* userData)   { (void)userData; return realloc(ptr, size); }
@@ -22,6 +23,10 @@ static LvnMemFreeFn s_LvnMemFreeFnCallback = freeWrapper;
 static LvnMemReallocFn s_LvnMemReallocFnCallback = reallocWrapper;
 static void* s_LvnMemUserData = NULL;
 
+// logging
+static void    printWrapper(const char* msg) { printf("%s", msg); }
+
+// utils
 static const char*    lvn_getLogLevelName(LvnLogLevel level);
 static const char*    lvn_getLogLevelColor(LvnLogLevel level);
 static char*          lvn_logPatternStrNewLine(LvnLogMessage* msg);
@@ -49,6 +54,7 @@ static char*          lvn_logPatternStrDateMinute(LvnLogMessage* msg);
 static char*          lvn_logPatternStrDateSecond(LvnLogMessage* msg);
 static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt, uint32_t* logPatternCount);
 
+
 #ifdef LVN_PLATFORM_WINDOWS
 static void lvn_enableLogANSIcodeColors()
 {
@@ -60,7 +66,6 @@ static void lvn_enableLogANSIcodeColors()
     }
 }
 #endif
-
 
 static const char* lvn_getLogLevelName(LvnLogLevel level)
 {
@@ -306,7 +311,7 @@ LvnResult lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo)
     else
     {
         ctxPtr->coreLogger.pSinks = (LvnSink*) lvn_calloc(sizeof(LvnSink));
-        ctxPtr->coreLogger.pSinks->logFunc = NULL;
+        ctxPtr->coreLogger.pSinks->logFunc = printWrapper;
         ctxPtr->coreLogger.sinkCount = 1;
     }
 
@@ -463,6 +468,12 @@ LvnLogger* lvnCtxGetCoreLogger(LvnContext* ctx)
     return &ctx->coreLogger;
 }
 
+void lvnLogEnableLogging(LvnLogger* logger, bool enable)
+{
+    LVN_ASSERT(logger, "logger cannot be null");
+    logger->logging = enable;
+}
+
 const char* lvnLogGetANSIcodeColor(LvnLogLevel level)
 {
     switch (level)
@@ -479,12 +490,6 @@ const char* lvnLogGetANSIcodeColor(LvnLogLevel level)
     return NULL;
 }
 
-void lvnLogEnableLogging(LvnLogger* logger, bool enable)
-{
-    LVN_ASSERT(logger, "logger cannot be null");
-    logger->logging = enable;
-}
-
 void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
 {
     LVN_ASSERT(logger && msg, "logger and msg cannot be null");
@@ -498,7 +503,7 @@ void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
     {
         if (!logger->pLogPatterns[i].func) // no special format character '%' found
         {
-            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char));
+            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char) + 1);
             memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
         }
         else // call func of special format
@@ -506,13 +511,15 @@ void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
             char* logmsg = logger->pLogPatterns[i].func(msg);
             int loglen = strlen(logmsg);
             msglen += loglen;
-            msgstr = lvn_realloc(msgstr, msglen * sizeof(char));
+            msgstr = lvn_realloc(msgstr, msglen * sizeof(char) + 1);
             memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
             lvn_free(logmsg);
         }
     }
 
-    printf("%.*s", msglen, msgstr);
+    msgstr[msglen] = '\0';
+    for (uint32_t i = 0; i < logger->sinkCount; i++)
+        logger->pSinks[i].logFunc(msgstr);
 
     lvn_free(msgstr);
 }
@@ -760,6 +767,47 @@ char* lvnLogCreateOneShotStrMsg(const char* str)
     return lvn_strdup(str);
 }
 
+LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLoggerCreateInfo* createInfo)
+{
+    LVN_ASSERT(logger && createInfo, "logger and createInfo cannot be null");
+    LVN_ASSERT(createInfo->name, "createInfo->name cannot be null");
+    LVN_ASSERT(createInfo->format, "createInfo->format cannot be null");
+
+    *logger = (LvnLogger*) lvn_calloc(sizeof(LvnLogger));
+
+    if (!*logger)
+    {
+        return Lvn_Result_Failure;
+    }
+
+    LvnLogger* loggerPtr = *logger;
+    loggerPtr->logging = true;
+    loggerPtr->loggerName = lvn_strdup(createInfo->name);
+    loggerPtr->logLevel = createInfo->level;
+    loggerPtr->logPatternFormat = lvn_strdup(createInfo->format);
+    loggerPtr->pLogPatterns = lvn_logParseFormat(ctx, createInfo->format, &loggerPtr->logPatternCount);
+    loggerPtr->pSinks = lvn_calloc(createInfo->sinkCount * sizeof(LvnSink));
+    memcpy(loggerPtr->pSinks, createInfo->pSinks, createInfo->sinkCount * sizeof(LvnSink));
+    loggerPtr->sinkCount = createInfo->sinkCount;
+
+    return Lvn_Result_Success;
+}
+
+void lvnDestroyLogger(LvnLogger* logger)
+{
+    LVN_ASSERT(logger, "logger cannot be null");
+
+    if (logger->loggerName)
+        lvn_free(logger->loggerName);
+    if (logger->logPatternFormat)
+        lvn_free(logger->logPatternFormat);
+    if (logger->pLogPatterns)
+        lvn_free(logger->pLogPatterns);
+    if (logger->pSinks)
+        lvn_free(logger->pSinks);
+
+    lvn_free(logger);
+}
 
 void* lvn_calloc(size_t size)
 {
