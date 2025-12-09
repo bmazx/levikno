@@ -2,6 +2,7 @@
 #define HG_LVN_CONFIG_H
 
 
+// platform
 #if defined(_WIN32) || defined(WIN32)
     #ifndef LVN_PLATFORM_WINDOWS
         #define LVN_PLATFORM_WINDOWS
@@ -13,7 +14,7 @@
     #include <assert.h> /* assert */
 #endif
 
-
+// dll
 #ifndef LVN_API
     #ifdef LVN_PLATFORM_WINDOWS
         #ifdef LVN_SHARED_LIBRARY_EXPORT
@@ -28,13 +29,29 @@
     #endif
 #endif
 
-
-#ifdef LVN_PLATFORM_LINUX
-    #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
+// debug
+#ifndef LVN_CONFIG_DEBUG
+    #ifndef NDEBUG
+        #define LVN_CONFIG_DEBUG
+    #endif
 #endif
 
-#define LVN_ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
+// asserts
+#ifdef LVN_CONFIG_DEBUG
+    #define LVN_ENABLE_ASSERTS
+#endif
 
+#if defined(LVN_DISABLE_ASSERTS)
+    #define LVN_ASSERT(x, ...)
+#elif defined(LVN_ENABLE_ASSERTS)
+    #ifdef LVN_PLATFORM_LINUX
+        #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
+    #endif
+#endif
+
+
+// misc
+#define LVN_ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
 
 
 typedef enum LvnResult

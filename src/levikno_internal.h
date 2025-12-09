@@ -6,6 +6,7 @@
 
 struct LvnLogger
 {
+    const LvnContext* ctx;
     char* loggerName;
     char* logPatternFormat;
     LvnLogLevel logLevel;

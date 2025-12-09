@@ -7,6 +7,11 @@ void myPrint(const char* msg)
     printf("%s", msg);
 }
 
+char* myLogPattern(const LvnLogMessage* logmsg)
+{
+    return lvnLogCreateOneShotStrMsg(">>>");
+}
+
 int main(int argc, char** argv)
 {
     LvnContext* ctx;
@@ -32,6 +37,14 @@ int main(int argc, char** argv)
     printf("%.*s", len, str);
     free(str);
 
+    LvnLogPattern logPattern =
+    {
+        .symbol = '>',
+        .func = myLogPattern,
+    };
+
+    lvnCtxAddLogPatterns(ctx, &logPattern, 1);
+
     LvnSink sink =
     {
         .logFunc = myPrint,
@@ -41,7 +54,7 @@ int main(int argc, char** argv)
     {
         .name = "myLog",
         .level = Lvn_LogLevel_None,
-        .format = "[%Y-%m-%d] [%T] [%#%l%^] >>> %n: %v%$",
+        .format = "[%Y-%m-%d] [%T] [%#%l%^] %> %n: %v%$",
         .pSinks = &sink,
         .sinkCount = 1,
     };

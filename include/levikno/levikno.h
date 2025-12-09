@@ -49,7 +49,7 @@ typedef struct LvnLogMessage
 typedef struct LvnLogPattern
 {
     char symbol;
-    char* (*func)(LvnLogMessage*);
+    char* (*func)(const LvnLogMessage*);
 } LvnLogPattern;
 
 typedef struct LvnLoggerCreateInfo
@@ -79,14 +79,12 @@ typedef void* (*LvnMemAllocFn)(size_t, void*);
 typedef void  (*LvnMemFreeFn)(void*, void*);
 typedef void* (*LvnMemReallocFn)(void*, size_t, void*);
 
-typedef void  (*LvnLogOutputMessageFn)(const LvnLogger*, LvnLogMessage*);
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LVN_API LvnResult               lvnCreateContext(LvnContext** ctx, LvnContextCreateInfo* createInfo);                                               // create the core context
+LVN_API LvnResult               lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo);                                         // create the core context
 LVN_API void                    lvnDestroyContext(LvnContext* ctx);                                                                                 // destroy the core context
 
 LVN_API LvnResult               lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData);     // set memory allocation callback functions; all callback functions must be set, userData can be null
@@ -99,7 +97,7 @@ LVN_API int                     lvnDateGetHour(void);                           
 LVN_API int                     lvnDateGetHour12(void);                                    // get the hour of the current day in 12 hour format (0...12)
 LVN_API int                     lvnDateGetMinute(void);                                    // get the minute of the current day (0...60)
 LVN_API int                     lvnDateGetSecond(void);                                    // get the second of the current dat (0...60)
-LVN_API long long               lvnDateGetSecondsSinceEpoch(void);                         // get the time in seconds since 00::00:00 UTC 1 January 1970
+LVN_API size_t                  lvnDateGetSecondsSinceEpoch(void);                         // get the time in seconds since 00:00:00 UTC 1 January 1970
 
 LVN_API const char*             lvnDateGetMonthName(void);                                 // get the current month name (eg. January, April)
 LVN_API const char*             lvnDateGetMonthNameShort(void);                            // get the current month shortened name (eg. Jan, Apr)
@@ -109,6 +107,7 @@ LVN_API const char*             lvnDateGetTimeMeridiem(void);                   
 LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
 
 LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                                         // get the core logger from the context
+LVN_API void                    lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount); // add log patterns to the context
 LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
 LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
 LVN_API void                    lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg);             // prints the log message
@@ -132,16 +131,6 @@ LVN_API void                    lvnDestroyLogger(LvnLogger* logger);            
 #ifdef __cplusplus
 }
 #endif
-
-
-#ifdef __cplusplus
-
-namespace lvn
-{
-
-}
-
-#endif // !__cplusplus
 
 
 #endif // !HG_LEVIKNO_H
