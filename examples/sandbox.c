@@ -37,14 +37,6 @@ int main(int argc, char** argv)
     printf("%.*s", len, str);
     free(str);
 
-    LvnLogPattern logPattern =
-    {
-        .symbol = '>',
-        .func = myLogPattern,
-    };
-
-    lvnCtxAddLogPatterns(ctx, &logPattern, 1);
-
     LvnSink sink =
     {
         .logFunc = myPrint,
@@ -61,6 +53,16 @@ int main(int argc, char** argv)
 
     LvnLogger* mylog;
     lvnCreateLogger(ctx, &mylog, &logCreateInfo);
+
+    LvnLogPattern logPattern =
+    {
+        .symbol = '>',
+        .func = myLogPattern,
+    };
+
+    lvnCtxAddLogPatterns(ctx, &logPattern, 1);
+
+    lvnLogParseLogPatternFormat(mylog, "[%Y-%m-%d] [%T] [%#%l%^] %> %n: %v%$");
 
     lvnLogMessageDebug(mylog, "hello there %f", 3.1415);
     lvnLogMessageError(mylog, "hello there %f", 3.1415);

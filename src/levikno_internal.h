@@ -24,6 +24,8 @@ struct LvnContext
     uint32_t           userLogPatternCount;
 };
 
+typedef void* (*LvnProc)(void);
+
 
 void*     lvn_calloc(size_t size);
 void      lvn_free(void* ptr);
@@ -31,5 +33,8 @@ void*     lvn_realloc(void* ptr, size_t size);
 
 char*     lvn_strdup(const char* str);
 
+void*     lvn_platformLoadModule(const char* path);
+void      lvn_platformFreeModule(void* module);
+LvnProc   lvn_platformGetModuleSymbol(void* module, const char* name);
 
 #endif // !HG_LVN_INTERNAL_H

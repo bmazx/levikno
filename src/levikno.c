@@ -604,6 +604,14 @@ uint32_t lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t le
     return msgLen;
 }
 
+void lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt)
+{
+    LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
+
+    const LvnContext* ctx = logger->ctx;
+    logger->pLogPatterns = lvn_logParseFormat(ctx, fmt, &logger->logPatternCount);
+}
+
 void lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg)
 {
     LVN_ASSERT(logger && msg, "logger and msg cannot be null");
