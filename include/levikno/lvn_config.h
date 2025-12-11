@@ -11,7 +11,6 @@
     #ifndef LVN_PLATFORM_LINUX
         #define LVN_PLATFORM_LINUX
     #endif
-    #include <assert.h> /* assert */
 #endif
 
 #if defined(__unix__)
@@ -48,9 +47,8 @@
 #if defined(LVN_DISABLE_ASSERTS)
     #define LVN_ASSERT(x, ...)
 #elif defined(LVN_ENABLE_ASSERTS)
-    #ifdef LVN_PLATFORM_LINUX
-        #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
-    #endif
+    #include <assert.h>
+    #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
 #endif
 
 // logging
