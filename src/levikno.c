@@ -289,12 +289,12 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
 
     if (createInfo)
     {
-        ctxPtr->coreLogger.logging = createInfo->logging.enableLogging;
         ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
+        ctxPtr->enableLogging = createInfo->logging.enableLogging;
     }
     else
     {
-        ctxPtr->coreLogger.logging = true;
+        ctxPtr->enableLogging = false;
         ctxPtr->coreLogger.logLevel = Lvn_LogLevel_None;
     }
 
@@ -319,8 +319,9 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
     ctxPtr->coreLogger.ctx = ctxPtr;
     ctxPtr->coreLogger.loggerName = lvn_strdup("CORE");
     ctxPtr->coreLogger.pLogPatterns = lvn_logParseFormat(ctxPtr, LVN_DEFAULT_LOG_PATTERN, &ctxPtr->coreLogger.logPatternCount);
+    ctxPtr->coreLogger.logging = true;
 
-
+    LVN_LOG_TRACE(&ctxPtr->coreLogger, "levikno context created: (%p)", *ctx);
     return Lvn_Result_Success;
 }
 
@@ -328,6 +329,8 @@ void lvnDestroyContext(LvnContext* ctx)
 {
     if (!ctx)
         return;
+
+    LVN_LOG_TRACE(&ctx->coreLogger, "terminating levikno context: (%p)", ctx);
 
     lvn_free(ctx->coreLogger.loggerName);
     lvn_free(ctx->coreLogger.logPatternFormat);
@@ -473,6 +476,12 @@ LvnLogger* lvnCtxGetCoreLogger(LvnContext* ctx)
     return &ctx->coreLogger;
 }
 
+void lvnCtxEnableLogging(LvnContext* ctx, bool enable)
+{
+    LVN_ASSERT(ctx, "ctx cannot be null");
+    ctx->enableLogging = enable;
+}
+
 void lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount)
 {
     LVN_ASSERT(ctx, "ctx cannot be null");
@@ -609,6 +618,8 @@ void lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt)
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
     const LvnContext* ctx = logger->ctx;
+
+    lvn_free(logger->pLogPatterns);
     logger->pLogPatterns = lvn_logParseFormat(ctx, fmt, &logger->logPatternCount);
 }
 
@@ -645,7 +656,7 @@ void lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...)
 {
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Trace)) { return; }
 
     char* buff;
@@ -669,7 +680,7 @@ void lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...)
 {
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Debug)) { return; }
 
     char* buff;
@@ -694,7 +705,7 @@ void lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...)
 
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Info)) { return; }
 
     char* buff;
@@ -719,7 +730,7 @@ void lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...)
 
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Warn)) { return; }
 
     char* buff;
@@ -743,7 +754,7 @@ void lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...)
 {
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Error)) { return; }
 
     char* buff;
@@ -767,7 +778,7 @@ void lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...)
 {
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
-    if (!logger->logging) { return; }
+    if (!logger->logging || !logger->ctx->enableLogging) { return; }
     if (!lvnLogCheckLevel(logger, Lvn_LogLevel_Fatal)) { return; }
 
     char* buff;
@@ -802,6 +813,7 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
 
     if (!*logger)
     {
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to create logger");
         return Lvn_Result_Failure;
     }
 
@@ -815,6 +827,9 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
     loggerPtr->pSinks = lvn_calloc(createInfo->sinkCount * sizeof(LvnSink));
     memcpy(loggerPtr->pSinks, createInfo->pSinks, createInfo->sinkCount * sizeof(LvnSink));
     loggerPtr->sinkCount = createInfo->sinkCount;
+    loggerPtr->logging = true;
+
+    LVN_LOG_TRACE(&ctx->coreLogger, "created logger: (%p), name: %s", *logger, loggerPtr->loggerName);
 
     return Lvn_Result_Success;
 }

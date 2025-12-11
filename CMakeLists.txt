@@ -37,20 +37,32 @@ endif()
 # library type
 set(LVN_LIB_TYPE )
 
-
+# core
 set(LVN_SRC
     include/levikno/levikno.h
     src/levikno.c
     src/levikno_internal.h
+    src/lvn_platform.c
 )
 
-add_library(levikno ${LVN_LIB_TYPE}
-    ${LVN_SRC}
-)
+add_library(levikno ${LVN_LIB_TYPE} ${LVN_SRC})
 
 target_include_directories(levikno
     PRIVATE
-        src
+        include/levikno
+)
+
+# graphics
+set(LVN_GRAPHICS_SRC
+    include/levikno/lvn_graphics.h
+    src/lvn_graphics.c
+    src/lvn_graphics_internal.h
+)
+
+add_library(lvngraphics ${LVN_LIB_TYPE} ${LVN_GRAPHICS_SRC})
+
+target_include_directories(lvngraphics
+    PRIVATE
         include/levikno
 )
 

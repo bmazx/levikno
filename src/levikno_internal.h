@@ -19,9 +19,10 @@ struct LvnLogger
 
 struct LvnContext
 {
-    LvnLogger          coreLogger;
-    LvnLogPattern*     pUserLogPatterns;
-    uint32_t           userLogPatternCount;
+    LvnLogger          coreLogger;            // the core logger for the context
+    LvnLogPattern*     pUserLogPatterns;      // array of log patterns for the core logger
+    uint32_t           userLogPatternCount;   // number of log patterns in the array
+    bool               enableLogging;         // enable/disable logging for all loggers created from the context
 };
 
 typedef void* (*LvnProc)(void);
@@ -34,7 +35,7 @@ void*     lvn_realloc(void* ptr, size_t size);
 char*     lvn_strdup(const char* str);
 
 void*     lvn_platformLoadModule(const char* path);
-void      lvn_platformFreeModule(void* module);
-LvnProc   lvn_platformGetModuleSymbol(void* module, const char* name);
+void      lvn_platformFreeModule(void* handle);
+LvnProc   lvn_platformGetModuleSymbol(void* handle, const char* name);
 
 #endif // !HG_LVN_INTERNAL_H

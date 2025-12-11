@@ -1,0 +1,15 @@
+#ifndef HG_LVN_GRAPHICS_INTERNAL_H
+#define HG_LVN_GRAPHICS_INTERNAL_H
+
+#include "lvn_graphics.h"
+#include "levikno_internal.h"
+
+
+struct LvnGraphicsContext
+{
+    LvnGraphicsApi graphicsapi;
+    LvnLogger*     coreLogger;
+};
+
+
+#endif // HG_LVN_GRAPHICS_INTERNAL_H

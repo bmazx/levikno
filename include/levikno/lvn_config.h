@@ -14,6 +14,10 @@
     #include <assert.h> /* assert */
 #endif
 
+#if defined(__unix__)
+    #define LVN_PLATFORM_UNIX
+#endif
+
 // dll
 #ifndef LVN_API
     #ifdef LVN_PLATFORM_WINDOWS
@@ -49,6 +53,10 @@
     #endif
 #endif
 
+// logging
+#ifndef LVN_DISABLE_LOGGING
+    #define LVN_ENABLE_LOGGING
+#endif
 
 // misc
 #define LVN_ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))

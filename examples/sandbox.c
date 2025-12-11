@@ -1,4 +1,5 @@
 #include <levikno/levikno.h>
+#include <levikno/lvn_graphics.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,8 +15,13 @@ char* myLogPattern(const LvnLogMessage* logmsg)
 
 int main(int argc, char** argv)
 {
+    LvnContextCreateInfo ctxCreateInfo =
+    {
+        .logging.enableLogging = true,
+    };
+
     LvnContext* ctx;
-    lvnCreateContext(&ctx, NULL);
+    lvnCreateContext(&ctx, &ctxCreateInfo);
 
     LvnLogger* logger = lvnCtxGetCoreLogger(ctx);
 
@@ -30,7 +36,6 @@ int main(int argc, char** argv)
     lvnLogMessageFatal(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
 
     uint32_t len = lvnLogFormatMessageArgs(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
-    printf("%u\n", len);
     char* str = (char*) malloc(len * sizeof(char));
     lvnLogFormatMessageArgs(logger, str, len, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
 
@@ -68,6 +73,17 @@ int main(int argc, char** argv)
     lvnLogMessageError(mylog, "hello there %f", 3.1415);
 
     lvnDestroyLogger(mylog);
+
+
+    LvnGraphicsContextCreateInfo graphicsCreateInfo =
+    {
+        .graphicsapi = Lvn_GraphicsApi_Vulkan,
+    };
+
+    LvnGraphicsContext* graphicsctx;
+    lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
+
+    lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);
 }

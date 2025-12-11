@@ -10,5 +10,5 @@ foreach(LVN_SRC ${LVN_EXAMPLE_SRC})
 
     add_executable(${LVN_SRC_NAME} ${LVN_SRC})
     target_include_directories(${LVN_SRC_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-    target_link_libraries(${LVN_SRC_NAME} PRIVATE levikno)
+    target_link_libraries(${LVN_SRC_NAME} PRIVATE levikno lvngraphics)
 endforeach()

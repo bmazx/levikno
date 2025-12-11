@@ -2,6 +2,29 @@
 #define HG_LEVIKNO_H
 
 
+#include "lvn_config.h"
+
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+
+#ifdef LVN_ENABLE_LOGGING
+    #define LVN_LOG_TRACE(logger, ...) lvnLogMessageTrace(logger, __VA_ARGS__)
+    #define LVN_LOG_DEBUG(logger, ...) lvnLogMessageDebug(logger, __VA_ARGS__)
+    #define LVN_LOG_INFO(logger, ...) lvnLogMessageInfo(logger, __VA_ARGS__)
+    #define LVN_LOG_WARN(logger, ...) lvnLogMessageWarn(logger, __VA_ARGS__)
+    #define LVN_LOG_ERROR(logger, ...) lvnLogMessageError(logger, __VA_ARGS__)
+    #define LVN_LOG_FATAL(logger, ...) lvnLogMessageFatal(logger, __VA_ARGS__)
+#else
+    #define LVN_LOG_TRACE(logger, ...)
+    #define LVN_LOG_DEBUG(logger, ...)
+    #define LVN_LOG_INFO(logger, ...)
+    #define LVN_LOG_WARN(logger, ...)
+    #define LVN_LOG_ERROR(logger, ...)
+    #define LVN_LOG_FATAL(logger, ...)
+#endif
+
 #define LVN_LOG_COLOR_TRACE                     "\x1b[0;37m"
 #define LVN_LOG_COLOR_DEBUG                     "\x1b[0;34m"
 #define LVN_LOG_COLOR_INFO                      "\x1b[0;32m"
@@ -9,12 +32,6 @@
 #define LVN_LOG_COLOR_ERROR                     "\x1b[1;31m"
 #define LVN_LOG_COLOR_FATAL                     "\x1b[1;37;41m"
 #define LVN_LOG_COLOR_RESET                     "\x1b[0m"
-
-#include "lvn_config.h"
-
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 
 
 typedef enum LvnLogLevel
@@ -107,6 +124,7 @@ LVN_API const char*             lvnDateGetTimeMeridiem(void);                   
 LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
 
 LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                                         // get the core logger from the context
+LVN_API void                    lvnCtxEnableLogging(LvnContext* ctx, bool enable);                            // enable or disable logging for all loggers created from the context
 LVN_API void                    lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount); // add log patterns to the context
 LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
 LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
