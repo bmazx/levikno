@@ -8,6 +8,8 @@ project(levikno)
 # options
 option(LVN_BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(LVN_BUILD_VULKAN "Build shared libraries" ON)
+option(LVN_BUILD_GLSLANG "Build shared libraries" ON)
 
 set(LVN_LIB_TYPE "${LVN_LIB_TYPE}" CACHE STRING
     "Library type override for levikno (SHARED, STATIC, OBJECT, or empty to follow BUILD_SHARED_LIBS)")
@@ -53,22 +55,57 @@ target_include_directories(levikno
 )
 
 # graphics
+
 set(LVN_GRAPHICS_SRC
     include/levikno/lvn_graphics.h
     src/lvn_graphics.c
     src/lvn_graphics_internal.h
 )
 
+# vulkanSDK
+if (LVN_BUILD_VULKAN)
+    set(MIN_VULKAN_VERSION 1.2)
+    find_package(Vulkan ${MIN_VULKAN_VERSION})
+
+    if(Vulkan_FOUND)
+        message("Vulkan SDK found, including vulkan support")
+        add_definitions(-DLVN_INCLUDE_VULKAN)
+
+        list(APPEND LVN_GRAPHICS_SRC
+            src/api/lvn_impl_vk.c
+            src/api/lvn_impl_vk.h
+            src/api/lvn_impl_vk_backends.h
+        )
+
+        # find glslang
+        find_package(glslang CONFIG)
+
+        if (LVN_BUILD_GLSLANG)
+            if (TARGET glslang::glslang AND TARGET glslang::SPIRV)
+                message("glslang and SPIRV found, including glslang support")
+                add_definitions(-DLVN_INCLUDE_GLSLANG)
+            else()
+                message("cannot find glslang, skipping glslang support")
+            endif()
+        endif()
+
+    else()
+        message("cannot find Vulkan SDK, skipping vulkan support")
+    endif()
+endif()
+
 add_library(lvngraphics ${LVN_LIB_TYPE} ${LVN_GRAPHICS_SRC})
 
 target_include_directories(lvngraphics
     PRIVATE
         include/levikno
+        src/api
+        src
 )
 
 
 # build definitions
-target_compile_definitions(levikno PRIVATE
+target_compile_definitions(lvngraphics PRIVATE
     $<$<CONFIG:Debug>:LVN_CONFIG_DEBUG>
     $<$<CONFIG:Release>:LVN_CONFIG_RELEASE>
 )

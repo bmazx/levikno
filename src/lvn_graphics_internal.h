@@ -9,6 +9,10 @@ struct LvnGraphicsContext
 {
     LvnGraphicsApi graphicsapi;
     LvnLogger*     coreLogger;
+    void*          implData;
+
+    LvnResult      (*implInit)(LvnGraphicsContext*, const LvnGraphicsContextCreateInfo*);
+    void           (*implTerminate)(LvnGraphicsContext*);
 };
 
 
