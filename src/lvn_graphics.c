@@ -32,6 +32,8 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
 
     LvnGraphicsContext* gctxPtr = *graphicsctx;
     gctxPtr->graphicsapi = createInfo->graphicsapi;
+    gctxPtr->ctx = ctx;
+    gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
     gctxPtr->coreLogger = &ctx->coreLogger;
 
     LvnResult result = Lvn_Result_Success;

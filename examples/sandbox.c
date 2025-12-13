@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 
     lvnCtxAddLogPatterns(ctx, &logPattern, 1);
 
-    lvnLogParseLogPatternFormat(mylog, "[%Y-%m-%d] [%T] [%#%l%^] %> %n: %v%$");
+    lvnLogParseLogPatternFormat(mylog, "[%Y-%m-%d] [%#%l%^] %> %n: %v%$");
 
     lvnLogMessageDebug(mylog, "hello there %f", 3.1415);
     lvnLogMessageError(mylog, "hello there %f", 3.1415);
@@ -75,10 +75,9 @@ int main(int argc, char** argv)
     lvnDestroyLogger(mylog);
 
 
-    LvnGraphicsContextCreateInfo graphicsCreateInfo =
-    {
-        .graphicsapi = Lvn_GraphicsApi_Vulkan,
-    };
+    LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
+    graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
 
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);

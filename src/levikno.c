@@ -12,7 +12,7 @@
 #endif
 
 #define LVN_DEFAULT_LOG_PATTERN "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$"
-
+#define LVN_DEFAULT_APP_NAME "levikno"
 
 // memory
 static void*   mallocWrapper(size_t size, void* userData)               { (void)userData; return malloc(size); }
@@ -289,8 +289,8 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
 
     if (createInfo)
     {
-        ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
         ctxPtr->enableLogging = createInfo->logging.enableLogging;
+        ctxPtr->coreLogger.logLevel = createInfo->logging.coreLogLevel;
     }
     else
     {
@@ -298,6 +298,13 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
         ctxPtr->coreLogger.logLevel = Lvn_LogLevel_None;
     }
 
+    // app
+    if (createInfo && createInfo->appName)
+        ctxPtr->appName = lvn_strdup(createInfo->appName);
+    else
+        ctxPtr->appName = lvn_strdup(LVN_DEFAULT_APP_NAME);
+
+    // logging
     if (createInfo && createInfo->logging.coreLogFormat)
         ctxPtr->coreLogger.logPatternFormat = lvn_strdup(createInfo->logging.coreLogFormat);
     else
@@ -332,11 +339,16 @@ void lvnDestroyContext(LvnContext* ctx)
 
     LVN_LOG_TRACE(&ctx->coreLogger, "terminating levikno context: (%p)", ctx);
 
-    lvn_free(ctx->coreLogger.loggerName);
-    lvn_free(ctx->coreLogger.logPatternFormat);
-    lvn_free(ctx->coreLogger.pSinks);
-    lvn_free(ctx->coreLogger.pLogPatterns);
-
+    if (ctx->appName)
+        lvn_free(ctx->appName);
+    if (ctx->coreLogger.loggerName)
+        lvn_free(ctx->coreLogger.loggerName);
+    if (ctx->coreLogger.logPatternFormat)
+        lvn_free(ctx->coreLogger.logPatternFormat);
+    if (ctx->coreLogger.pSinks)
+        lvn_free(ctx->coreLogger.pSinks);
+    if (ctx->coreLogger.pLogPatterns)
+        lvn_free(ctx->coreLogger.pLogPatterns);
     if (ctx->pUserLogPatterns)
         lvn_free(ctx->pUserLogPatterns);
 
@@ -870,6 +882,7 @@ void* lvn_realloc(void* ptr, size_t size)
 
 char* lvn_strdup(const char* str)
 {
+    LVN_ASSERT(str, "str cannot be null");
     const size_t length = strlen(str) + 1;
     char* result = (char*) lvn_calloc(length);
     memcpy(result, str, length);

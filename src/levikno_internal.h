@@ -19,10 +19,11 @@ struct LvnLogger
 
 struct LvnContext
 {
-    LvnLogger          coreLogger;            // the core logger for the context
-    LvnLogPattern*     pUserLogPatterns;      // array of log patterns for the core logger
-    uint32_t           userLogPatternCount;   // number of log patterns in the array
-    bool               enableLogging;         // enable/disable logging for all loggers created from the context
+    char*              appName;
+    LvnLogger          coreLogger;                     // the core logger for the context
+    LvnLogPattern*     pUserLogPatterns;               // array of log patterns for the core logger
+    uint32_t           userLogPatternCount;            // number of log patterns in the array
+    bool               enableLogging;                  // enable/disable logging for all loggers created from the context
 };
 
 typedef void* (*LvnProc)(void);

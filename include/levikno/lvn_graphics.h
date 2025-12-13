@@ -22,7 +22,8 @@ struct LvnContext;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
-    LvnGraphicsApi graphicsapi;
+    LvnGraphicsApi graphicsapi;          // graphics api backend
+    bool enableGraphicsApiDebugLogging;  // enable logging for graphics api layer debug logs
 } LvnGraphicsContextCreateInfo;
 
 

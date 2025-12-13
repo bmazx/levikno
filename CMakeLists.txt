@@ -60,6 +60,7 @@ set(LVN_GRAPHICS_SRC
     include/levikno/lvn_graphics.h
     src/lvn_graphics.c
     src/lvn_graphics_internal.h
+    src/lvn_platform.c
 )
 
 # vulkanSDK
