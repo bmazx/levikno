@@ -17,7 +17,7 @@ void lvn_platformFreeModule(void* handle)
 LvnProc lvn_platformGetModuleSymbol(void* handle, const char* name)
 {
     LvnProc proc = NULL;
-    *(void**) &proc = dlsym(handle, name);
+    *(void**) &proc = dlsym(handle, name); // cast to (void**) to avoid ISO C warning in gcc
     return proc;
 }
 

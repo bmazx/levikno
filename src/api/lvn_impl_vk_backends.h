@@ -7,38 +7,34 @@
 #include <vulkan/vulkan.h>
 
 
-#define vkGetInstanceProcAddr vkBackends->getInstanceProcAddr
-#define vkEnumerateInstanceExtensionProperties vkBackends->enumerateInstanceExtensionProperties
-#define vkEnumerateInstanceLayerProperties vkBackends->enumerateInstanceLayerProperties
-#define vkCreateInstance vkBackends->createInstance
-#define vkDestroyInstance vkBackends->destroyInstance
-#define vkCreateDebugUtilsMessengerEXT vkBackends->createDebugUtilsMessageExt
-#define vkDestroyDebugUtilsMessengerEXT vkBackends->destroyDebugUtilsMessengerExt
-
 typedef struct LvnVulkanBackends
 {
     void* handle;
-    PFN_vkGetInstanceProcAddr                  getInstanceProcAddr;
-    PFN_vkEnumerateInstanceExtensionProperties enumerateInstanceExtensionProperties;
-    PFN_vkEnumerateInstanceLayerProperties     enumerateInstanceLayerProperties;
-    PFN_vkCreateInstance                       createInstance;
-    PFN_vkDestroyInstance                      destroyInstance;
-    PFN_vkCreateDebugUtilsMessengerEXT         createDebugUtilsMessageExt;
-    PFN_vkDestroyDebugUtilsMessengerEXT        destroyDebugUtilsMessengerExt;
+    PFN_vkGetInstanceProcAddr                    getInstanceProcAddr;
+    PFN_vkEnumerateInstanceExtensionProperties   enumerateInstanceExtensionProperties;
+    PFN_vkEnumerateInstanceLayerProperties       enumerateInstanceLayerProperties;
+    PFN_vkCreateInstance                         createInstance;
+    PFN_vkDestroyInstance                        destroyInstance;
+    PFN_vkCreateDebugUtilsMessengerEXT           createDebugUtilsMessengerEXT;
+    PFN_vkDestroyDebugUtilsMessengerEXT          destroyDebugUtilsMessengerEXT;
+    PFN_vkEnumeratePhysicalDevices               enumeratePhysicalDevices;
+    PFN_vkGetPhysicalDeviceQueueFamilyProperties getPhysicalDeviceQueueFamilyProperties;
+    PFN_vkGetPhysicalDeviceSurfaceSupportKHR     getPhysicalDeviceSurfaceSupportKHR;
 
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
+    VkInstance                                   instance;
+    VkDebugUtilsMessengerEXT                     debugMessenger;
+    VkPhysicalDevice                             physicalDevice;
 
     struct
     {
-        bool                                   KHR_surface;
-        bool                                   KHR_win32_surface;
-        bool                                   MVK_macos_surface;
-        bool                                   EXT_metal_surface;
-        bool                                   KHR_xlib_surface;
-        bool                                   KHR_xcb_surface;
-        bool                                   KHR_wayland_surface;
-        bool                                   EXT_headless_surface;
+        bool                                     KHR_surface;
+        bool                                     KHR_win32_surface;
+        bool                                     MVK_macos_surface;
+        bool                                     EXT_metal_surface;
+        bool                                     KHR_xlib_surface;
+        bool                                     KHR_xcb_surface;
+        bool                                     KHR_wayland_surface;
+        bool                                     EXT_headless_surface;
     } ext;
 
 } LvnVulkanBackends;

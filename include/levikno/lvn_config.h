@@ -60,6 +60,12 @@
 #define LVN_ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
 
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+typedef uint32_t LvnFlags;
+
 typedef enum LvnResult
 {
     Lvn_Result_Success =  0,

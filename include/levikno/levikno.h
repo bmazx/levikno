@@ -4,10 +4,6 @@
 
 #include "lvn_config.h"
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-
 
 #ifdef LVN_ENABLE_LOGGING
     #define LVN_LOG_TRACE(logger, ...) lvnLogMessageTrace(logger, __VA_ARGS__)

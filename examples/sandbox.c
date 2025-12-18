@@ -78,6 +78,7 @@ int main(int argc, char** argv)
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
     graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
+    graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
 
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);

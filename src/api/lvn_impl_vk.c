@@ -88,11 +88,11 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     vkBackends->enumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)
-        vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
+        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
     vkBackends->enumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)
-        vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
+        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
     vkBackends->createInstance = (PFN_vkCreateInstance)
-        vkGetInstanceProcAddr(NULL, "vkCreateInstance");
+        vkBackends->getInstanceProcAddr(NULL, "vkCreateInstance");
 
 
     if (!vkBackends->enumerateInstanceExtensionProperties ||
@@ -100,101 +100,104 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->createInstance)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to load vulkan instance function symbols");
+                      "[vulkan] failed to load vulkan global level function symbols");
 
         lvnImplVkTerminate(graphicsctx);
         return Lvn_Result_Failure;
     }
 
 
-    // query vulkan instance exensions
-    uint32_t count = 0;
-    VkResult result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
-    if (result != VK_SUCCESS)
-    {
-        // NOTE: this happens on systems with a loader but without any vulkan ICD
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to query vulkan instance extensions");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
-    }
-
-    VkExtensionProperties* extensionProps = lvn_calloc(count * sizeof(VkExtensionProperties));
-    result = vkEnumerateInstanceExtensionProperties(NULL, &count, extensionProps);
-    if (result != VK_SUCCESS)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to query vulkan instance extensions");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
-    }
-
-    for (uint32_t i = 0; i < count; i++)
-    {
-        if (strcmp(extensionProps[i].extensionName, "VK_KHR_surface") == 0)
-            vkBackends->ext.KHR_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_KHR_win32_surface") == 0)
-            vkBackends->ext.KHR_win32_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_MVK_macos_surface") == 0)
-            vkBackends->ext.MVK_macos_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_EXT_metal_surface") == 0)
-            vkBackends->ext.EXT_metal_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_KHR_xlib_surface") == 0)
-            vkBackends->ext.KHR_xlib_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_KHR_xcb_surface") == 0)
-            vkBackends->ext.KHR_xcb_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_KHR_wayland_surface") == 0)
-            vkBackends->ext.KHR_wayland_surface = true;
-        else if (strcmp(extensionProps[i].extensionName, "VK_EXT_headless_surface") == 0)
-            vkBackends->ext.EXT_headless_surface = true;
-    }
-
-    lvn_free(extensionProps);
-
+    // query vulkan instance exensions for surface support
     const char** extensionNames = NULL;
     uint32_t extensionCount = 0;
 
-    if (vkBackends->ext.KHR_surface)
+    if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_KHR_surface";
-    }
-    if (vkBackends->ext.KHR_win32_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_KHR_win32_surface";
-    }
-    if (vkBackends->ext.MVK_macos_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_MVK_macos_surface";
-    }
-    if (vkBackends->ext.EXT_metal_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_EXT_metal_surface";
-    }
-    if (vkBackends->ext.KHR_xlib_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_KHR_xlib_surface";
-    }
-    if (vkBackends->ext.KHR_xcb_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_KHR_xcb_surface";
-    }
-    if (vkBackends->ext.KHR_wayland_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_KHR_wayland_surface";
-    }
-    if (vkBackends->ext.EXT_headless_surface)
-    {
-        extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-        extensionNames[extensionCount - 1] = "VK_EXT_headless_surface";
+        uint32_t count = 0;
+        VkResult result = vkBackends->enumerateInstanceExtensionProperties(NULL, &count, NULL);
+        if (result != VK_SUCCESS)
+        {
+            // NOTE: this happens on systems with a loader but without any vulkan ICD
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to query vulkan instance extensions");
+
+            lvnImplVkTerminate(graphicsctx);
+            return Lvn_Result_Failure;
+        }
+
+        VkExtensionProperties* extensionProps = lvn_calloc(count * sizeof(VkExtensionProperties));
+        result = vkBackends->enumerateInstanceExtensionProperties(NULL, &count, extensionProps);
+        if (result != VK_SUCCESS)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to query vulkan instance extensions");
+
+            lvnImplVkTerminate(graphicsctx);
+            return Lvn_Result_Failure;
+        }
+
+        for (uint32_t i = 0; i < count; i++)
+        {
+            if (strcmp(extensionProps[i].extensionName, "VK_KHR_surface") == 0)
+                vkBackends->ext.KHR_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_KHR_win32_surface") == 0)
+                vkBackends->ext.KHR_win32_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_MVK_macos_surface") == 0)
+                vkBackends->ext.MVK_macos_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_EXT_metal_surface") == 0)
+                vkBackends->ext.EXT_metal_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_KHR_xlib_surface") == 0)
+                vkBackends->ext.KHR_xlib_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_KHR_xcb_surface") == 0)
+                vkBackends->ext.KHR_xcb_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_KHR_wayland_surface") == 0)
+                vkBackends->ext.KHR_wayland_surface = true;
+            else if (strcmp(extensionProps[i].extensionName, "VK_EXT_headless_surface") == 0)
+                vkBackends->ext.EXT_headless_surface = true;
+        }
+
+        lvn_free(extensionProps);
+
+        if (vkBackends->ext.KHR_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_KHR_surface";
+        }
+        if (vkBackends->ext.KHR_win32_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_KHR_win32_surface";
+        }
+        if (vkBackends->ext.MVK_macos_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_MVK_macos_surface";
+        }
+        if (vkBackends->ext.EXT_metal_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_EXT_metal_surface";
+        }
+        if (vkBackends->ext.KHR_xlib_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_KHR_xlib_surface";
+        }
+        if (vkBackends->ext.KHR_xcb_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_KHR_xcb_surface";
+        }
+        if (vkBackends->ext.KHR_wayland_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_KHR_wayland_surface";
+        }
+        if (vkBackends->ext.EXT_headless_surface)
+        {
+            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames[extensionCount - 1] = "VK_EXT_headless_surface";
+        }
     }
 
     // check validation layer support
@@ -202,10 +205,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     if (createInfo->enableGraphicsApiDebugLogging)
     {
         uint32_t layerCount;
-        vkEnumerateInstanceLayerProperties(&layerCount, NULL);
+        vkBackends->enumerateInstanceLayerProperties(&layerCount, NULL);
 
         VkLayerProperties* availableLayers = lvn_calloc(layerCount * sizeof(VkLayerProperties));
-        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
+        vkBackends->enumerateInstanceLayerProperties(&layerCount, availableLayers);
 
         for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkValidationLayers); i++)
         {
@@ -232,6 +235,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
+
+        lvn_free(availableLayers);
     }
 
     // create debug message util
@@ -287,7 +292,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkCreateInfo.pNext = NULL;
     }
 
-    if (vkCreateInstance(&vkCreateInfo, NULL, &vkBackends->instance) != VK_SUCCESS)
+    if (vkBackends->createInstance(&vkCreateInfo, NULL, &vkBackends->instance) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create instance");
@@ -298,29 +303,50 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     lvn_free(extensionNames);
 
-    // get instance function symbols
+    // get post instance function symbols
     vkBackends->destroyInstance = (PFN_vkDestroyInstance)
-        vkGetInstanceProcAddr(vkBackends->instance, "vkDestroyInstance");
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroyInstance");
+    vkBackends->enumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumeratePhysicalDevices");
+    vkBackends->getPhysicalDeviceQueueFamilyProperties = (PFN_vkGetPhysicalDeviceQueueFamilyProperties)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceQueueFamilyProperties");
 
-    if (!vkBackends->destroyInstance)
+    if (!vkBackends->destroyInstance ||
+        !vkBackends->enumeratePhysicalDevices ||
+        !vkBackends->getPhysicalDeviceQueueFamilyProperties)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to load vulkan post instance function symbols");
+                      "[vulkan] failed to load vulkan instance level function symbols");
 
         lvnImplVkTerminate(graphicsctx);
         return Lvn_Result_Failure;
     }
 
+    if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
+    {
+        vkBackends->getPhysicalDeviceSurfaceSupportKHR = (PFN_vkGetPhysicalDeviceSurfaceSupportKHR)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceSupportKHR");
+
+        if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to load vulkan function symbol: vkGetPhysicalDeviceSurfaceSupportKHR");
+
+            lvnImplVkTerminate(graphicsctx);
+            return Lvn_Result_Failure;
+        }
+    }
+
     // create debug messegenger if debug logging enabled
     if (graphicsctx->enableGraphicsApiDebugLogging)
     {
-        vkBackends->createDebugUtilsMessageExt = (PFN_vkCreateDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(vkBackends->instance, "vkCreateDebugUtilsMessengerEXT");
-        vkBackends->destroyDebugUtilsMessengerExt = (PFN_vkDestroyDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(vkBackends->instance, "vkDestroyDebugUtilsMessengerEXT");
+        vkBackends->createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateDebugUtilsMessengerEXT");
+        vkBackends->destroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroyDebugUtilsMessengerEXT");
 
-        if (!vkBackends->createDebugUtilsMessageExt ||
-            !vkBackends->destroyDebugUtilsMessengerExt)
+        if (!vkBackends->createDebugUtilsMessengerEXT ||
+            !vkBackends->destroyDebugUtilsMessengerEXT)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan debug message function symbols");
@@ -329,7 +355,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             return Lvn_Result_Failure;
         }
 
-        if (vkCreateDebugUtilsMessengerEXT(vkBackends->instance, &debugCreateInfo, NULL, &vkBackends->debugMessenger) != VK_SUCCESS)
+        if (vkBackends->createDebugUtilsMessengerEXT(vkBackends->instance, &debugCreateInfo, NULL, &vkBackends->debugMessenger) != VK_SUCCESS)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to create debug message utils");
@@ -349,9 +375,9 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
     if (vkBackends->debugMessenger)
-        vkDestroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
+        vkBackends->destroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
     if (vkBackends->instance)
-        vkDestroyInstance(vkBackends->instance, NULL);
+        vkBackends->destroyInstance(vkBackends->instance, NULL);
 
     if (vkBackends->handle)
         lvn_platformFreeModule(vkBackends->handle);

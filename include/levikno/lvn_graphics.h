@@ -3,10 +3,6 @@
 
 #include "lvn_config.h"
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-
 
 typedef enum LvnGraphicsApi
 {
@@ -15,6 +11,14 @@ typedef enum LvnGraphicsApi
     Lvn_GraphicsApi_Vulkan,
 } LvnGraphicsApi;
 
+typedef enum LvnPresentationModeFlagBits
+{
+    Lvn_PresentationModeFlag_Headless = 0x00000001,
+    Lvn_PresentationModeFlag_Surface  = 0x00000002,
+} LvnPresentationModeFlagBits;
+typedef LvnFlags LvnPresentationModeFlags;
+
+
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 
 struct LvnContext;
@@ -22,8 +26,9 @@ struct LvnContext;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
-    LvnGraphicsApi graphicsapi;          // graphics api backend
-    bool enableGraphicsApiDebugLogging;  // enable logging for graphics api layer debug logs
+    LvnGraphicsApi graphicsapi;                          // graphics api backend
+    LvnPresentationModeFlags presentationModeFlags;      // type of output the graphics api will render to
+    bool enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
 } LvnGraphicsContextCreateInfo;
 
 
