@@ -3,6 +3,11 @@
 
 #include <string.h>
 
+
+#if defined(LVN_INCLUDE_WAYLAND)
+    #include <vulkan/vulkan_wayland.h>
+#endif
+
 #if defined(LVN_PLATFORM_LINUX)
     static const char* s_LvnVkLibName = "libvulkan.so.1";
 #elif defined(LVN_PLATFORM_WINDOWS)
@@ -326,11 +331,22 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     {
         vkBackends->getPhysicalDeviceSurfaceSupportKHR = (PFN_vkGetPhysicalDeviceSurfaceSupportKHR)
             vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceSupportKHR");
+        vkBackends->destroySurfaceKHR = (PFN_vkDestroySurfaceKHR)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroySurfaceKHR");
 
-        if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR)
+
+        // get create surface PFN based on window platform
+#if defined(LVN_INCLUDE_WAYLAND)
+        vkBackends->createSurfaceProc = (PFN_vkVoidFunction)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
+#endif
+
+        if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR ||
+            !vkBackends->destroySurfaceKHR ||
+            !vkBackends->createSurfaceProc)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
-                          "[vulkan] failed to load vulkan function symbol: vkGetPhysicalDeviceSurfaceSupportKHR");
+                          "[vulkan] failed to load vulkan surface function symbol");
 
             lvnImplVkTerminate(graphicsctx);
             return Lvn_Result_Failure;
@@ -365,6 +381,11 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         }
     }
 
+
+    // set vulkan implementation function pointers
+    graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
+    graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
+
     return Lvn_Result_Success;
 }
 
@@ -384,4 +405,47 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     lvn_free(vkBackends);
     graphicsctx->implData = NULL;
+}
+
+LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
+    LVN_ASSERT(graphicsctx->implData, "graphicsctx->implData (aka LvnVulkanBackends) cannot be null");
+
+    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
+
+    VkSurfaceKHR vkSurface;
+    VkResult result;
+
+#if defined(LVN_INCLUDE_WAYLAND)
+    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.display = (struct wl_display*) createInfo->nativeDisplayHandle;
+    surfaceCreateInfo.surface = (struct wl_surface*) createInfo->nativeWindowHandle;
+    PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
+        (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
+    result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &vkSurface);
+#endif
+
+    if (result != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create surface");
+        return Lvn_Result_Failure;
+    }
+
+    surface->surface = vkSurface;
+
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroySurface(LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    LVN_ASSERT(surface->surface, "surface->surface (aka VkSurfaceKHR) cannot be null");
+    LVN_ASSERT(surface->graphicsctx, "surface->graphicsctx cannot be null");
+
+    const LvnVulkanBackends* vkBackends = surface->graphicsctx->implData;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
 }

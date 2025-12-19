@@ -3,13 +3,18 @@ cmake_minimum_required(VERSION 3.11)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
+include(FindPkgConfig)
+
+
 project(levikno)
 
 # options
 option(LVN_BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(LVN_BUILD_VULKAN "Build shared libraries" ON)
-option(LVN_BUILD_GLSLANG "Build shared libraries" ON)
+option(LVN_BUILD_VULKAN "Build support for vulkan" ON)
+option(LVN_BUILD_GLSLANG "Build support for glslang" ON)
+option(LVN_BUILD_WAYLAND "Build support for wayland" ON)
+option(LVN_BUILD_X11 "Build support for x11" ON)
 
 set(LVN_LIB_TYPE "${LVN_LIB_TYPE}" CACHE STRING
     "Library type override for levikno (SHARED, STATIC, OBJECT, or empty to follow BUILD_SHARED_LIBS)")
@@ -36,8 +41,37 @@ else()
     add_compile_options(-Wall -Wpedantic)
 endif()
 
-# library type
-set(LVN_LIB_TYPE )
+# window support
+
+# wayland
+if (LVN_BUILD_WAYLAND)
+    pkg_check_modules(Wayland QUIET
+        wayland-client>=0.2.7
+        wayland-cursor>=0.2.7
+        wayland-egl>=0.2.7
+        xkbcommon>=0.5.0)
+
+    if (Wayland_FOUND)
+        message("wayland found, including wayland support")
+        add_definitions(-DLVN_INCLUDE_WAYLAND)
+    endif()
+endif()
+
+# x11
+if (LVN_BUILD_X11)
+    find_package(X11)
+
+    if (X11_FOUND)
+        message("X11 found, including X11 support")
+        add_definitions(-DLVN_INCLUDE_X11)
+        add_definitions(-DLVN_INCLUDE_X11_XLIB)
+        if (X11_xcb_FOUND)
+            message("X11 xcb found, including X11 xcb support")
+            add_definitions(-DLVN_INCLUDE_X11_XCB)
+        endif()
+    endif()
+endif()
+
 
 # core
 set(LVN_SRC

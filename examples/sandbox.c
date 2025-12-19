@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <GLFW/glfw3.h>
+
+#define GLFW_EXPOSE_NATIVE_WAYLAND
+#include <GLFW/glfw3native.h>
+
 void myPrint(const char* msg)
 {
     printf("%s", msg);
@@ -82,6 +87,41 @@ int main(int argc, char** argv)
 
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
+
+
+    GLFWwindow* window;
+
+    /* Initialize the library */
+    if (!glfwInit())
+        return -1;
+
+    /* Create a windowed mode window and its OpenGL context */
+    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    if (!window)
+    {
+        glfwTerminate();
+        return -1;
+    }
+
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
+
+    struct wl_display* wldisplay = glfwGetWaylandDisplay();
+    struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
+
+    LvnSurfaceCreateInfo sci = {0};
+    sci.nativeDisplayHandle = wldisplay;
+    sci.nativeWindowHandle = wlsurface;
+
+    LvnSurface* surface;
+    lvnCreateSurface(graphicsctx, &surface, &sci);
+
+
+
+    lvnDestroySurface(surface);
+
+    glfwTerminate();
+
 
     lvnDestroyGraphicsContext(graphicsctx);
 

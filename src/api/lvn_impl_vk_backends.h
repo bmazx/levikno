@@ -20,6 +20,9 @@ typedef struct LvnVulkanBackends
     PFN_vkEnumeratePhysicalDevices               enumeratePhysicalDevices;
     PFN_vkGetPhysicalDeviceQueueFamilyProperties getPhysicalDeviceQueueFamilyProperties;
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR     getPhysicalDeviceSurfaceSupportKHR;
+    PFN_vkDestroySurfaceKHR                      destroySurfaceKHR;
+
+    PFN_vkVoidFunction                           createSurfaceProc;
 
     VkInstance                                   instance;
     VkDebugUtilsMessengerEXT                     debugMessenger;

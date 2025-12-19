@@ -14,7 +14,9 @@
 #endif
 
 #if defined(__unix__)
-    #define LVN_PLATFORM_UNIX
+    #ifndef LVN_PLATFORM_UNIX
+        #define LVN_PLATFORM_UNIX
+    #endif
 #endif
 
 // dll

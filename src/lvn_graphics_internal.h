@@ -5,6 +5,12 @@
 #include "levikno_internal.h"
 
 
+struct LvnSurface
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* surface;
+};
+
 struct LvnGraphicsContext
 {
     LvnGraphicsApi           graphicsapi;
@@ -12,10 +18,11 @@ struct LvnGraphicsContext
     LvnLogger*               coreLogger;
     LvnPresentationModeFlags presentModeFlags;
     bool                     enableGraphicsApiDebugLogging;
-    void*                    implData;
 
-    LvnResult                (*implInit)(LvnGraphicsContext*, const LvnGraphicsContextCreateInfo*);
-    void                     (*implTerminate)(LvnGraphicsContext*);
+    // graphics implementation
+    void*                    implData;
+    LvnResult                (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
+    void                     (*implDestroySurface)(LvnSurface*);
 };
 
 

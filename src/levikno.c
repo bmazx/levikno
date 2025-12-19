@@ -825,7 +825,7 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
 
     if (!*logger)
     {
-        LVN_LOG_ERROR(&ctx->coreLogger, "failed to create logger");
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for logger");
         return Lvn_Result_Failure;
     }
 
@@ -840,8 +840,6 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
     memcpy(loggerPtr->pSinks, createInfo->pSinks, createInfo->sinkCount * sizeof(LvnSink));
     loggerPtr->sinkCount = createInfo->sinkCount;
     loggerPtr->logging = true;
-
-    LVN_LOG_TRACE(&ctx->coreLogger, "created logger: (%p), name: %s", *logger, loggerPtr->loggerName);
 
     return Lvn_Result_Success;
 }

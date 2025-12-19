@@ -20,9 +20,15 @@ typedef LvnFlags LvnPresentationModeFlags;
 
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
+typedef struct LvnSurface LvnSurface;
 
 struct LvnContext;
 
+typedef struct LvnSurfaceCreateInfo
+{
+    void* nativeDisplayHandle;
+    void* nativeWindowHandle;
+} LvnSurfaceCreateInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
@@ -39,6 +45,8 @@ extern "C" {
 LVN_API LvnResult               lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
 LVN_API void                    lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx); // destroy the graphics context
 
+LVN_API LvnResult               lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
+LVN_API void                    lvnDestroySurface(LvnSurface* surface);
 
 
 #ifdef __cplusplus
