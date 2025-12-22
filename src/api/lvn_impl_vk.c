@@ -368,6 +368,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     uint32_t extensionPropsCount = 0;
     VkLayerProperties* availableLayers = NULL;
     uint32_t availableLayerCount = 0;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     LvnVulkanBackends* vkBackends = lvn_calloc(sizeof(LvnVulkanBackends));
     graphicsctx->implData = vkBackends;
@@ -690,7 +691,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         surfaceCreateInfo.surface = (struct wl_surface*) createInfo->platformData->nativeWindowHandle;
         PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
             (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
-        result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &vkBackends->surface);
+        result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &surface);
 #endif
 
         if (result != VK_SUCCESS)
@@ -701,7 +702,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // get default physical device without surface support
-    vkBackends->physicalDevice = lvn_getBestPhysicalDevice(vkBackends, vkBackends->surface);
+    vkBackends->physicalDevice = lvn_getBestPhysicalDevice(vkBackends, surface);
 
     if (vkBackends->physicalDevice == VK_NULL_HANDLE)
     {
@@ -719,7 +720,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
                   deviceProperties.apiVersion);
 
     // create logical device
-    LvnVulkanQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkBackends->surface);
+    LvnVulkanQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
     float queuePriority = 1.0f;
 
     VkDeviceQueueCreateInfo queueCreateInfo = {0};
@@ -797,7 +798,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // set vulkan implementation function pointers
 
 
-
+    if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -805,6 +806,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     return Lvn_Result_Success;
 
 fail_cleanup:
+    if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -820,8 +822,6 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     if (vkBackends->device)
         vkBackends->destroyDevice(vkBackends->device, NULL);
-    if (vkBackends->surface)
-        vkBackends->destroySurfaceKHR(vkBackends->instance, vkBackends->surface, NULL);
     if (vkBackends->debugMessenger)
         vkBackends->destroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
     if (vkBackends->instance)

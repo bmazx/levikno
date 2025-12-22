@@ -55,7 +55,6 @@ typedef struct LvnVulkanBackends
     bool                                          enableValidationLayers;
     VkInstance                                    instance;
     VkDebugUtilsMessengerEXT                      debugMessenger;
-    VkSurfaceKHR                                  surface;
     VkPhysicalDevice                              physicalDevice;
     VkDevice                                      device;
     VkQueue                                       graphicsQueue;
