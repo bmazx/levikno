@@ -22,8 +22,13 @@ static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
 
 LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
 {
-    if (!graphicsctx || !createInfo)
+    LVN_ASSERT(ctx && graphicsctx && createInfo, "ctx, graphicsctx, and createInfo cannot be null");
+
+    if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface && !createInfo->platformData)
+    {
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to create graphics context, createInfo->presentationModeFlags has Lvn_PresentationModeFlag_Surface bit set but createInfo->platformData was null");
         return Lvn_Result_Failure;
+    }
 
     *graphicsctx = (LvnGraphicsContext*) lvn_calloc(sizeof(LvnGraphicsContext));
 
@@ -87,31 +92,4 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
     LVN_LOG_TRACE(graphicsctx->coreLogger, "graphics context terminated: (%p)", graphicsctx);
 
     lvn_free(graphicsctx);
-}
-
-LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo)
-{
-    LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
-
-    *surface = (LvnSurface*) lvn_calloc(sizeof(LvnSurface));
-
-    if (!*surface)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for surface");
-        return Lvn_Result_Failure;
-    }
-
-    LvnSurface* surfacePtr = *surface;
-    surfacePtr->graphicsctx = graphicsctx;
-
-    return graphicsctx->implCreateSurface(graphicsctx, *surface, createInfo);
-}
-
-void lvnDestroySurface(LvnSurface* surface)
-{
-    LVN_ASSERT(surface, "surface cannot be null");
-
-    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
-    graphicsctx->implDestroySurface(surface);
-    lvn_free(surface);
 }

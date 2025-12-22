@@ -20,20 +20,20 @@ typedef LvnFlags LvnPresentationModeFlags;
 
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
-typedef struct LvnSurface LvnSurface;
 
 struct LvnContext;
 
-typedef struct LvnSurfaceCreateInfo
+typedef struct LvnPlatformData
 {
     void* nativeDisplayHandle;
     void* nativeWindowHandle;
-} LvnSurfaceCreateInfo;
+} LvnPlatformData;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
     LvnGraphicsApi graphicsapi;                          // graphics api backend
     LvnPresentationModeFlags presentationModeFlags;      // type of output the graphics api will render to
+    const LvnPlatformData* platformData;                 // native platform data for surface creation
     bool enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
 } LvnGraphicsContextCreateInfo;
 
@@ -44,9 +44,6 @@ extern "C" {
 
 LVN_API LvnResult               lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
 LVN_API void                    lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx); // destroy the graphics context
-
-LVN_API LvnResult               lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
-LVN_API void                    lvnDestroySurface(LvnSurface* surface);
 
 
 #ifdef __cplusplus

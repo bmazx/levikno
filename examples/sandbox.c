@@ -80,14 +80,6 @@ int main(int argc, char** argv)
     lvnDestroyLogger(mylog);
 
 
-    LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
-    graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
-    graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
-
-    LvnGraphicsContext* graphicsctx;
-    lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
-
 
     GLFWwindow* window;
 
@@ -109,21 +101,25 @@ int main(int argc, char** argv)
     struct wl_display* wldisplay = glfwGetWaylandDisplay();
     struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
 
-    LvnSurfaceCreateInfo sci = {0};
+    LvnPlatformData sci = {0};
     sci.nativeDisplayHandle = wldisplay;
     sci.nativeWindowHandle = wlsurface;
 
-    LvnSurface* surface;
-    lvnCreateSurface(graphicsctx, &surface, &sci);
+    LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
+    graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
+    graphicsCreateInfo.platformData = &sci;
+    graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
 
+    LvnGraphicsContext* graphicsctx;
+    lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
-
-    lvnDestroySurface(surface);
-
-    glfwTerminate();
 
 
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);
+
+    glfwTerminate();
+
 }

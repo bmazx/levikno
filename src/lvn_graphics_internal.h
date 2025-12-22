@@ -21,8 +21,6 @@ struct LvnGraphicsContext
 
     // graphics implementation
     void*                    implData;
-    LvnResult                (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
-    void                     (*implDestroySurface)(LvnSurface*);
 };
 
 

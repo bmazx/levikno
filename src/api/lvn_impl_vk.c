@@ -21,6 +21,10 @@ static const char* s_LvnVkValidationLayers[] =
     "VK_LAYER_KHRONOS_validation",
 };
 
+static LvnVulkanQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
+static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
+static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -60,12 +64,316 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     return VK_FALSE;
 }
 
+static LvnVulkanQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+    LvnVulkanQueueFamilyIndices indices = {0};
+
+    VkQueueFamilyProperties* queueFamilies = NULL;
+    uint32_t queueFamilyCount = 0;
+
+    vkBackends->getPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+    queueFamilies = lvn_calloc(queueFamilyCount * sizeof(VkQueueFamilyProperties));
+    vkBackends->getPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+
+    for (uint32_t i = 0; i < queueFamilyCount; i++)
+    {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            indices.graphicsIndex = i;
+            indices.hasGraphics = true;
+        }
+
+        if (surface != NULL)
+        {
+            VkBool32 presentSupport = VK_FALSE;
+            vkBackends->getPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
+            if (presentSupport == VK_TRUE)
+            {
+                indices.presentIndex = i;
+                indices.hasPresent = true;
+            }
+        }
+
+        // return only graphics index if no surface is provided; present support discluded
+        if (indices.hasGraphics && (!surface || indices.hasPresent))
+            break;
+    }
+
+    lvn_free(queueFamilies);
+
+    return indices;
+}
+
+static bool lvn_checkDeviceExtensionSupport(
+    const LvnVulkanBackends* vkBackends,
+    VkPhysicalDevice physicalDevice,
+    const char** requiredExtensions,
+    uint32_t requiredExtensionCount)
+{
+    LVN_ASSERT(vkBackends && physicalDevice, "vkBackends and physicalDevice cannot be null");
+
+    if (!requiredExtensions || !requiredExtensionCount)
+        return true;
+
+    VkExtensionProperties* extensions = NULL;
+    uint32_t extensionCount = 0;
+
+    vkBackends->enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, NULL);
+    extensions = lvn_calloc(extensionCount * sizeof(VkExtensionProperties));
+    vkBackends->enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, extensions);
+
+    for (uint32_t i = 0; i < requiredExtensionCount; i++)
+    {
+        bool extensionFound = false;
+        for (uint32_t j = 0; j < extensionCount; j++)
+        {
+            if (!strcmp(requiredExtensions[i], extensions[j].extensionName))
+            {
+                extensionFound = true;
+                break;
+            }
+        }
+
+        if (!extensionFound)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to find required device extension: %s", requiredExtensions[i]);
+            goto fail_cleanup;
+        }
+    }
+
+    lvn_free(extensions);
+    return true;
+
+fail_cleanup:
+    lvn_free(extensions);
+    return false;
+}
+
+static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface)
+{
+    LVN_ASSERT(vkBackends, "vkBackends cannot be null");
+
+    VkPhysicalDevice* physicalDevices = NULL;
+    uint32_t physicalDeviceCount = 0;
+
+    vkBackends->enumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, NULL);
+    physicalDevices = lvn_calloc(physicalDeviceCount * sizeof(VkPhysicalDevice));
+    vkBackends->enumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
+
+    const char* requiredExtensions = NULL;
+    uint32_t requiredExtensionCount = 0;
+
+    // get device extensions for surface present support
+    if (surface)
+    {
+        requiredExtensions = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        requiredExtensionCount = 1;
+    }
+
+    uint32_t bestScore = 0;
+    VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
+
+    for (uint32_t i = 0; i < physicalDeviceCount; i++)
+    {
+        VkPhysicalDevice physicalDevice = physicalDevices[i];
+
+        const LvnVulkanQueueFamilyIndices queueIndices = lvn_findQueueFamilies(vkBackends, physicalDevice, surface);
+
+        // check queue families
+        if (!queueIndices.hasGraphics || (surface && !queueIndices.hasPresent))
+            continue;
+
+        // check device extension support
+        if (!lvn_checkDeviceExtensionSupport(vkBackends, physicalDevice, &requiredExtensions, requiredExtensionCount))
+            continue;
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkBackends->getPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+
+        size_t score = 0;
+
+        if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            score += 1000;
+        else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            score += 500;
+        else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+            score += 100;
+        else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
+            score += 10;
+        else
+            score += 1;
+
+        if (score > bestScore)
+        {
+            bestScore = score;
+            bestDevice = physicalDevice;
+        }
+    }
+
+    lvn_free(physicalDevices);
+
+    return bestDevice;
+}
+
+static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, VkSwapchainKHR* swapchain, const LvnVkSwapChainCreateInfo* createInfo)
+{
+    LVN_ASSERT(vkBackends && swapchain && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
+    LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
+
+    VkSurfaceFormatKHR* surfaceFormats = NULL;
+    VkPresentModeKHR* presentModes = NULL;
+
+    // check for swapchain capabilitie support
+    VkSurfaceCapabilitiesKHR capabilities;
+    vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR(createInfo->physicalDevice, createInfo->surface, &capabilities);
+
+    // swapchain format
+    uint32_t formatCount;
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(createInfo->physicalDevice, createInfo->surface, &formatCount, NULL);
+
+    if (!formatCount)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain, no supported surface formats found");
+        goto fail_cleanup;
+    }
+
+    surfaceFormats = lvn_calloc(formatCount * sizeof(VkSurfaceFormatKHR));
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(createInfo->physicalDevice, createInfo->surface, &formatCount, surfaceFormats);
+
+    // swapchain present modes
+    uint32_t presentModeCount;
+    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, NULL);
+
+    if (!presentModeCount)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain, no supported present mode found");
+        goto fail_cleanup;
+    }
+
+    presentModes = lvn_calloc(presentModeCount * sizeof(VkPresentModeKHR));
+    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, presentModes);
+
+    // find desired format, default to first if not found
+    VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            surfaceFormat = surfaceFormats[i];
+            break;
+        }
+    }
+
+    // find desired present mode
+    VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    for (uint32_t i = 0; i < presentModeCount; i++)
+    {
+        if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+        {
+            presentMode = presentModes[i];
+            break;
+        }
+    }
+
+    // choose swapchain extent
+    VkExtent2D extent = capabilities.currentExtent;
+    if (capabilities.currentExtent.width == UINT32_MAX)
+    {
+        // clamp extent values between min and max image extent
+        extent.width = (createInfo->width > capabilities.maxImageExtent.width)
+            ? capabilities.maxImageExtent.width
+            : (createInfo->width < capabilities.minImageExtent.width)
+            ? capabilities.minImageExtent.width
+            : createInfo->width;
+        extent.height = (createInfo->height > capabilities.maxImageExtent.height)
+            ? capabilities.maxImageExtent.height
+            : (createInfo->height < capabilities.minImageExtent.height)
+            ? capabilities.minImageExtent.height
+            : createInfo->height;
+    }
+
+    // get image count, set 3 as default for triple buffering
+    uint32_t imageCount = 3;
+
+    // if no max image count get the highest image count required
+    if (capabilities.maxImageCount == 0)
+        imageCount = (imageCount < capabilities.minImageCount) ? capabilities.minImageCount : imageCount;
+    else
+    {
+        // clamp image count between min and max image count
+        imageCount = (imageCount > capabilities.maxImageCount)
+            ? capabilities.maxImageCount
+            : (imageCount < capabilities.minImageCount)
+            ? capabilities.minImageCount
+            : imageCount;
+
+    }
+
+    // create swapchain
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {0};
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.surface = createInfo->surface;
+    swapchainCreateInfo.minImageCount = imageCount;
+    swapchainCreateInfo.imageFormat = surfaceFormat.format;
+    swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+    swapchainCreateInfo.imageExtent = extent;
+    swapchainCreateInfo.imageArrayLayers = 1;
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCreateInfo.preTransform = capabilities.currentTransform;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.presentMode = presentMode;
+    swapchainCreateInfo.clipped = VK_TRUE;
+    swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    uint32_t queueFamilyIndices[] = { createInfo->queueFamilyIndices->graphicsIndex, createInfo->queueFamilyIndices->presentIndex };
+    if (createInfo->queueFamilyIndices->graphicsIndex != createInfo->queueFamilyIndices->presentIndex)
+    {
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchainCreateInfo.queueFamilyIndexCount = 2;
+        swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else
+    {
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchainCreateInfo.queueFamilyIndexCount = 0;
+        swapchainCreateInfo.pQueueFamilyIndices = NULL;
+    }
+
+    if (vkBackends->createSwapchainKHR(vkBackends->device, &swapchainCreateInfo, NULL, swapchain) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain");
+        goto fail_cleanup;
+    }
+
+    lvn_free(surfaceFormats);
+    lvn_free(presentModes);
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    lvn_free(surfaceFormats);
+    lvn_free(presentModes);
+
+    return Lvn_Result_Failure;
+}
+
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && createInfo, "graphicsctx and createInfo cannot be nullptr");
 
+    const char** extensionNames = NULL;
+    uint32_t extensionCount = 0;
+    VkExtensionProperties* extensionProps = NULL;
+    uint32_t extensionPropsCount = 0;
+    VkLayerProperties* availableLayers = NULL;
+    uint32_t availableLayerCount = 0;
+
     LvnVulkanBackends* vkBackends = lvn_calloc(sizeof(LvnVulkanBackends));
     graphicsctx->implData = vkBackends;
+
+    vkBackends->graphicsctx = graphicsctx;
+    vkBackends->enableValidationLayers = createInfo->enableGraphicsApiDebugLogging;
 
     // load vulkan library
     vkBackends->handle = lvn_platformLoadModule(s_LvnVkLibName);
@@ -75,9 +383,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] unable to load vulkan shared library: %s",
                       s_LvnVkLibName);
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
     vkBackends->getInstanceProcAddr = (PFN_vkGetInstanceProcAddr)
@@ -87,9 +393,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] unable to retrieve vkGetInstanceProcAddr symbol");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
     vkBackends->enumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)
@@ -106,42 +410,32 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to load vulkan global level function symbols");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
 
     // query vulkan instance exensions for surface support
-    const char** extensionNames = NULL;
-    uint32_t extensionCount = 0;
-
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        uint32_t count = 0;
-        VkResult result = vkBackends->enumerateInstanceExtensionProperties(NULL, &count, NULL);
+        VkResult result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, NULL);
         if (result != VK_SUCCESS)
         {
             // NOTE: this happens on systems with a loader but without any vulkan ICD
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to query vulkan instance extensions");
-
-            lvnImplVkTerminate(graphicsctx);
-            return Lvn_Result_Failure;
+            goto fail_cleanup;
         }
 
-        VkExtensionProperties* extensionProps = lvn_calloc(count * sizeof(VkExtensionProperties));
-        result = vkBackends->enumerateInstanceExtensionProperties(NULL, &count, extensionProps);
+        extensionProps = lvn_calloc(extensionPropsCount * sizeof(VkExtensionProperties));
+        result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, extensionProps);
         if (result != VK_SUCCESS)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to query vulkan instance extensions");
-
-            lvnImplVkTerminate(graphicsctx);
-            return Lvn_Result_Failure;
+            goto fail_cleanup;
         }
 
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < extensionPropsCount; i++)
         {
             if (strcmp(extensionProps[i].extensionName, "VK_KHR_surface") == 0)
                 vkBackends->ext.KHR_surface = true;
@@ -160,8 +454,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             else if (strcmp(extensionProps[i].extensionName, "VK_EXT_headless_surface") == 0)
                 vkBackends->ext.EXT_headless_surface = true;
         }
-
-        lvn_free(extensionProps);
 
         if (vkBackends->ext.KHR_surface)
         {
@@ -207,18 +499,16 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     // check validation layer support
     bool layerSupport = true;
-    if (createInfo->enableGraphicsApiDebugLogging)
+    if (vkBackends->enableValidationLayers)
     {
-        uint32_t layerCount;
-        vkBackends->enumerateInstanceLayerProperties(&layerCount, NULL);
-
-        VkLayerProperties* availableLayers = lvn_calloc(layerCount * sizeof(VkLayerProperties));
-        vkBackends->enumerateInstanceLayerProperties(&layerCount, availableLayers);
+        vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, NULL);
+        availableLayers = lvn_calloc(availableLayerCount * sizeof(VkLayerProperties));
+        vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, availableLayers);
 
         for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkValidationLayers); i++)
         {
             bool layerFound = false;
-            for (uint32_t j = 0; j < layerCount; j++)
+            for (uint32_t j = 0; j < availableLayerCount; j++)
             {
                 if (strcmp(availableLayers[j].layerName, s_LvnVkValidationLayers[i]) == 0)
                 {
@@ -241,7 +531,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             extensionNames[extensionCount - 1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
 
-        lvn_free(availableLayers);
     }
 
     // create debug message util
@@ -273,7 +562,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     vkCreateInfo.enabledExtensionCount = extensionCount;
     vkCreateInfo.ppEnabledExtensionNames = extensionNames;
 
-    if (createInfo->enableGraphicsApiDebugLogging)
+    if (vkBackends->enableValidationLayers)
     {
         if (layerSupport)
         {
@@ -301,36 +590,47 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create instance");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
-    lvn_free(extensionNames);
-
-    // get post instance function symbols
+    // get instance level function symbols
     vkBackends->destroyInstance = (PFN_vkDestroyInstance)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroyInstance");
     vkBackends->enumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumeratePhysicalDevices");
     vkBackends->getPhysicalDeviceQueueFamilyProperties = (PFN_vkGetPhysicalDeviceQueueFamilyProperties)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceQueueFamilyProperties");
+    vkBackends->enumerateDeviceExtensionProperties = (PFN_vkEnumerateDeviceExtensionProperties)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumerateDeviceExtensionProperties");
+    vkBackends->getPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceProperties");
+    vkBackends->getDeviceProcAddr = (PFN_vkGetDeviceProcAddr)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetDeviceProcAddr");
+    vkBackends->createDevice = (PFN_vkCreateDevice)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateDevice");
 
     if (!vkBackends->destroyInstance ||
         !vkBackends->enumeratePhysicalDevices ||
-        !vkBackends->getPhysicalDeviceQueueFamilyProperties)
+        !vkBackends->getPhysicalDeviceQueueFamilyProperties ||
+        !vkBackends->enumerateDeviceExtensionProperties ||
+        !vkBackends->getPhysicalDeviceProperties ||
+        !vkBackends->getDeviceProcAddr ||
+        !vkBackends->createDevice)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to load vulkan instance level function symbols");
-
-        lvnImplVkTerminate(graphicsctx);
-        return Lvn_Result_Failure;
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan instance level function symbols");
+        goto fail_cleanup;
     }
 
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
         vkBackends->getPhysicalDeviceSurfaceSupportKHR = (PFN_vkGetPhysicalDeviceSurfaceSupportKHR)
             vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceSupportKHR");
+        vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+        vkBackends->getPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceFormatsKHR");
+        vkBackends->getPhysicalDeviceSurfacePresentModesKHR = (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR)
+            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfacePresentModesKHR");
         vkBackends->destroySurfaceKHR = (PFN_vkDestroySurfaceKHR)
             vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroySurfaceKHR");
 
@@ -342,19 +642,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 #endif
 
         if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR ||
+            !vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR ||
+            !vkBackends->getPhysicalDeviceSurfaceFormatsKHR ||
+            !vkBackends->getPhysicalDeviceSurfacePresentModesKHR ||
             !vkBackends->destroySurfaceKHR ||
             !vkBackends->createSurfaceProc)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
-                          "[vulkan] failed to load vulkan surface function symbol");
-
-            lvnImplVkTerminate(graphicsctx);
-            return Lvn_Result_Failure;
+                          "[vulkan] failed to load vulkan instance level surface function symbol");
+            goto fail_cleanup;
         }
     }
 
     // create debug messegenger if debug logging enabled
-    if (graphicsctx->enableGraphicsApiDebugLogging)
+    if (vkBackends->enableValidationLayers)
     {
         vkBackends->createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
             vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateDebugUtilsMessengerEXT");
@@ -366,27 +667,149 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan debug message function symbols");
-
-            lvnImplVkTerminate(graphicsctx);
-            return Lvn_Result_Failure;
+            goto fail_cleanup;
         }
 
         if (vkBackends->createDebugUtilsMessengerEXT(vkBackends->instance, &debugCreateInfo, NULL, &vkBackends->debugMessenger) != VK_SUCCESS)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to create debug message utils");
-
-            lvnImplVkTerminate(graphicsctx);
-            return Lvn_Result_Failure;
+            goto fail_cleanup;
         }
     }
 
+    // create surface
+    if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
+    {
+        VkResult result;
+
+#if defined(LVN_INCLUDE_WAYLAND)
+        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.display = (struct wl_display*) createInfo->platformData->nativeDisplayHandle;
+        surfaceCreateInfo.surface = (struct wl_surface*) createInfo->platformData->nativeWindowHandle;
+        PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
+            (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
+        result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &vkBackends->surface);
+#endif
+
+        if (result != VK_SUCCESS)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create surface");
+            goto fail_cleanup;
+        }
+    }
+
+    // get default physical device without surface support
+    vkBackends->physicalDevice = lvn_getBestPhysicalDevice(vkBackends, vkBackends->surface);
+
+    if (vkBackends->physicalDevice == VK_NULL_HANDLE)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to find suitable physical device");
+        goto fail_cleanup;
+    }
+
+    VkPhysicalDeviceProperties deviceProperties;
+    vkBackends->getPhysicalDeviceProperties(vkBackends->physicalDevice, &deviceProperties);
+
+    LVN_LOG_TRACE(graphicsctx->coreLogger,
+                  "[vulkan] found supported physical device: \"%s\", driverVersion: (%u), apiVersion: (%u)",
+                  deviceProperties.deviceName,
+                  deviceProperties.driverVersion,
+                  deviceProperties.apiVersion);
+
+    // create logical device
+    LvnVulkanQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkBackends->surface);
+    float queuePriority = 1.0f;
+
+    VkDeviceQueueCreateInfo queueCreateInfo = {0};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsIndex;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkDeviceCreateInfo deviceCreateInfo = {0};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.enabledExtensionCount = 0;
+
+    if (vkBackends->enableValidationLayers)
+    {
+        deviceCreateInfo.enabledLayerCount = LVN_ARRAY_LEN(s_LvnVkValidationLayers);
+        deviceCreateInfo.ppEnabledLayerNames = s_LvnVkValidationLayers;
+    }
+
+    const char* requiredExtensions = NULL;
+    uint32_t requiredExtensionCount = 0;
+
+    if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
+    {
+        requiredExtensions = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        requiredExtensionCount = 1;
+        deviceCreateInfo.ppEnabledExtensionNames = &requiredExtensions;
+        deviceCreateInfo.enabledExtensionCount = requiredExtensionCount;
+    }
+
+    if (vkBackends->createDevice(vkBackends->physicalDevice, &deviceCreateInfo, NULL, &vkBackends->device) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create logical device");
+        goto fail_cleanup;
+    }
+
+    // get device level function symbols
+    vkBackends->destroyDevice = (PFN_vkDestroyDevice)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyDevice");
+    vkBackends->getDeviceQueue = (PFN_vkGetDeviceQueue)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetDeviceQueue");
+
+    if (!vkBackends->destroyDevice ||
+        !vkBackends->getDeviceQueue)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
+        goto fail_cleanup;
+    }
+
+    if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
+    {
+        vkBackends->createSwapchainKHR = (PFN_vkCreateSwapchainKHR)
+            vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSwapchainKHR");
+        vkBackends->destroySwapchainKHR = (PFN_vkDestroySwapchainKHR)
+            vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySwapchainKHR");
+
+        if (!vkBackends->createSwapchainKHR ||
+            !vkBackends->destroySwapchainKHR)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to load vulkan device level surface function symbol");
+            goto fail_cleanup;
+        }
+
+    }
+
+    // get graphics and present queues from device
+    vkBackends->getDeviceQueue(vkBackends->device, indices.graphicsIndex, 0, &vkBackends->graphicsQueue);
+
+    if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
+        vkBackends->getDeviceQueue(vkBackends->device, indices.presentIndex, 0, &vkBackends->presentQueue);
+
 
     // set vulkan implementation function pointers
-    graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
-    graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
+
+
+
+    lvn_free(extensionProps);
+    lvn_free(extensionNames);
+    lvn_free(availableLayers);
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    lvn_free(extensionProps);
+    lvn_free(extensionNames);
+    lvn_free(availableLayers);
+    lvnImplVkTerminate(graphicsctx);
+    return Lvn_Result_Failure;
 }
 
 void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
@@ -395,6 +818,10 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
+    if (vkBackends->device)
+        vkBackends->destroyDevice(vkBackends->device, NULL);
+    if (vkBackends->surface)
+        vkBackends->destroySurfaceKHR(vkBackends->instance, vkBackends->surface, NULL);
     if (vkBackends->debugMessenger)
         vkBackends->destroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
     if (vkBackends->instance)
@@ -405,47 +832,4 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     lvn_free(vkBackends);
     graphicsctx->implData = NULL;
-}
-
-LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
-{
-    LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
-    LVN_ASSERT(graphicsctx->implData, "graphicsctx->implData (aka LvnVulkanBackends) cannot be null");
-
-    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
-
-    VkSurfaceKHR vkSurface;
-    VkResult result;
-
-#if defined(LVN_INCLUDE_WAYLAND)
-    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.display = (struct wl_display*) createInfo->nativeDisplayHandle;
-    surfaceCreateInfo.surface = (struct wl_surface*) createInfo->nativeWindowHandle;
-    PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
-        (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
-    result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &vkSurface);
-#endif
-
-    if (result != VK_SUCCESS)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create surface");
-        return Lvn_Result_Failure;
-    }
-
-    surface->surface = vkSurface;
-
-    return Lvn_Result_Success;
-}
-
-void lvnImplVkDestroySurface(LvnSurface* surface)
-{
-    LVN_ASSERT(surface, "surface cannot be null");
-    LVN_ASSERT(surface->surface, "surface->surface (aka VkSurfaceKHR) cannot be null");
-    LVN_ASSERT(surface->graphicsctx, "surface->graphicsctx cannot be null");
-
-    const LvnVulkanBackends* vkBackends = surface->graphicsctx->implData;
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
 }
