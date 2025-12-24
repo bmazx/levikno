@@ -21,4 +21,23 @@ LvnProc lvn_platformGetModuleSymbol(void* handle, const char* name)
     return proc;
 }
 
+#elif defined(LVN_PLATFORM_WINDOWS)
+
+#include <windows.h>
+
+void* lvn_platformLoadModule(const char* path)
+{
+    return LoadLibraryA(path);
+}
+
+void lvn_platformFreeModule(void* handle)
+{
+    FreeLibrary((HMODULE) handle);
+}
+
+LvnProc lvn_platformGetModuleSymbol(void* handle, const char* name)
+{
+    return (LvnProc) GetProcAddress((HMODULE) handle, name);
+}
+
 #endif

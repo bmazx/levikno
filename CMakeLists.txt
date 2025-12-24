@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.11)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 
+project(levikno)
+
 include(FindPkgConfig)
 
-
-project(levikno)
 
 # options
 option(LVN_BUILD_EXAMPLES "Build example programs" ON)
