@@ -20,7 +20,7 @@ char* myLogPattern(const LvnLogMessage* logmsg)
 
 static void GLFWerrorCallback(int error, const char* descripion)
 {
-    printf("[glfw]: (%d): %s", error, descripion);
+    printf("[glfw]: (%d): %s\n", error, descripion);
 }
 
 int main(int argc, char** argv)
@@ -95,6 +95,7 @@ int main(int argc, char** argv)
     glfwSetErrorCallback(GLFWerrorCallback);
 
     /* Create a windowed mode window and its OpenGL context */
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(800, 600, "Hello World", NULL, NULL);
     if (!window)
     {
@@ -132,7 +133,6 @@ int main(int argc, char** argv)
 
     while (!glfwWindowShouldClose(window))
     {
-        glfwSwapBuffers(window);
         glfwPollEvents();
     }
 

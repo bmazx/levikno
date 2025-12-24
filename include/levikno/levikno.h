@@ -3,6 +3,7 @@
 
 
 #include "lvn_config.h"
+#include "lvn_graphics.h"
 
 
 #ifdef LVN_ENABLE_LOGGING
@@ -30,6 +31,12 @@
 #define LVN_LOG_COLOR_RESET                     "\x1b[0m"
 
 
+typedef enum LvnFileType
+{
+    Lvn_FileType_Src,
+    Lvn_FileType_Bin,
+} LvnFileType;
+
 typedef enum LvnLogLevel
 {
     Lvn_LogLevel_None = 0,
@@ -45,6 +52,12 @@ typedef enum LvnLogLevel
 typedef struct LvnContext LvnContext;
 typedef struct LvnLogger LvnLogger;
 
+
+typedef struct LvnFile
+{
+    uint8_t* data;
+    size_t size;
+} LvnFile;
 
 typedef struct LvnSink
 {
@@ -103,6 +116,10 @@ LVN_API LvnResult               lvnCreateContext(LvnContext** ctx, const LvnCont
 LVN_API void                    lvnDestroyContext(LvnContext* ctx);                                                                                 // destroy the core context
 
 LVN_API LvnResult               lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData);     // set memory allocation callback functions; all callback functions must be set, userData can be null
+LVN_API LvnFile                 lvnLoadFileSrc(const char* filepath);                      // load a source file from a file path
+LVN_API LvnFile                 lvnLoadFileBin(const char* filepath);                      // load a binary file from a file path
+LVN_API LvnFile                 lvnLoadFile(const char* filepath, LvnFileType type);       // load a file from a file path
+LVN_API void                    lvnUnloadFile(LvnFile* file);                              // unload a file from memory
 
 LVN_API int                     lvnDateGetYear(void);                                      // get the year number (eg. 2025)
 LVN_API int                     lvnDateGetYear02d(void);                                   // get the last two digits of the year number (eg. 25)

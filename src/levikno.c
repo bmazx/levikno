@@ -270,6 +270,52 @@ static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt,
     return patterns;
 }
 
+LvnFile lvnLoadFileSrc(const char* filepath)
+{
+    return lvnLoadFile(filepath, Lvn_FileType_Src);
+}
+
+LvnFile lvnLoadFileBin(const char* filepath)
+{
+    return lvnLoadFile(filepath, Lvn_FileType_Bin);
+}
+
+LvnFile lvnLoadFile(const char* filepath, LvnFileType type)
+{
+    LvnFile file = {0};
+
+    const char* mode = "r";
+    if (type == Lvn_FileType_Src)
+        mode = "r";
+    else if (type == Lvn_FileType_Bin)
+        mode = "rb";
+
+    FILE* fileptr = fopen(filepath, mode);
+
+    if (!fileptr)
+        return file;
+
+    fseek(fileptr, 0, SEEK_END);
+    size_t filesize = ftell(fileptr);
+    fseek(fileptr, 0, SEEK_SET);
+
+    file.data = lvn_calloc(filesize * sizeof(uint8_t));
+    file.size = filesize;
+
+    fread(file.data, sizeof(uint8_t), filesize, fileptr);
+    fclose(fileptr);
+
+    return file;
+}
+
+void lvnUnloadFile(LvnFile* file)
+{
+    if (!file) return;
+    lvn_free(file->data);
+    file->data = NULL;
+    file->size = 0;
+}
+
 LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo)
 {
     if (!ctx)
