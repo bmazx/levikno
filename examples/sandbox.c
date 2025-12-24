@@ -88,7 +88,7 @@ int main(int argc, char** argv)
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Hello World", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -101,21 +101,29 @@ int main(int argc, char** argv)
     struct wl_display* wldisplay = glfwGetWaylandDisplay();
     struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
 
-    LvnPlatformData sci = {0};
-    sci.nativeDisplayHandle = wldisplay;
-    sci.nativeWindowHandle = wlsurface;
+    LvnPlatformData pd = {0};
+    pd.nativeDisplayHandle = wldisplay;
+    pd.nativeWindowHandle = wlsurface;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
     graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
-    graphicsCreateInfo.platformData = &sci;
+    graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
 
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
+    LvnSurfaceCreateInfo sci = {0};
+    sci.nativeDisplayHandle = wldisplay;
+    sci.nativeWindowHandle = wlsurface;
+    sci.width = 600;
+    sci.height = 800;
 
+    LvnSurface* surface;
+    lvnCreateSurface(graphicsctx, &surface, &sci);
 
+    lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);

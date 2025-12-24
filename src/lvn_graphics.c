@@ -93,3 +93,29 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
 
     lvn_free(graphicsctx);
 }
+
+LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
+
+    *surface = (LvnSurface*) lvn_calloc(sizeof(LvnSurface));
+
+    if (!*surface)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for surface at %p", surface);
+        return Lvn_Result_Failure;
+    }
+
+    LvnSurface* surfacePtr = *surface;
+    surfacePtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreateSurface(graphicsctx, *surface, createInfo);
+}
+
+void lvnDestroySurface(LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    graphicsctx->implDestroySurface(surface);
+    lvn_free(surface);
+}

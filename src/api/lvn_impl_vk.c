@@ -21,9 +21,11 @@ static const char* s_LvnVkValidationLayers[] =
     "VK_LAYER_KHRONOS_validation",
 };
 
-static LvnVulkanQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
+static LvnResult                   lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, VkSurfaceKHR* surface, const LvnPlatformData* platformData);
+static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
 static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
+static LvnResult                   lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -64,9 +66,26 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     return VK_FALSE;
 }
 
-static LvnVulkanQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface)
+static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, VkSurfaceKHR* surface, const LvnPlatformData* platformData)
 {
-    LvnVulkanQueueFamilyIndices indices = {0};
+    VkResult result;
+
+#if defined(LVN_INCLUDE_WAYLAND)
+    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.display = (struct wl_display*) platformData->nativeDisplayHandle;
+    surfaceCreateInfo.surface = (struct wl_surface*) platformData->nativeWindowHandle;
+    PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
+        (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
+    result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, surface);
+#endif
+
+    return result == VK_SUCCESS ? Lvn_Result_Success : Lvn_Result_Failure;
+}
+
+static LvnVkQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+    LvnVkQueueFamilyIndices indices = {0};
 
     VkQueueFamilyProperties* queueFamilies = NULL;
     uint32_t queueFamilyCount = 0;
@@ -178,7 +197,7 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     {
         VkPhysicalDevice physicalDevice = physicalDevices[i];
 
-        const LvnVulkanQueueFamilyIndices queueIndices = lvn_findQueueFamilies(vkBackends, physicalDevice, surface);
+        const LvnVkQueueFamilyIndices queueIndices = lvn_findQueueFamilies(vkBackends, physicalDevice, surface);
 
         // check queue families
         if (!queueIndices.hasGraphics || (surface && !queueIndices.hasPresent))
@@ -216,13 +235,15 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     return bestDevice;
 }
 
-static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, VkSwapchainKHR* swapchain, const LvnVkSwapChainCreateInfo* createInfo)
+static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo)
 {
-    LVN_ASSERT(vkBackends && swapchain && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
+    LVN_ASSERT(vkBackends && swapchainData && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
     LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
 
     VkSurfaceFormatKHR* surfaceFormats = NULL;
     VkPresentModeKHR* presentModes = NULL;
+    VkImage* swapchainImages = NULL;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
@@ -340,11 +361,23 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, VkSwap
         swapchainCreateInfo.pQueueFamilyIndices = NULL;
     }
 
-    if (vkBackends->createSwapchainKHR(vkBackends->device, &swapchainCreateInfo, NULL, swapchain) != VK_SUCCESS)
+    if (vkBackends->createSwapchainKHR(vkBackends->device, &swapchainCreateInfo, NULL, &swapchain) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain");
         goto fail_cleanup;
     }
+
+    // get swapchain images
+    uint32_t swapChainImageCount;
+    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapChainImageCount, NULL);
+    swapchainImages = lvn_calloc(swapChainImageCount * sizeof(VkImage));
+    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapChainImageCount, swapchainImages);
+
+    swapchainData->swapchain = swapchain;
+    swapchainData->swapchainFormat = surfaceFormat.format;
+    swapchainData->swapchainExtent = extent;
+    swapchainData->swapchainImages = swapchainImages;
+    swapchainData->swapchainImageCount = swapChainImageCount;
 
     lvn_free(surfaceFormats);
     lvn_free(presentModes);
@@ -352,9 +385,10 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, VkSwap
     return Lvn_Result_Success;
 
 fail_cleanup:
+    vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
     lvn_free(surfaceFormats);
     lvn_free(presentModes);
-
+    lvn_free(swapchainImages);
     return Lvn_Result_Failure;
 }
 
@@ -363,11 +397,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     LVN_ASSERT(graphicsctx && createInfo, "graphicsctx and createInfo cannot be nullptr");
 
     const char** extensionNames = NULL;
-    uint32_t extensionCount = 0;
     VkExtensionProperties* extensionProps = NULL;
-    uint32_t extensionPropsCount = 0;
     VkLayerProperties* availableLayers = NULL;
-    uint32_t availableLayerCount = 0;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     LvnVulkanBackends* vkBackends = lvn_calloc(sizeof(LvnVulkanBackends));
@@ -416,8 +447,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
 
     // query vulkan instance exensions for surface support
+    uint32_t extensionCount = 0;
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
+        uint32_t extensionPropsCount;
         VkResult result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, NULL);
         if (result != VK_SUCCESS)
         {
@@ -500,6 +533,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     // check validation layer support
     bool layerSupport = true;
+    uint32_t availableLayerCount = 0;
     if (vkBackends->enableValidationLayers)
     {
         vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, NULL);
@@ -682,21 +716,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // create surface
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        VkResult result;
-
-#if defined(LVN_INCLUDE_WAYLAND)
-        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.display = (struct wl_display*) createInfo->platformData->nativeDisplayHandle;
-        surfaceCreateInfo.surface = (struct wl_surface*) createInfo->platformData->nativeWindowHandle;
-        PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
-            (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
-        result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, &surface);
-#endif
-
-        if (result != VK_SUCCESS)
+        if (lvn_createPlatformSurface(vkBackends, &surface, createInfo->platformData) != Lvn_Result_Success)
         {
-            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create surface");
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to create temporary surface during vulkan init");
             goto fail_cleanup;
         }
     }
@@ -720,7 +743,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
                   deviceProperties.apiVersion);
 
     // create logical device
-    LvnVulkanQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
+    LvnVkQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
     float queuePriority = 1.0f;
 
     VkDeviceQueueCreateInfo queueCreateInfo = {0};
@@ -777,9 +800,12 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSwapchainKHR");
         vkBackends->destroySwapchainKHR = (PFN_vkDestroySwapchainKHR)
             vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySwapchainKHR");
+        vkBackends->getSwapchainImagesKHR = (PFN_vkGetSwapchainImagesKHR)
+            vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetSwapchainImagesKHR");
 
         if (!vkBackends->createSwapchainKHR ||
-            !vkBackends->destroySwapchainKHR)
+            !vkBackends->destroySwapchainKHR ||
+            !vkBackends->getSwapchainImagesKHR)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan device level surface function symbol");
@@ -796,7 +822,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
 
     // set vulkan implementation function pointers
-
+    graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
+    graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
 
     if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
@@ -832,4 +859,67 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     lvn_free(vkBackends);
     graphicsctx->implData = NULL;
+}
+
+LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
+    LvnVkSwapchainData* swapchainData = NULL;
+
+    LvnPlatformData platformData = {0};
+    platformData.nativeDisplayHandle = createInfo->nativeDisplayHandle;
+    platformData.nativeWindowHandle = createInfo->nativeWindowHandle;
+
+    if (lvn_createPlatformSurface(vkBackends, &vkSurface, &platformData) != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkSurfaceKHR for surface %p", surface);
+        goto fail_cleanup;
+    }
+
+    LvnVkQueueFamilyIndices queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkSurface);
+
+    LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
+    swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
+    swapchainCreateInfo.surface = vkSurface;
+    swapchainCreateInfo.queueFamilyIndices = &queueFamilyIndices;
+    swapchainCreateInfo.width = createInfo->width;
+    swapchainCreateInfo.height = createInfo->height;
+
+    swapchainData = lvn_calloc(sizeof(LvnVkSwapchainData));
+    if (lvn_createSwapChain(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for surface %p", surface);
+        goto fail_cleanup;
+    }
+
+    surface->surface = vkSurface;
+    surface->swapchainData = swapchainData;
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+    lvn_free(swapchainData->swapchainImages);
+    lvn_free(swapchainData);
+    return Lvn_Result_Failure;
+}
+
+void lvnImplVkDestroySurface(LvnSurface* surface)
+{
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+    lvn_free(swapchainData->swapchainImages);
+    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+
+    lvn_free(surface->swapchainData);
+    surface->swapchainData = NULL;
 }

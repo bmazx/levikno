@@ -825,7 +825,7 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
 
     if (!*logger)
     {
-        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for logger");
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for logger at %p", logger);
         return Lvn_Result_Failure;
     }
 

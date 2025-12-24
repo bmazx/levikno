@@ -7,22 +7,31 @@
 #include <vulkan/vulkan.h>
 
 
-typedef struct LvnVulkanQueueFamilyIndices
+typedef struct LvnVkQueueFamilyIndices
 {
     uint32_t graphicsIndex;
     uint32_t presentIndex;
     bool hasGraphics;
     bool hasPresent;
-} LvnVulkanQueueFamilyIndices;
+} LvnVkQueueFamilyIndices;
 
 typedef struct LvnVkSwapChainCreateInfo
 {
     VkPhysicalDevice physicalDevice;
     VkSurfaceKHR surface;
-    const LvnVulkanQueueFamilyIndices* queueFamilyIndices;
+    const LvnVkQueueFamilyIndices* queueFamilyIndices;
     uint32_t width;
     uint32_t height;
 } LvnVkSwapChainCreateInfo;
+
+typedef struct LvnVkSwapchainData
+{
+    VkSwapchainKHR swapchain;
+    VkFormat swapchainFormat;
+    VkExtent2D swapchainExtent;
+    VkImage* swapchainImages;
+    uint32_t swapchainImageCount;
+} LvnVkSwapchainData;
 
 typedef struct LvnVulkanBackends
 {
@@ -50,6 +59,7 @@ typedef struct LvnVulkanBackends
     PFN_vkGetDeviceQueue                          getDeviceQueue;
     PFN_vkCreateSwapchainKHR                      createSwapchainKHR;
     PFN_vkDestroySwapchainKHR                     destroySwapchainKHR;
+    PFN_vkGetSwapchainImagesKHR                   getSwapchainImagesKHR;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;

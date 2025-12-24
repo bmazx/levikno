@@ -7,4 +7,7 @@
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
 void      lvnImplVkTerminate(LvnGraphicsContext* graphicsctx);
 
+LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
+void      lvnImplVkDestroySurface(LvnSurface* surface);
+
 #endif // !HG_LVN_IMPL_VK_H
