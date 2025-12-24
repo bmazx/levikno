@@ -242,8 +242,9 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
 
     VkSurfaceFormatKHR* surfaceFormats = NULL;
     VkPresentModeKHR* presentModes = NULL;
-    VkImage* swapchainImages = NULL;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+    VkImage* swapchainImages = NULL;
+    VkImageView* swapchainImageViews = NULL;
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
@@ -368,16 +369,43 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
     }
 
     // get swapchain images
-    uint32_t swapChainImageCount;
-    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapChainImageCount, NULL);
-    swapchainImages = lvn_calloc(swapChainImageCount * sizeof(VkImage));
-    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapChainImageCount, swapchainImages);
+    uint32_t swapchainImageCount;
+    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, NULL);
+    swapchainImages = lvn_calloc(swapchainImageCount * sizeof(VkImage));
+    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, swapchainImages);
+
+    // get swapchain image views
+    swapchainImageViews = lvn_calloc(swapchainImageCount * sizeof(VkImageView));
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        VkImageViewCreateInfo imageViewCreateInfo = {0};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = swapchainImages[i];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = surfaceFormat.format;
+        imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+        if (vkBackends->createImageView(vkBackends->device, &imageViewCreateInfo, NULL, &swapchainImageViews[i]) != VK_SUCCESS)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain image views");
+            goto fail_cleanup;
+        }
+    }
 
     swapchainData->swapchain = swapchain;
     swapchainData->swapchainFormat = surfaceFormat.format;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImages = swapchainImages;
-    swapchainData->swapchainImageCount = swapChainImageCount;
+    swapchainData->swapchainImageCount = swapchainImageCount;
+    swapchainData->swapchainImageViews = swapchainImageViews;
 
     lvn_free(surfaceFormats);
     lvn_free(presentModes);
@@ -389,6 +417,9 @@ fail_cleanup:
     lvn_free(surfaceFormats);
     lvn_free(presentModes);
     lvn_free(swapchainImages);
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+        vkBackends->destroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
+    lvn_free(swapchainImageViews);
     return Lvn_Result_Failure;
 }
 
@@ -786,9 +817,21 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyDevice");
     vkBackends->getDeviceQueue = (PFN_vkGetDeviceQueue)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetDeviceQueue");
+    vkBackends->createImage = (PFN_vkCreateImage)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateImage");
+    vkBackends->destroyImage = (PFN_vkDestroyImage)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyImage");
+    vkBackends->createImageView = (PFN_vkCreateImageView)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateImageView");
+    vkBackends->destroyImageView = (PFN_vkDestroyImageView)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyImageView");
 
     if (!vkBackends->destroyDevice ||
-        !vkBackends->getDeviceQueue)
+        !vkBackends->getDeviceQueue ||
+        !vkBackends->createImage ||
+        !vkBackends->destroyImage ||
+        !vkBackends->createImageView ||
+        !vkBackends->destroyImageView)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -911,15 +954,28 @@ fail_cleanup:
 
 void lvnImplVkDestroySurface(LvnSurface* surface)
 {
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+    LVN_ASSERT(surface, "surface cannot be null");
 
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+
+    // swapchain image views
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+    lvn_free(swapchainData->swapchainImageViews);
+
+    // swapchain images
     lvn_free(swapchainData->swapchainImages);
+
+    // swapchain
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
 
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
-
+    // swapchain data struct
     lvn_free(surface->swapchainData);
     surface->swapchainData = NULL;
+
+    // surface
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    surface->surface = NULL;
 }

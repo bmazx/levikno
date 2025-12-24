@@ -27,10 +27,11 @@ typedef struct LvnVkSwapChainCreateInfo
 typedef struct LvnVkSwapchainData
 {
     VkSwapchainKHR swapchain;
-    VkFormat swapchainFormat;
     VkExtent2D swapchainExtent;
+    VkFormat swapchainFormat;
     VkImage* swapchainImages;
     uint32_t swapchainImageCount;
+    VkImageView* swapchainImageViews;
 } LvnVkSwapchainData;
 
 typedef struct LvnVulkanBackends
@@ -60,6 +61,10 @@ typedef struct LvnVulkanBackends
     PFN_vkCreateSwapchainKHR                      createSwapchainKHR;
     PFN_vkDestroySwapchainKHR                     destroySwapchainKHR;
     PFN_vkGetSwapchainImagesKHR                   getSwapchainImagesKHR;
+    PFN_vkCreateImage                             createImage;
+    PFN_vkDestroyImage                            destroyImage;
+    PFN_vkCreateImageView                         createImageView;
+    PFN_vkDestroyImageView                        destroyImageView;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;
