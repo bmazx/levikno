@@ -18,6 +18,11 @@ char* myLogPattern(const LvnLogMessage* logmsg)
     return lvnLogCreateOneShotStrMsg(">>>");
 }
 
+static void GLFWerrorCallback(int error, const char* descripion)
+{
+    printf("[glfw]: (%d): %s", error, descripion);
+}
+
 int main(int argc, char** argv)
 {
     LvnContextCreateInfo ctxCreateInfo =
@@ -87,6 +92,8 @@ int main(int argc, char** argv)
     if (!glfwInit())
         return -1;
 
+    glfwSetErrorCallback(GLFWerrorCallback);
+
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(800, 600, "Hello World", NULL, NULL);
     if (!window)
@@ -123,11 +130,18 @@ int main(int argc, char** argv)
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);
 
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);
 
+    glfwDestroyWindow(window);
     glfwTerminate();
 
 }

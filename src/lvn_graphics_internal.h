@@ -12,18 +12,37 @@ struct LvnSurface
     void* swapchainData;
 };
 
+struct LvnDescriptorLayout
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* descriptorLayout;
+};
+
+struct LvnShader
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* shader;
+};
+
+struct LvnPipeline
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* pipeline;
+};
+
 struct LvnGraphicsContext
 {
-    LvnGraphicsApi           graphicsapi;
-    const LvnContext*        ctx;
-    LvnLogger*               coreLogger;
-    LvnPresentationModeFlags presentModeFlags;
-    bool                     enableGraphicsApiDebugLogging;
+    LvnGraphicsApi            graphicsapi;
+    const LvnContext*         ctx;
+    LvnLogger*                coreLogger;
+    LvnPresentationModeFlags  presentModeFlags;
+    bool                      enableGraphicsApiDebugLogging;
+    LvnPipelineFixedFunctions defaultPipelineFixedFuncs;
 
     // graphics implementation
-    void*                    implData;
-    LvnResult                (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
-    void                     (*implDestroySurface)(LvnSurface*);
+    void*                     implData;
+    LvnResult                 (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
+    void                      (*implDestroySurface)(LvnSurface*);
 };
 
 
