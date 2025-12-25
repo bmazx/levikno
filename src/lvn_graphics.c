@@ -188,7 +188,59 @@ LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** s
 void lvnDestroySurface(LvnSurface* surface)
 {
     LVN_ASSERT(surface, "surface cannot be null");
-    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) surface->graphicsctx;
     graphicsctx->implDestroySurface(surface);
     lvn_free(surface);
+}
+
+LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
+
+    *shader = (LvnShader*) lvn_calloc(sizeof(LvnShader));
+
+    if (!*shader)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for shader at %p", shader);
+        return Lvn_Result_Failure;
+    }
+
+    LvnShader* shaderPtr = *shader;
+    shaderPtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreateShader(graphicsctx, *shader, createInfo);
+}
+
+void lvnDestroyShader(LvnShader* shader)
+{
+    LVN_ASSERT(shader, "shader cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) shader->graphicsctx;
+    graphicsctx->implDestroyShader(shader);
+    lvn_free(shader);
+}
+
+LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
+
+    *pipeline = (LvnPipeline*) lvn_calloc(sizeof(LvnPipeline));
+
+    if (!*pipeline)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for pipeline at %p", pipeline);
+        return Lvn_Result_Failure;
+    }
+
+    LvnPipeline* pipelinePtr = *pipeline;
+    pipelinePtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreatePipeline(graphicsctx, *pipeline, createInfo);
+}
+
+void lvnDestroyPipeline(LvnPipeline* pipeline)
+{
+    LVN_ASSERT(pipeline, "pipeline cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) pipeline->graphicsctx;
+    graphicsctx->implDestroyPipeline(pipeline);
+    lvn_free(pipeline);
 }

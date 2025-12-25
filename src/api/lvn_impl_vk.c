@@ -825,13 +825,19 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateImageView");
     vkBackends->destroyImageView = (PFN_vkDestroyImageView)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyImageView");
+    vkBackends->createShaderModule = (PFN_vkCreateShaderModule)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateShaderModule");
+    vkBackends->destroyShaderModule = (PFN_vkDestroyShaderModule)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyShaderModule");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
         !vkBackends->createImage ||
         !vkBackends->destroyImage ||
         !vkBackends->createImageView ||
-        !vkBackends->destroyImageView)
+        !vkBackends->destroyImageView ||
+        !vkBackends->createShaderModule ||
+        !vkBackends->destroyShaderModule)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -978,4 +984,44 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
     vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
     surface->surface = NULL;
+}
+
+LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
+{
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkShaderModuleCreateInfo shaderCreateInfo = {0};
+    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderCreateInfo.codeSize = createInfo->codeSize;
+    shaderCreateInfo.pCode = (const uint32_t*) createInfo->pCode;
+
+    VkShaderModule shaderModule;
+    if (vkBackends->createShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderModule) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create shader module!");
+        return Lvn_Result_Failure;
+    }
+
+    shader->shader = shaderModule;
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroyShader(LvnShader* shader)
+{
+    LVN_ASSERT(shader, "shader cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) shader->graphicsctx->implData;
+    VkShaderModule shaderModule = (VkShaderModule) shader->shader;
+    vkBackends->destroyShaderModule(vkBackends->device, shaderModule, NULL);
+    shader->shader = NULL;
+}
+
+LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo)
+{
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+}
+
+void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
+{
+
 }

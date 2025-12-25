@@ -43,6 +43,10 @@ struct LvnGraphicsContext
     void*                     implData;
     LvnResult                 (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
     void                      (*implDestroySurface)(LvnSurface*);
+    LvnResult                 (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
+    void                      (*implDestroyShader)(LvnShader*);
+    LvnResult                 (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
+    void                      (*implDestroyPipeline)(LvnPipeline*);
 };
 
 

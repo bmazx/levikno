@@ -176,6 +176,12 @@ typedef struct LvnSurfaceCreateInfo
     uint32_t height;
 } LvnSurfaceCreateInfo;
 
+typedef struct LvnShaderCreateInfo
+{
+    const uint8_t* pCode;
+    size_t codeSize;
+} LvnShaderCreateInfo;
+
 typedef struct LvnPipelineInputAssembly
 {
     LvnTopologyType topology;
@@ -317,10 +323,14 @@ extern "C" {
 #endif
 
 LVN_API LvnResult               lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
-LVN_API void                    lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx); // destroy the graphics context
+LVN_API void                    lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx);                                                                         // destroy the graphics context
 
 LVN_API LvnResult               lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
 LVN_API void                    lvnDestroySurface(LvnSurface* surface);
+LVN_API LvnResult               lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo);
+LVN_API void                    lvnDestroyShader(LvnShader* shader);
+LVN_API LvnResult               lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
+LVN_API void                    lvnDestroyPipeline(LvnPipeline* pipeline);
 
 #ifdef __cplusplus
 }

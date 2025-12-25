@@ -65,6 +65,8 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyImage                            destroyImage;
     PFN_vkCreateImageView                         createImageView;
     PFN_vkDestroyImageView                        destroyImageView;
+    PFN_vkCreateShaderModule                      createShaderModule;
+    PFN_vkDestroyShaderModule                     destroyShaderModule;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;
