@@ -152,6 +152,12 @@ typedef enum LvnAttributeFormat
     Lvn_AttributeFormat_2_10_10_10_unle,
 } LvnAttributeFormat;
 
+typedef enum LvnShaderStage
+{
+    Lvn_ShaderStage_Vertex,
+    Lvn_ShaderStage_Fragment,
+} LvnShaderStage;
+
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnSurface LvnSurface;
@@ -296,6 +302,12 @@ typedef struct LvnVertexAttribute
     uint64_t offset;
 } LvnVertexAttribute;
 
+typedef struct LvnPipelineShaderStageCreateInfo
+{
+    LvnShaderStage stage;
+    const LvnShader* shader;
+    const char* entryPoint;
+} LvnPipelineShaderStageCreateInfo;
 
 typedef struct LvnPipelineCreateInfo
 {
@@ -306,7 +318,8 @@ typedef struct LvnPipelineCreateInfo
     uint32_t vertexAttributeCount;
     const LvnDescriptorLayout* const* pDescriptorLayouts;
     uint32_t descriptorLayoutCount;
-    const LvnShader* shader;
+    const LvnPipelineShaderStageCreateInfo* pStages;
+    uint32_t stageCount;
 } LvnPipelineCreateInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
