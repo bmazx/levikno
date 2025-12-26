@@ -26,6 +26,8 @@ static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
 static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
 static LvnResult                   lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
+static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStage stage);
+static VkFormat                    lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format);
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -421,6 +423,63 @@ fail_cleanup:
         vkBackends->destroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
     lvn_free(swapchainImageViews);
     return Lvn_Result_Failure;
+}
+
+static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStage stage)
+{
+    switch (stage)
+    {
+        case Lvn_ShaderStage_Vertex: { return VK_SHADER_STAGE_VERTEX_BIT; }
+        case Lvn_ShaderStage_Fragment: { return VK_SHADER_STAGE_FRAGMENT_BIT; }
+    }
+
+    LVN_ASSERT(false, "invalid shader stage enum");
+    return VK_SHADER_STAGE_VERTEX_BIT;
+}
+
+static VkFormat lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format)
+{
+    switch (format)
+    {
+        case Lvn_AttributeFormat_Undefined:        { return VK_FORMAT_UNDEFINED; }
+        case Lvn_AttributeFormat_Scalar_f32:       { return VK_FORMAT_R32_SFLOAT; }
+        case Lvn_AttributeFormat_Scalar_f64:       { return VK_FORMAT_R64_SFLOAT; }
+        case Lvn_AttributeFormat_Scalar_i32:       { return VK_FORMAT_R32_SINT; }
+        case Lvn_AttributeFormat_Scalar_ui32:      { return VK_FORMAT_R32_UINT; }
+        case Lvn_AttributeFormat_Scalar_i8:        { return VK_FORMAT_R8_SINT; }
+        case Lvn_AttributeFormat_Scalar_ui8:       { return VK_FORMAT_R8_UINT; }
+        case Lvn_AttributeFormat_Vec2_f32:         { return VK_FORMAT_R32G32_SFLOAT; }
+        case Lvn_AttributeFormat_Vec3_f32:         { return VK_FORMAT_R32G32B32_SFLOAT; }
+        case Lvn_AttributeFormat_Vec4_f32:         { return VK_FORMAT_R32G32B32A32_SFLOAT; }
+        case Lvn_AttributeFormat_Vec2_f64:         { return VK_FORMAT_R64G64_SFLOAT; }
+        case Lvn_AttributeFormat_Vec3_f64:         { return VK_FORMAT_R64G64B64_SFLOAT; }
+        case Lvn_AttributeFormat_Vec4_f64:         { return VK_FORMAT_R64G64B64A64_SFLOAT; }
+        case Lvn_AttributeFormat_Vec2_i32:         { return VK_FORMAT_R32G32_SINT; }
+        case Lvn_AttributeFormat_Vec3_i32:         { return VK_FORMAT_R32G32B32_SINT; }
+        case Lvn_AttributeFormat_Vec4_i32:         { return VK_FORMAT_R32G32B32A32_SINT; }
+        case Lvn_AttributeFormat_Vec2_ui32:        { return VK_FORMAT_R32G32_UINT; }
+        case Lvn_AttributeFormat_Vec3_ui32:        { return VK_FORMAT_R32G32B32_UINT; }
+        case Lvn_AttributeFormat_Vec4_ui32:        { return VK_FORMAT_R32G32B32A32_UINT; }
+        case Lvn_AttributeFormat_Vec2_i8:          { return VK_FORMAT_R8G8_SINT; }
+        case Lvn_AttributeFormat_Vec3_i8:          { return VK_FORMAT_R8G8B8_SINT; }
+        case Lvn_AttributeFormat_Vec4_i8:          { return VK_FORMAT_R8G8B8A8_SINT; }
+        case Lvn_AttributeFormat_Vec2_ui8:         { return VK_FORMAT_R8G8_UINT; }
+        case Lvn_AttributeFormat_Vec3_ui8:         { return VK_FORMAT_R8G8B8_UINT; }
+        case Lvn_AttributeFormat_Vec4_ui8:         { return VK_FORMAT_R8G8B8A8_UINT; }
+        case Lvn_AttributeFormat_Vec2_n8:          { return VK_FORMAT_R8G8_SNORM; }
+        case Lvn_AttributeFormat_Vec3_n8:          { return VK_FORMAT_R8G8B8_SNORM; }
+        case Lvn_AttributeFormat_Vec4_n8:          { return VK_FORMAT_R8G8B8A8_SNORM; }
+        case Lvn_AttributeFormat_Vec2_un8:         { return VK_FORMAT_R8G8_UNORM; }
+        case Lvn_AttributeFormat_Vec3_un8:         { return VK_FORMAT_R8G8B8_UNORM; }
+        case Lvn_AttributeFormat_Vec4_un8:         { return VK_FORMAT_R8G8B8A8_UNORM; }
+        case Lvn_AttributeFormat_2_10_10_10_ile:   { return VK_FORMAT_A2B10G10R10_SINT_PACK32; }
+        case Lvn_AttributeFormat_2_10_10_10_uile:  { return VK_FORMAT_A2B10G10R10_UINT_PACK32; }
+        case Lvn_AttributeFormat_2_10_10_10_nle:   { return VK_FORMAT_A2B10G10R10_SNORM_PACK32; }
+        case Lvn_AttributeFormat_2_10_10_10_unle:  { return VK_FORMAT_A2B10G10R10_UNORM_PACK32; }
+    }
+
+    LVN_ASSERT(false, "invalid vertex attribute format enum");
+    return VK_FORMAT_UNDEFINED;
 }
 
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -1015,10 +1074,70 @@ void lvnImplVkDestroyShader(LvnShader* shader)
     shader->shader = NULL;
 }
 
-LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo)
+LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
 {
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
+    // shader stages
+    VkPipelineShaderStageCreateInfo shaderStages[createInfo->stageCount];
+    for (uint32_t i = 0; i < createInfo->stageCount; i++)
+    {
+        VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
+        stageCreateInfo.flags = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stageCreateInfo.stage = lvn_getVkShaderStageEnum(createInfo->pStages[i].stage);
+        stageCreateInfo.module = (VkShaderModule) createInfo->pStages[i].shader->shader;
+        stageCreateInfo.pName = createInfo->pStages[i].entryPoint;
+        shaderStages[i] = stageCreateInfo;
+    }
+
+    // vertex binding descriptions
+    VkVertexInputBindingDescription bindingDescriptions[createInfo->vertexBindingDescriptionCount];
+    for (uint32_t i = 0; i < createInfo->vertexBindingDescriptionCount; i++)
+    {
+        VkVertexInputBindingDescription bindingDescription = {0};
+        bindingDescription.binding = createInfo->pVertexBindingDescriptions[i].binding;
+        bindingDescription.stride = createInfo->pVertexBindingDescriptions[i].stride;
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        bindingDescriptions[i] = bindingDescription;
+    }
+
+    // vertex attributes
+    VkVertexInputAttributeDescription vertexAttributes[createInfo->vertexAttributeCount];
+    for (uint32_t i = 0; i < createInfo->vertexAttributeCount; i++)
+    {
+        VkVertexInputAttributeDescription attributeDescription = {0};
+        attributeDescription.binding = createInfo->pVertexAttributes[i].binding;
+        attributeDescription.location = createInfo->pVertexAttributes[i].layout;
+        attributeDescription.format = lvn_getVkVertexAttributeFormatEnum(createInfo->pVertexAttributes[i].format);
+        attributeDescription.offset = createInfo->pVertexAttributes[i].offset;
+
+        vertexAttributes[i] = attributeDescription;
+    }
+
+    // send binding descriptions and attributes to pipeline
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+    if (createInfo->pVertexBindingDescriptions && createInfo->vertexBindingDescriptionCount > 0)
+    {
+        vertexInputInfo.vertexBindingDescriptionCount = createInfo->vertexBindingDescriptionCount;
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions;
+    }
+
+    if (createInfo->pVertexAttributes && createInfo->vertexAttributeCount > 0)
+    {
+        vertexInputInfo.vertexAttributeDescriptionCount = createInfo->vertexAttributeCount;
+        vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes;
+    }
+
+    // descriptor layouts
+    VkDescriptorSetLayout descriptorLayouts[createInfo->descriptorLayoutCount];
+    for (uint32_t i = 0; i < createInfo->descriptorLayoutCount; i++)
+    {
+        VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayout;
+        descriptorLayouts[i] = descriptorLayout;
+    }
 }
 
 void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
