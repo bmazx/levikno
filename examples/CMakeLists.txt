@@ -1,5 +1,7 @@
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 
+file(COPY res DESTINATION .)
+
 find_package(glfw3 3.4)
 
 set(LVN_EXAMPLE_SRC

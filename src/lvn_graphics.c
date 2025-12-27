@@ -5,7 +5,6 @@
 #endif
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api);
-static void lvn_setupDefaultPipelineFixedFunctions(LvnGraphicsContext* graphicsctx);
 
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
@@ -19,73 +18,6 @@ static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
 
     LVN_ASSERT(false, "api in not a valid enum value");
     return NULL;
-}
-
-static void lvn_setupDefaultPipelineFixedFunctions(LvnGraphicsContext* graphicsctx)
-{
-    LvnPipelineFixedFunctions pipelineFixedFunctions = {0};
-
-    // input assembly
-    pipelineFixedFunctions.inputAssembly.topology = Lvn_TopologyType_Triangle;
-    pipelineFixedFunctions.inputAssembly.primitiveRestartEnable = false;
-
-    // viewport
-    pipelineFixedFunctions.viewport.x = 0.0f;
-    pipelineFixedFunctions.viewport.y = 0.0f;
-    pipelineFixedFunctions.viewport.width = 800.0f;
-    pipelineFixedFunctions.viewport.height = 600.0f;
-    pipelineFixedFunctions.viewport.minDepth = 0.0f;
-    pipelineFixedFunctions.viewport.maxDepth = 1.0f;
-
-    // scissor
-    pipelineFixedFunctions.scissor.offset.x = 0;
-    pipelineFixedFunctions.scissor.offset.y = 0;
-    pipelineFixedFunctions.scissor.extent.width = 0;
-    pipelineFixedFunctions.scissor.extent.height = 0;
-
-    // rasterizer
-    pipelineFixedFunctions.rasterizer.depthClampEnable = false;
-    pipelineFixedFunctions.rasterizer.rasterizerDiscardEnable = false;
-    pipelineFixedFunctions.rasterizer.lineWidth = 1.0f;
-    pipelineFixedFunctions.rasterizer.cullMode = Lvn_CullFaceMode_Disable;
-    pipelineFixedFunctions.rasterizer.frontFace = Lvn_CullFrontFace_Clockwise;
-    pipelineFixedFunctions.rasterizer.depthBiasEnable = false;
-    pipelineFixedFunctions.rasterizer.depthBiasConstantFactor = 0.0f;
-    pipelineFixedFunctions.rasterizer.depthBiasClamp = 0.0f;
-    pipelineFixedFunctions.rasterizer.depthBiasSlopeFactor = 0.0f;
-
-    // multisampling
-    pipelineFixedFunctions.multisampling.sampleShadingEnable = false;
-    pipelineFixedFunctions.multisampling.rasterizationSamples = Lvn_SampleCountFlag_1_Bit;
-    pipelineFixedFunctions.multisampling.minSampleShading = 1.0f;
-    pipelineFixedFunctions.multisampling.sampleMask = NULL;
-    pipelineFixedFunctions.multisampling.alphaToCoverageEnable = false;
-    pipelineFixedFunctions.multisampling.alphaToOneEnable = false;
-
-    // color attachments
-    pipelineFixedFunctions.colorBlend.colorBlendAttachmentCount = 0; // if no attachments are provided, an attachment will automatically be created
-    pipelineFixedFunctions.colorBlend.pColorBlendAttachments = NULL;
-
-    // color blend
-    pipelineFixedFunctions.colorBlend.logicOpEnable = false;
-    pipelineFixedFunctions.colorBlend.blendConstants[0] = 0.0f;
-    pipelineFixedFunctions.colorBlend.blendConstants[1] = 0.0f;
-    pipelineFixedFunctions.colorBlend.blendConstants[2] = 0.0f;
-    pipelineFixedFunctions.colorBlend.blendConstants[3] = 0.0f;
-
-    // depth stencil
-    pipelineFixedFunctions.depthstencil.enableDepth = false;
-    pipelineFixedFunctions.depthstencil.depthOpCompare = Lvn_CompareOp_Never;
-    pipelineFixedFunctions.depthstencil.enableStencil = false;
-    pipelineFixedFunctions.depthstencil.stencil.compareMask = 0x00;
-    pipelineFixedFunctions.depthstencil.stencil.writeMask = 0x00;
-    pipelineFixedFunctions.depthstencil.stencil.reference = 0;
-    pipelineFixedFunctions.depthstencil.stencil.compareOp = Lvn_CompareOp_Never;
-    pipelineFixedFunctions.depthstencil.stencil.depthFailOp = Lvn_StencilOp_Keep;
-    pipelineFixedFunctions.depthstencil.stencil.failOp = Lvn_StencilOp_Keep;
-    pipelineFixedFunctions.depthstencil.stencil.passOp = Lvn_StencilOp_Keep;
-
-    graphicsctx->defaultPipelineFixedFuncs = pipelineFixedFunctions;
 }
 
 LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -110,9 +42,6 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->coreLogger = &ctx->coreLogger;
     gctxPtr->presentModeFlags = createInfo->presentationModeFlags;
     gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
-
-    // setup default pipeline fixed functions
-    lvn_setupDefaultPipelineFixedFunctions(gctxPtr);
 
     // setup graphics api
     LvnResult result = Lvn_Result_Success;
@@ -243,4 +172,77 @@ void lvnDestroyPipeline(LvnPipeline* pipeline)
     const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) pipeline->graphicsctx;
     graphicsctx->implDestroyPipeline(pipeline);
     lvn_free(pipeline);
+}
+
+LvnRenderPass* lvnSurfaceGetRenderPass(LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    return &surface->renderPass;
+}
+
+LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctions(void)
+{
+    LvnPipelineFixedFunctions pipelineFixedFunctions = {0};
+
+    // input assembly
+    pipelineFixedFunctions.inputAssembly.topology = Lvn_TopologyType_Triangle;
+    pipelineFixedFunctions.inputAssembly.primitiveRestartEnable = false;
+
+    // viewport
+    pipelineFixedFunctions.viewport.x = 0.0f;
+    pipelineFixedFunctions.viewport.y = 0.0f;
+    pipelineFixedFunctions.viewport.width = 0.0f;
+    pipelineFixedFunctions.viewport.height = 0.0f;
+    pipelineFixedFunctions.viewport.minDepth = 0.0f;
+    pipelineFixedFunctions.viewport.maxDepth = 1.0f;
+
+    // scissor
+    pipelineFixedFunctions.scissor.offset.x = 0;
+    pipelineFixedFunctions.scissor.offset.y = 0;
+    pipelineFixedFunctions.scissor.extent.width = 0;
+    pipelineFixedFunctions.scissor.extent.height = 0;
+
+    // rasterizer
+    pipelineFixedFunctions.rasterizer.depthClampEnable = false;
+    pipelineFixedFunctions.rasterizer.rasterizerDiscardEnable = false;
+    pipelineFixedFunctions.rasterizer.lineWidth = 1.0f;
+    pipelineFixedFunctions.rasterizer.cullMode = Lvn_CullFaceMode_Disable;
+    pipelineFixedFunctions.rasterizer.frontFace = Lvn_CullFrontFace_Clockwise;
+    pipelineFixedFunctions.rasterizer.depthBiasEnable = false;
+    pipelineFixedFunctions.rasterizer.depthBiasConstantFactor = 0.0f;
+    pipelineFixedFunctions.rasterizer.depthBiasClamp = 0.0f;
+    pipelineFixedFunctions.rasterizer.depthBiasSlopeFactor = 0.0f;
+
+    // multisampling
+    pipelineFixedFunctions.multisampling.sampleShadingEnable = false;
+    pipelineFixedFunctions.multisampling.rasterizationSamples = Lvn_SampleCountFlag_1_Bit;
+    pipelineFixedFunctions.multisampling.minSampleShading = 1.0f;
+    pipelineFixedFunctions.multisampling.sampleMask = NULL;
+    pipelineFixedFunctions.multisampling.alphaToCoverageEnable = false;
+    pipelineFixedFunctions.multisampling.alphaToOneEnable = false;
+
+    // color attachments
+    pipelineFixedFunctions.colorBlend.colorBlendAttachmentCount = 0; // if no attachments are provided, an attachment will automatically be created
+    pipelineFixedFunctions.colorBlend.pColorBlendAttachments = NULL;
+
+    // color blend
+    pipelineFixedFunctions.colorBlend.logicOpEnable = false;
+    pipelineFixedFunctions.colorBlend.blendConstants[0] = 0.0f;
+    pipelineFixedFunctions.colorBlend.blendConstants[1] = 0.0f;
+    pipelineFixedFunctions.colorBlend.blendConstants[2] = 0.0f;
+    pipelineFixedFunctions.colorBlend.blendConstants[3] = 0.0f;
+
+    // depth stencil
+    pipelineFixedFunctions.depthstencil.enableDepth = false;
+    pipelineFixedFunctions.depthstencil.depthOpCompare = Lvn_CompareOp_Never;
+    pipelineFixedFunctions.depthstencil.enableStencil = false;
+    pipelineFixedFunctions.depthstencil.stencil.compareMask = 0;
+    pipelineFixedFunctions.depthstencil.stencil.writeMask = 0;
+    pipelineFixedFunctions.depthstencil.stencil.reference = 0;
+    pipelineFixedFunctions.depthstencil.stencil.compareOp = Lvn_CompareOp_Never;
+    pipelineFixedFunctions.depthstencil.stencil.depthFailOp = Lvn_StencilOp_Keep;
+    pipelineFixedFunctions.depthstencil.stencil.failOp = Lvn_StencilOp_Keep;
+    pipelineFixedFunctions.depthstencil.stencil.passOp = Lvn_StencilOp_Keep;
+
+    return pipelineFixedFunctions;
 }

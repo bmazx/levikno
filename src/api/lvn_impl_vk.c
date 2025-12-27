@@ -28,6 +28,17 @@ static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBack
 static LvnResult                   lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
 static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStage stage);
 static VkFormat                    lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format);
+static VkPrimitiveTopology         lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType);
+static VkCullModeFlags             lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode);
+static VkFrontFace                 lvn_getVkCullFrontFaceEnum(LvnCullFrontFace cullFrontFace);
+static VkSampleCountFlagBits       lvn_getVkSampleCountFlagEnum(LvnSampleCountFlagBits samples);
+static VkColorComponentFlags       lvn_getVkColorComponentsFlagEnum(LvnColorComponentFlags colorMask);
+static VkBlendFactor               lvn_getVkBlendFactorEnum(LvnColorBlendFactor blendFactor);
+static VkBlendOp                   lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp);
+static VkCompareOp                 lvn_getVkCompareOpEnum(LvnCompareOperation compare);
+static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp);
+static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
+static VkFormat                    lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice);
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -247,6 +258,7 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkImage* swapchainImages = NULL;
     VkImageView* swapchainImageViews = NULL;
+    uint32_t swapchainImageCount = 0;
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
@@ -371,7 +383,6 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
     }
 
     // get swapchain images
-    uint32_t swapchainImageCount;
     vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, NULL);
     swapchainImages = lvn_calloc(swapchainImageCount * sizeof(VkImage));
     vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, swapchainImages);
@@ -480,6 +491,180 @@ static VkFormat lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format)
 
     LVN_ASSERT(false, "invalid vertex attribute format enum");
     return VK_FORMAT_UNDEFINED;
+}
+
+static VkPrimitiveTopology lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType)
+{
+    switch (topologyType)
+    {
+        case Lvn_TopologyType_Point: { return VK_PRIMITIVE_TOPOLOGY_POINT_LIST; }
+        case Lvn_TopologyType_Line: { return VK_PRIMITIVE_TOPOLOGY_LINE_LIST; }
+        case Lvn_TopologyType_LineStrip: { return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; }
+        case Lvn_TopologyType_Triangle: { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
+        case Lvn_TopologyType_TriangleStrip: { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; }
+    }
+
+    LVN_ASSERT(false, "invalid topology type enum");
+    return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+}
+
+static VkCullModeFlags lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode)
+{
+    switch (cullFaceMode)
+    {
+        case Lvn_CullFaceMode_Disable: { return VK_CULL_MODE_NONE; }
+        case Lvn_CullFaceMode_Front: { return VK_CULL_MODE_FRONT_BIT; }
+        case Lvn_CullFaceMode_Back: { return VK_CULL_MODE_BACK_BIT; }
+        case Lvn_CullFaceMode_Both: { return VK_CULL_MODE_FRONT_AND_BACK; }
+    }
+
+    LVN_ASSERT(false, "invalid cull face mode enum");
+    return VK_CULL_MODE_NONE;
+}
+
+static VkFrontFace lvn_getVkCullFrontFaceEnum(LvnCullFrontFace cullFrontFace)
+{
+    switch (cullFrontFace)
+    {
+        case Lvn_CullFrontFace_Clockwise: { return VK_FRONT_FACE_CLOCKWISE; }
+        case Lvn_CullFrontFace_CounterClockwise: { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+    }
+
+    LVN_ASSERT(false, "invalid cull front face enum");
+    return VK_FRONT_FACE_CLOCKWISE;
+}
+
+static VkSampleCountFlagBits lvn_getVkSampleCountFlagEnum(LvnSampleCountFlagBits samples)
+{
+    switch (samples)
+    {
+        case Lvn_SampleCountFlag_1_Bit: { return VK_SAMPLE_COUNT_1_BIT; }
+        case Lvn_SampleCountFlag_2_Bit: { return VK_SAMPLE_COUNT_2_BIT; }
+        case Lvn_SampleCountFlag_4_Bit: { return VK_SAMPLE_COUNT_4_BIT; }
+        case Lvn_SampleCountFlag_8_Bit: { return VK_SAMPLE_COUNT_8_BIT; }
+        case Lvn_SampleCountFlag_16_Bit: { return VK_SAMPLE_COUNT_16_BIT; }
+        case Lvn_SampleCountFlag_32_Bit: { return VK_SAMPLE_COUNT_32_BIT; }
+        case Lvn_SampleCountFlag_64_Bit: { return VK_SAMPLE_COUNT_64_BIT; }
+    }
+
+    LVN_ASSERT(false, "invalid sampler count enum");
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+static VkColorComponentFlags lvn_getVkColorComponentsFlagEnum(LvnColorComponentFlags colorMask)
+{
+    VkColorComponentFlags colorComponentsFlag = 0;
+
+    if (colorMask & Lvn_ColorComponentFlag_R) colorComponentsFlag |= VK_COLOR_COMPONENT_R_BIT;
+    if (colorMask & Lvn_ColorComponentFlag_G) colorComponentsFlag |= VK_COLOR_COMPONENT_G_BIT;
+    if (colorMask & Lvn_ColorComponentFlag_B) colorComponentsFlag |= VK_COLOR_COMPONENT_B_BIT;
+    if (colorMask & Lvn_ColorComponentFlag_A) colorComponentsFlag |= VK_COLOR_COMPONENT_A_BIT;
+
+    return colorComponentsFlag;
+}
+
+static VkBlendFactor lvn_getVkBlendFactorEnum(LvnColorBlendFactor blendFactor)
+{
+    switch (blendFactor)
+    {
+        case Lvn_ColorBlendFactor_Zero:                  { return VK_BLEND_FACTOR_ZERO; }
+        case Lvn_ColorBlendFactor_One:                   { return VK_BLEND_FACTOR_ONE; }
+        case Lvn_ColorBlendFactor_SrcColor:              { return VK_BLEND_FACTOR_SRC_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusSrcColor:      { return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR; }
+        case Lvn_ColorBlendFactor_DstColor:              { return VK_BLEND_FACTOR_DST_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusDstColor:      { return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR; }
+        case Lvn_ColorBlendFactor_SrcAlpha:              { return VK_BLEND_FACTOR_SRC_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusSrcAlpha:      { return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; }
+        case Lvn_ColorBlendFactor_DstAlpha:              { return VK_BLEND_FACTOR_DST_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusDstAlpha:      { return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA; }
+        case Lvn_ColorBlendFactor_ConstantColor:         { return VK_BLEND_FACTOR_CONSTANT_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusConstantColor: { return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR; }
+        case Lvn_ColorBlendFactor_ConstantAlpha:         { return VK_BLEND_FACTOR_CONSTANT_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusConstantAlpha: { return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA; }
+        case Lvn_ColorBlendFactor_SrcAlphaSaturate:      { return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE; }
+        case Lvn_ColorBlendFactor_Src1Color:             { return VK_BLEND_FACTOR_SRC1_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusSrc1Color:     { return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR; }
+        case Lvn_ColorBlendFactor_Src1_Alpha:            { return VK_BLEND_FACTOR_SRC1_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusSrc1Alpha:     { return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA; }
+    }
+
+    LVN_ASSERT(false, "invalid blend factor enum");
+    return VK_BLEND_FACTOR_ZERO;
+}
+
+static VkBlendOp lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp)
+{
+    switch (blendOp)
+    {
+        case Lvn_ColorBlendOp_Add: { return VK_BLEND_OP_ADD; }
+        case Lvn_ColorBlendOp_Subtract: { return VK_BLEND_OP_SUBTRACT; }
+        case Lvn_ColorBlendOp_ReverseSubtract: { return VK_BLEND_OP_REVERSE_SUBTRACT; }
+        case Lvn_ColorBlendOp_Min: { return VK_BLEND_OP_MIN; }
+        case Lvn_ColorBlendOp_Max: { return VK_BLEND_OP_MAX; }
+    }
+
+    LVN_ASSERT(false, "invalid blend operation enum");
+    return VK_BLEND_OP_ADD;
+}
+
+static VkCompareOp lvn_getVkCompareOpEnum(LvnCompareOperation compare)
+{
+    switch (compare)
+    {
+        case Lvn_CompareOp_Never: { return VK_COMPARE_OP_NEVER; }
+        case Lvn_CompareOp_Less: { return VK_COMPARE_OP_LESS; }
+        case Lvn_CompareOp_Equal: { return VK_COMPARE_OP_EQUAL; }
+        case Lvn_CompareOp_LessOrEqual: { return VK_COMPARE_OP_LESS_OR_EQUAL; }
+        case Lvn_CompareOp_Greater: { return VK_COMPARE_OP_GREATER; }
+        case Lvn_CompareOp_NotEqual: { return VK_COMPARE_OP_NOT_EQUAL; }
+        case Lvn_CompareOp_GreaterOrEqual: { return VK_COMPARE_OP_GREATER_OR_EQUAL; }
+        case Lvn_CompareOp_Always: { return VK_COMPARE_OP_ALWAYS; }
+    }
+
+    LVN_ASSERT(false, "invalid compare enum");
+    return VK_COMPARE_OP_NEVER;
+}
+
+static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
+{
+    switch (stencilOp)
+    {
+        case Lvn_StencilOp_Keep: { return VK_STENCIL_OP_KEEP; }
+        case Lvn_StencilOp_Zero: { return VK_STENCIL_OP_ZERO; }
+        case Lvn_StencilOp_Replace: { return VK_STENCIL_OP_REPLACE; }
+        case Lvn_StencilOp_IncrementAndClamp: { return VK_STENCIL_OP_INCREMENT_AND_CLAMP; }
+        case Lvn_StencilOp_DecrementAndClamp: { return VK_STENCIL_OP_DECREMENT_AND_CLAMP; }
+        case Lvn_StencilOp_Invert: { return VK_STENCIL_OP_INVERT; }
+        case Lvn_StencilOp_IncrementAndWrap: { return VK_STENCIL_OP_INCREMENT_AND_WRAP; }
+        case Lvn_StencilOp_DecrementAndWrap: { return VK_STENCIL_OP_DECREMENT_AND_WRAP; }
+    }
+
+    LVN_ASSERT(false, "invalid stencil operation enum");
+    return VK_STENCIL_OP_KEEP;
+}
+
+// TODO: might try a better way to find supported depth formats
+static VkFormat lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+    for (uint32_t i = 0; i < count; i++)
+    {
+        VkFormatProperties props;
+        vkBackends->getPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+            return candidates[i];
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+            return candidates[i];
+    }
+
+    LVN_ASSERT(false, "[vulkan] failed to find supported format type for physical device!");
+    return VK_FORMAT_UNDEFINED;
+}
+
+static VkFormat lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice)
+{
+    VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+    return lvn_findSupportedFormat(vkBackends, physicalDevice, formats, LVN_ARRAY_LEN(formats), VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -729,6 +914,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumerateDeviceExtensionProperties");
     vkBackends->getPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceProperties");
+    vkBackends->getPhysicalDeviceFormatProperties = (PFN_vkGetPhysicalDeviceFormatProperties)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFormatProperties");
     vkBackends->getDeviceProcAddr = (PFN_vkGetDeviceProcAddr)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetDeviceProcAddr");
     vkBackends->createDevice = (PFN_vkCreateDevice)
@@ -888,6 +1075,18 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateShaderModule");
     vkBackends->destroyShaderModule = (PFN_vkDestroyShaderModule)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyShaderModule");
+    vkBackends->createRenderPass = (PFN_vkCreateRenderPass)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateRenderPass");
+    vkBackends->destroyRenderPass = (PFN_vkDestroyRenderPass)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyRenderPass");
+    vkBackends->createPipelineLayout = (PFN_vkCreatePipelineLayout)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreatePipelineLayout");
+    vkBackends->destroyPipelineLayout = (PFN_vkDestroyPipelineLayout)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyPipelineLayout");
+    vkBackends->createGraphicsPipelines = (PFN_vkCreateGraphicsPipelines)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateGraphicsPipelines");
+    vkBackends->destroyPipeline = (PFN_vkDestroyPipeline)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyPipeline");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -896,7 +1095,13 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->createImageView ||
         !vkBackends->destroyImageView ||
         !vkBackends->createShaderModule ||
-        !vkBackends->destroyShaderModule)
+        !vkBackends->destroyShaderModule ||
+        !vkBackends->createRenderPass ||
+        !vkBackends->destroyRenderPass ||
+        !vkBackends->createPipelineLayout ||
+        !vkBackends->destroyPipelineLayout ||
+        !vkBackends->createGraphicsPipelines ||
+        !vkBackends->destroyPipeline)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -932,6 +1137,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // set vulkan implementation function pointers
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
     graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
+    graphicsctx->implCreateShader = lvnImplVkCreateShader;
+    graphicsctx->implDestroyShader = lvnImplVkDestroyShader;
+    graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
+    graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
 
     if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
@@ -975,8 +1184,10 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
+    // surface
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     LvnVkSwapchainData* swapchainData = NULL;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
 
     LvnPlatformData platformData = {0};
     platformData.nativeDisplayHandle = createInfo->nativeDisplayHandle;
@@ -988,6 +1199,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         goto fail_cleanup;
     }
 
+    // swap chain
     LvnVkQueueFamilyIndices queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkSurface);
 
     LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
@@ -1004,14 +1216,79 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         goto fail_cleanup;
     }
 
+
+    // render pass
+    // color attachment
+    VkAttachmentDescription colorAttachment = {0};
+    colorAttachment.format = swapchainData->swapchainFormat; // use the swapchain format for color attachment
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef = {0};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // depth attachment
+    VkAttachmentDescription depthAttachment = {0};
+    depthAttachment.format = lvn_findDepthFormat(vkBackends, vkBackends->physicalDevice);
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef = {0};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass = {0};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    // subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkSubpassDependency dependency = {0};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcAccessMask = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+
+    VkAttachmentDescription attachments[] = { colorAttachment, /* depthAttachment */ };
+    VkRenderPassCreateInfo renderPassInfo = {0};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = LVN_ARRAY_LEN(attachments);
+    renderPassInfo.pAttachments = attachments;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkBackends->createRenderPass(vkBackends->device, &renderPassInfo, NULL, &renderPass) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create render pass for surface %p", surface);
+        goto fail_cleanup;
+    }
+
     surface->surface = vkSurface;
     surface->swapchainData = swapchainData;
+    surface->renderPass.renderPassHandle = renderPass;
 
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
     lvn_free(swapchainData->swapchainImages);
     lvn_free(swapchainData);
     return Lvn_Result_Failure;
@@ -1023,6 +1300,7 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+    VkRenderPass renderPass = (VkRenderPass) surface->renderPass.renderPassHandle;
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
@@ -1038,6 +1316,9 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     // swapchain data struct
     lvn_free(surface->swapchainData);
     surface->swapchainData = NULL;
+
+    // render pass
+    vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
 
     // surface
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
@@ -1077,13 +1358,16 @@ void lvnImplVkDestroyShader(LvnShader* shader)
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
 {
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    LvnVkPipelineData* pipelineData = NULL;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline vkPipeline = VK_NULL_HANDLE;
 
     // shader stages
     VkPipelineShaderStageCreateInfo shaderStages[createInfo->stageCount];
     for (uint32_t i = 0; i < createInfo->stageCount; i++)
     {
         VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
-        stageCreateInfo.flags = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         stageCreateInfo.stage = lvn_getVkShaderStageEnum(createInfo->pStages[i].stage);
         stageCreateInfo.module = (VkShaderModule) createInfo->pStages[i].shader->shader;
         stageCreateInfo.pName = createInfo->pStages[i].entryPoint;
@@ -1138,9 +1422,203 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayout;
         descriptorLayouts[i] = descriptorLayout;
     }
+
+    // render pass
+    VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderPassHandle;
+
+
+    // pipeline fixed functions
+    const LvnPipelineFixedFunctions* pipelineFixedFunctions = createInfo->pipelineFixedFunctions;
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {0};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = lvn_getVkTopologyTypeEnum(pipelineFixedFunctions->inputAssembly.topology);
+    inputAssembly.primitiveRestartEnable = pipelineFixedFunctions->inputAssembly.primitiveRestartEnable;
+
+    VkDynamicState dynamicStates[5];
+    dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
+    dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
+    uint32_t dynamicStatesCount = 2;
+
+    if (pipelineFixedFunctions->depthstencil.enableStencil)
+    {
+        dynamicStates[2] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+        dynamicStates[3] = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+        dynamicStates[4] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+        dynamicStatesCount = 5;
+    }
+
+    VkPipelineDynamicStateCreateInfo dynamicState = {0};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.pDynamicStates = dynamicStates;
+    dynamicState.dynamicStateCount = dynamicStatesCount;
+
+    VkPipelineViewportStateCreateInfo viewportState = {0};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer = {0};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable = pipelineFixedFunctions->rasterizer.depthClampEnable;
+    rasterizer.rasterizerDiscardEnable = pipelineFixedFunctions->rasterizer.rasterizerDiscardEnable;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = pipelineFixedFunctions->rasterizer.lineWidth;
+    rasterizer.cullMode = lvn_getVkCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode);
+    rasterizer.frontFace = lvn_getVkCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace);
+    rasterizer.depthBiasEnable = pipelineFixedFunctions->rasterizer.depthBiasEnable;
+    rasterizer.depthBiasConstantFactor = pipelineFixedFunctions->rasterizer.depthBiasConstantFactor;
+    rasterizer.depthBiasClamp = pipelineFixedFunctions->rasterizer.depthBiasClamp;
+    rasterizer.depthBiasSlopeFactor = pipelineFixedFunctions->rasterizer.depthBiasSlopeFactor;
+
+    VkPipelineMultisampleStateCreateInfo multisampling = {0};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = pipelineFixedFunctions->multisampling.sampleShadingEnable;
+    multisampling.rasterizationSamples = lvn_getVkSampleCountFlagEnum(pipelineFixedFunctions->multisampling.rasterizationSamples);
+    multisampling.minSampleShading = pipelineFixedFunctions->multisampling.minSampleShading;
+    multisampling.pSampleMask = pipelineFixedFunctions->multisampling.sampleMask;
+    multisampling.alphaToCoverageEnable = pipelineFixedFunctions->multisampling.alphaToCoverageEnable;
+    multisampling.alphaToOneEnable = pipelineFixedFunctions->multisampling.alphaToOneEnable;
+
+    // if color blend attachments is 0, we automatically add a default color blend attachment
+    uint32_t colorBlendAttachmentCount = (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
+        ? 1
+        : pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount;
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachments[colorBlendAttachmentCount];
+
+    if (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
+    {
+        VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachments[0] = colorBlendAttachment;
+    }
+    else
+    {
+        for (uint32_t i = 0; i < colorBlendAttachmentCount; i++)
+        {
+            LvnPipelineColorBlendAttachment attachment = pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i];
+
+            VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
+            colorBlendAttachment.colorWriteMask = lvn_getVkColorComponentsFlagEnum(attachment.colorWriteMask);
+            colorBlendAttachment.blendEnable = attachment.blendEnable;
+            colorBlendAttachment.srcColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcColorBlendFactor);
+            colorBlendAttachment.dstColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstColorBlendFactor);
+            colorBlendAttachment.colorBlendOp = lvn_getVkBlendOperationEnum(attachment.colorBlendOp);
+            colorBlendAttachment.srcAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcAlphaBlendFactor);
+            colorBlendAttachment.dstAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstAlphaBlendFactor);
+            colorBlendAttachment.alphaBlendOp = lvn_getVkBlendOperationEnum(attachment.alphaBlendOp);
+
+            colorBlendAttachments[i] = colorBlendAttachment;
+        }
+    }
+
+    VkPipelineColorBlendStateCreateInfo colorBlending = {0};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = pipelineFixedFunctions->colorBlend.logicOpEnable;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
+    colorBlending.pAttachments = colorBlendAttachments;
+    colorBlending.attachmentCount = colorBlendAttachmentCount;
+    colorBlending.blendConstants[0] = pipelineFixedFunctions->colorBlend.blendConstants[0];
+    colorBlending.blendConstants[1] = pipelineFixedFunctions->colorBlend.blendConstants[1];
+    colorBlending.blendConstants[2] = pipelineFixedFunctions->colorBlend.blendConstants[2];
+    colorBlending.blendConstants[3] = pipelineFixedFunctions->colorBlend.blendConstants[3];
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {0};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = pipelineFixedFunctions->depthstencil.enableDepth;
+    depthStencil.depthWriteEnable = pipelineFixedFunctions->depthstencil.enableDepth;
+    depthStencil.depthCompareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.depthOpCompare);
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
+    depthStencil.stencilTestEnable = pipelineFixedFunctions->depthstencil.enableStencil;
+    depthStencil.back.compareMask = pipelineFixedFunctions->depthstencil.stencil.compareMask;
+    depthStencil.back.writeMask = pipelineFixedFunctions->depthstencil.stencil.writeMask;
+    depthStencil.back.reference = pipelineFixedFunctions->depthstencil.stencil.reference;
+    depthStencil.back.compareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.stencil.compareOp);
+    depthStencil.back.depthFailOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp);
+    depthStencil.back.failOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp);
+    depthStencil.back.passOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp);
+    depthStencil.front = depthStencil.back;
+
+    // pipeline layout
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {0};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = NULL;
+
+    if (createInfo->descriptorLayoutCount != 0)
+    {
+        pipelineLayoutInfo.setLayoutCount = createInfo->descriptorLayoutCount;
+        pipelineLayoutInfo.pSetLayouts = descriptorLayouts;
+    }
+    else
+    {
+        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.pSetLayouts = NULL;
+    }
+
+    if (vkBackends->createPipelineLayout(vkBackends->device, &pipelineLayoutInfo, NULL, &pipelineLayout) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create pipeline layout for pipeline %p", pipeline);
+        goto fail_cleanup;
+    }
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {0};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.stageCount = createInfo->stageCount;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+
+    if (vkBackends->createGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create graphics pipeline for pipeline %p", pipeline);
+        goto fail_cleanup;
+    }
+
+    pipelineData = lvn_calloc(sizeof(LvnVkPipelineData));
+    pipelineData->pipelineLayout = pipelineLayout;
+    pipelineData->pipeline = vkPipeline;
+
+    pipeline->pipeline = pipelineData;
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
+    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    lvn_free(pipelineData);
+    return Lvn_Result_Failure;
 }
 
 void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
 {
+    LVN_ASSERT(pipeline, "pipeline cannot be null");
 
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) pipeline->graphicsctx->implData;
+    LvnVkPipelineData* pipelineData = (LvnVkPipelineData*) pipeline->pipeline;
+
+    vkBackends->destroyPipeline(vkBackends->device, pipelineData->pipeline, NULL);
+    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineData->pipelineLayout, NULL);
+    lvn_free(pipelineData);
 }

@@ -5,11 +5,17 @@
 #include "levikno_internal.h"
 
 
+struct LvnRenderPass
+{
+    void* renderPassHandle;
+};
+
 struct LvnSurface
 {
     const LvnGraphicsContext* graphicsctx;
     void* surface;
     void* swapchainData;
+    LvnRenderPass renderPass;
 };
 
 struct LvnDescriptorLayout
@@ -37,7 +43,6 @@ struct LvnGraphicsContext
     LvnLogger*                coreLogger;
     LvnPresentationModeFlags  presentModeFlags;
     bool                      enableGraphicsApiDebugLogging;
-    LvnPipelineFixedFunctions defaultPipelineFixedFuncs;
 
     // graphics implementation
     void*                     implData;

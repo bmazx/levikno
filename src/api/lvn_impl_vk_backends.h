@@ -34,6 +34,12 @@ typedef struct LvnVkSwapchainData
     VkImageView* swapchainImageViews;
 } LvnVkSwapchainData;
 
+typedef struct LvnVkPipelineData
+{
+    VkPipeline pipeline;
+    VkPipelineLayout pipelineLayout;
+} LvnVkPipelineData;
+
 typedef struct LvnVulkanBackends
 {
     void*                                         handle;
@@ -47,6 +53,7 @@ typedef struct LvnVulkanBackends
     PFN_vkEnumeratePhysicalDevices                enumeratePhysicalDevices;
     PFN_vkEnumerateDeviceExtensionProperties      enumerateDeviceExtensionProperties;
     PFN_vkGetPhysicalDeviceProperties             getPhysicalDeviceProperties;
+    PFN_vkGetPhysicalDeviceFormatProperties       getPhysicalDeviceFormatProperties;
     PFN_vkGetPhysicalDeviceQueueFamilyProperties  getPhysicalDeviceQueueFamilyProperties;
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR      getPhysicalDeviceSurfaceSupportKHR;
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR getPhysicalDeviceSurfaceCapabilitiesKHR;
@@ -67,6 +74,12 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyImageView                        destroyImageView;
     PFN_vkCreateShaderModule                      createShaderModule;
     PFN_vkDestroyShaderModule                     destroyShaderModule;
+    PFN_vkCreateRenderPass                        createRenderPass;
+    PFN_vkDestroyRenderPass                       destroyRenderPass;
+    PFN_vkCreatePipelineLayout                    createPipelineLayout;
+    PFN_vkDestroyPipelineLayout                   destroyPipelineLayout;
+    PFN_vkCreateGraphicsPipelines                 createGraphicsPipelines;
+    PFN_vkDestroyPipeline                         destroyPipeline;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;

@@ -20,7 +20,6 @@ typedef LvnFlags LvnPresentationModeFlags;
 
 typedef enum LvnTopologyType
 {
-    Lvn_TopologyType_None = 0,
     Lvn_TopologyType_Point,
     Lvn_TopologyType_Line,
     Lvn_TopologyType_LineStrip,
@@ -57,14 +56,23 @@ typedef enum LvnSampleCountFlagBits
 } LvnSampleCountFlagBits;
 typedef LvnFlags LvnSampleCountFlags;
 
+typedef enum LvnColorComponentFlagBits
+{
+    Lvn_ColorComponentFlag_R = 0x00000001,
+    Lvn_ColorComponentFlag_G = 0x00000002,
+    Lvn_ColorComponentFlag_B = 0x00000004,
+    Lvn_ColorComponentFlag_A = 0x00000008,
+} LvnColorComponentFlagBits;
+typedef LvnFlags LvnColorComponentFlags;
+
 typedef enum LvnColorBlendFactor
 {
     Lvn_ColorBlendFactor_Zero,
     Lvn_ColorBlendFactor_One,
-    Lvn_ColorBlendFactor_Src,
+    Lvn_ColorBlendFactor_SrcColor,
     Lvn_ColorBlendFactor_OneMinusSrcColor,
     Lvn_ColorBlendFactor_DstColor,
-    Lvn_ColorBlendFactor_OneMinus,
+    Lvn_ColorBlendFactor_OneMinusDstColor,
     Lvn_ColorBlendFactor_SrcAlpha,
     Lvn_ColorBlendFactor_OneMinusSrcAlpha,
     Lvn_ColorBlendFactor_DstAlpha,
@@ -158,8 +166,33 @@ typedef enum LvnShaderStage
     Lvn_ShaderStage_Fragment,
 } LvnShaderStage;
 
+typedef enum LvnColorImageFormat
+{
+    Lvn_ColorImageFormat_None = 0,
+    Lvn_ColorImageFormat_RGB,
+    Lvn_ColorImageFormat_RGBA,
+    Lvn_ColorImageFormat_RGBA8,
+    Lvn_ColorImageFormat_RGBA16F,
+    Lvn_ColorImageFormat_RGBA32F,
+    Lvn_ColorImageFormat_SRGB,
+    Lvn_ColorImageFormat_SRGBA,
+    Lvn_ColorImageFormat_SRGBA8,
+    Lvn_ColorImageFormat_SRGBA16F,
+    Lvn_ColorImageFormat_SRGBA32F,
+    Lvn_ColorImageFormat_RedInt,
+} LvnColorImageFormat;
+
+typedef enum LvnDepthImageFormat
+{
+    Lvn_DepthImageFormat_Depth16,
+    Lvn_DepthImageFormat_Depth32,
+    Lvn_DepthImageFormat_Depth24Stencil8,
+    Lvn_DepthImageFormat_Depth32Stencil8,
+} LvnDepthImageFormat;
+
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
+typedef struct LvnRenderPass LvnRenderPass;
 typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
 typedef struct LvnShader LvnShader;
@@ -222,17 +255,9 @@ typedef struct LvnPipelineRasterizer
     bool depthBiasEnable;
 } LvnPipelineRasterizer;
 
-typedef struct LvnPipelineColorWriteMask
-{
-    bool colorComponentR;
-    bool colorComponentG;
-    bool colorComponentB;
-    bool colorComponentA;
-} LvnPipelineColorWriteMask;
-
 typedef struct LvnPipelineMultiSampling
 {
-    LvnSampleCountFlags rasterizationSamples;
+    LvnSampleCountFlagBits rasterizationSamples;
     float minSampleShading;
     uint32_t* sampleMask;
     bool sampleShadingEnable;
@@ -242,7 +267,7 @@ typedef struct LvnPipelineMultiSampling
 
 typedef struct LvnPipelineColorBlendAttachment
 {
-    LvnPipelineColorWriteMask colorWriteMask;
+    LvnColorComponentFlags colorWriteMask;
     LvnColorBlendFactor srcColorBlendFactor;
     LvnColorBlendFactor dstColorBlendFactor;
     LvnColorBlendOperation colorBlendOp;
@@ -320,6 +345,7 @@ typedef struct LvnPipelineCreateInfo
     uint32_t descriptorLayoutCount;
     const LvnPipelineShaderStageCreateInfo* pStages;
     uint32_t stageCount;
+    const LvnRenderPass* renderPass;
 } LvnPipelineCreateInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
@@ -335,15 +361,18 @@ typedef struct LvnGraphicsContextCreateInfo
 extern "C" {
 #endif
 
-LVN_API LvnResult               lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
-LVN_API void                    lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx);                                                                         // destroy the graphics context
+LVN_API LvnResult                   lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
+LVN_API void                        lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx);                                                                         // destroy the graphics context
 
-LVN_API LvnResult               lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
-LVN_API void                    lvnDestroySurface(LvnSurface* surface);
-LVN_API LvnResult               lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo);
-LVN_API void                    lvnDestroyShader(LvnShader* shader);
-LVN_API LvnResult               lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
-LVN_API void                    lvnDestroyPipeline(LvnPipeline* pipeline);
+LVN_API LvnResult                   lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
+LVN_API void                        lvnDestroySurface(LvnSurface* surface);
+LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo);
+LVN_API void                        lvnDestroyShader(LvnShader* shader);
+LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
+LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
+
+LVN_API LvnRenderPass*              lvnSurfaceGetRenderPass(LvnSurface* surface);
+LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctions(void);
 
 #ifdef __cplusplus
 }

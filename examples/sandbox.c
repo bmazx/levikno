@@ -131,11 +131,58 @@ int main(int argc, char** argv)
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);
 
-    while (!glfwWindowShouldClose(window))
+    LvnFile vertfile = lvnLoadFileBin("res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileBin("res/shaders/frag.spv");
+
+    LvnShaderCreateInfo vertShCreateInfo = {0};
+    vertShCreateInfo.pCode = vertfile.data;
+    vertShCreateInfo.codeSize = vertfile.size;
+
+    LvnShader* vertShader;
+    lvnCreateShader(graphicsctx, &vertShader, &vertShCreateInfo);
+
+    LvnShaderCreateInfo fragShCreateInfo = {0};
+    fragShCreateInfo.pCode = fragfile.data;
+    fragShCreateInfo.codeSize = fragfile.size;
+
+    LvnShader* fragShader;
+    lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
+
+    LvnPipelineShaderStageCreateInfo stages[] =
+    {
+        { Lvn_ShaderStage_Vertex, vertShader, "main" },
+        { Lvn_ShaderStage_Fragment, fragShader, "main" },
+    };
+
+    LvnRenderPass* renderPass = lvnSurfaceGetRenderPass(surface);
+    LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctions();
+
+    LvnPipelineCreateInfo pipelineCreateInfo = {0};
+    pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
+    pipelineCreateInfo.pVertexAttributes = NULL;
+    pipelineCreateInfo.vertexAttributeCount = 0;
+    pipelineCreateInfo.pVertexBindingDescriptions = NULL;
+    pipelineCreateInfo.vertexBindingDescriptionCount = 0;
+    pipelineCreateInfo.pDescriptorLayouts = NULL;
+    pipelineCreateInfo.descriptorLayoutCount = 0;
+    pipelineCreateInfo.pStages = stages;
+    pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(stages);
+    pipelineCreateInfo.renderPass = renderPass;
+
+    LvnPipeline* pipeline;
+    lvnCreatePipeline(graphicsctx, &pipeline, &pipelineCreateInfo);
+
+    lvnDestroyShader(vertShader);
+    lvnDestroyShader(fragShader);
+    lvnUnloadFile(&vertfile);
+    lvnUnloadFile(&fragfile);
+
+    // while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
     }
 
+    lvnDestroyPipeline(pipeline);
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 
@@ -143,5 +190,4 @@ int main(int argc, char** argv)
 
     glfwDestroyWindow(window);
     glfwTerminate();
-
 }
