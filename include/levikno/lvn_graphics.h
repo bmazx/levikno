@@ -197,6 +197,7 @@ typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
 typedef struct LvnShader LvnShader;
 typedef struct LvnPipeline LvnPipeline;
+typedef struct LvnCommandBuffer LvnCommandBuffer;
 
 struct LvnContext;
 

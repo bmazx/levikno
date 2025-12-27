@@ -36,6 +36,12 @@ struct LvnPipeline
     void* pipeline;
 };
 
+struct LvnCommandBuffer
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* commandbuffer;
+};
+
 struct LvnGraphicsContext
 {
     LvnGraphicsApi            graphicsapi;

@@ -1023,12 +1023,12 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
                   deviceProperties.apiVersion);
 
     // create logical device
-    LvnVkQueueFamilyIndices indices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
+    vkBackends->queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
     float queuePriority = 1.0f;
 
     VkDeviceQueueCreateInfo queueCreateInfo = {0};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = indices.graphicsIndex;
+    queueCreateInfo.queueFamilyIndex = vkBackends->queueFamilyIndices.graphicsIndex;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
@@ -1094,6 +1094,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFramebuffer");
     vkBackends->destroyFramebuffer = (PFN_vkDestroyFramebuffer)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFramebuffer");
+    vkBackends->createCommandPool = (PFN_vkCreateCommandPool)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
+    vkBackends->destroyCommandPool = (PFN_vkDestroyCommandPool)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1110,7 +1114,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->createGraphicsPipelines ||
         !vkBackends->destroyPipeline ||
         !vkBackends->createFramebuffer ||
-        !vkBackends->destroyFramebuffer)
+        !vkBackends->destroyFramebuffer ||
+        !vkBackends->createCommandPool ||
+        !vkBackends->destroyCommandPool)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1137,10 +1143,22 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // get graphics and present queues from device
-    vkBackends->getDeviceQueue(vkBackends->device, indices.graphicsIndex, 0, &vkBackends->graphicsQueue);
+    vkBackends->getDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.graphicsIndex, 0, &vkBackends->graphicsQueue);
 
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
-        vkBackends->getDeviceQueue(vkBackends->device, indices.presentIndex, 0, &vkBackends->presentQueue);
+        vkBackends->getDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.presentIndex, 0, &vkBackends->presentQueue);
+
+
+    // create command pool
+    VkCommandPoolCreateInfo poolCreateInfo = {0};
+    poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolCreateInfo.queueFamilyIndex = vkBackends->queueFamilyIndices.graphicsIndex;
+    if (vkBackends->createCommandPool(vkBackends->device, &poolCreateInfo, NULL, &vkBackends->commandPool) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create command pool");
+        goto fail_cleanup;
+    }
 
 
     // set vulkan implementation function pointers
@@ -1151,7 +1169,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
 
-    if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
+    vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1159,7 +1177,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     return Lvn_Result_Success;
 
 fail_cleanup:
-    if (surface) vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
+    vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
+    vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1173,6 +1192,8 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
+    if (vkBackends->commandPool)
+        vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     if (vkBackends->device)
         vkBackends->destroyDevice(vkBackends->device, NULL);
     if (vkBackends->debugMessenger)
@@ -1236,7 +1257,6 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
             break;
         }
     }
-    LvnVkQueueFamilyIndices queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkSurface);
 
     // render pass
     // color attachment
@@ -1304,7 +1324,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
     swapchainCreateInfo.surface = vkSurface;
     swapchainCreateInfo.surfaceFormat = swapchainFormat;
-    swapchainCreateInfo.queueFamilyIndices = &queueFamilyIndices;
+    swapchainCreateInfo.queueFamilyIndices = &vkBackends->queueFamilyIndices;
     swapchainCreateInfo.renderPass = renderPass;
     swapchainCreateInfo.width = createInfo->width;
     swapchainCreateInfo.height = createInfo->height;

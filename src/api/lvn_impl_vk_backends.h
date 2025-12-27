@@ -85,15 +85,19 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyPipeline                         destroyPipeline;
     PFN_vkCreateFramebuffer                       createFramebuffer;
     PFN_vkDestroyFramebuffer                      destroyFramebuffer;
+    PFN_vkCreateCommandPool                       createCommandPool;
+    PFN_vkDestroyCommandPool                      destroyCommandPool;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;
     VkInstance                                    instance;
     VkDebugUtilsMessengerEXT                      debugMessenger;
     VkPhysicalDevice                              physicalDevice;
+    LvnVkQueueFamilyIndices                       queueFamilyIndices;
     VkDevice                                      device;
     VkQueue                                       graphicsQueue;
     VkQueue                                       presentQueue;
+    VkCommandPool                                 commandPool;
 
     struct
     {
