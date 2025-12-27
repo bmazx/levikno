@@ -19,7 +19,9 @@ typedef struct LvnVkSwapChainCreateInfo
 {
     VkPhysicalDevice physicalDevice;
     VkSurfaceKHR surface;
+    VkSurfaceFormatKHR surfaceFormat;
     const LvnVkQueueFamilyIndices* queueFamilyIndices;
+    VkRenderPass renderPass;
     uint32_t width;
     uint32_t height;
 } LvnVkSwapChainCreateInfo;
@@ -29,9 +31,10 @@ typedef struct LvnVkSwapchainData
     VkSwapchainKHR swapchain;
     VkExtent2D swapchainExtent;
     VkFormat swapchainFormat;
-    VkImage* swapchainImages;
     uint32_t swapchainImageCount;
+    VkImage* swapchainImages;
     VkImageView* swapchainImageViews;
+    VkFramebuffer* swapchainFramebuffers;
 } LvnVkSwapchainData;
 
 typedef struct LvnVkPipelineData
@@ -80,6 +83,8 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyPipelineLayout                   destroyPipelineLayout;
     PFN_vkCreateGraphicsPipelines                 createGraphicsPipelines;
     PFN_vkDestroyPipeline                         destroyPipeline;
+    PFN_vkCreateFramebuffer                       createFramebuffer;
+    PFN_vkDestroyFramebuffer                      destroyFramebuffer;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;

@@ -25,7 +25,7 @@ static LvnResult                   lvn_createPlatformSurface(const LvnVulkanBack
 static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
 static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
-static LvnResult                   lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
+static LvnResult                   lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
 static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStage stage);
 static VkFormat                    lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format);
 static VkPrimitiveTopology         lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType);
@@ -248,34 +248,21 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     return bestDevice;
 }
 
-static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo)
+static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo)
 {
     LVN_ASSERT(vkBackends && swapchainData && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
     LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
 
-    VkSurfaceFormatKHR* surfaceFormats = NULL;
     VkPresentModeKHR* presentModes = NULL;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkImage* swapchainImages = NULL;
     VkImageView* swapchainImageViews = NULL;
+    VkFramebuffer* swapchainFramebuffers = NULL;
     uint32_t swapchainImageCount = 0;
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
     vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR(createInfo->physicalDevice, createInfo->surface, &capabilities);
-
-    // swapchain format
-    uint32_t formatCount;
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(createInfo->physicalDevice, createInfo->surface, &formatCount, NULL);
-
-    if (!formatCount)
-    {
-        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain, no supported surface formats found");
-        goto fail_cleanup;
-    }
-
-    surfaceFormats = lvn_calloc(formatCount * sizeof(VkSurfaceFormatKHR));
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(createInfo->physicalDevice, createInfo->surface, &formatCount, surfaceFormats);
 
     // swapchain present modes
     uint32_t presentModeCount;
@@ -289,17 +276,6 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
 
     presentModes = lvn_calloc(presentModeCount * sizeof(VkPresentModeKHR));
     vkBackends->getPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, presentModes);
-
-    // find desired format, default to first if not found
-    VkSurfaceFormatKHR surfaceFormat = surfaceFormats[0];
-    for (uint32_t i = 0; i < formatCount; i++)
-    {
-        if (surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            surfaceFormat = surfaceFormats[i];
-            break;
-        }
-    }
 
     // find desired present mode
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -351,8 +327,8 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainCreateInfo.surface = createInfo->surface;
     swapchainCreateInfo.minImageCount = imageCount;
-    swapchainCreateInfo.imageFormat = surfaceFormat.format;
-    swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+    swapchainCreateInfo.imageFormat = createInfo->surfaceFormat.format;
+    swapchainCreateInfo.imageColorSpace = createInfo->surfaceFormat.colorSpace;
     swapchainCreateInfo.imageExtent = extent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -395,7 +371,7 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         imageViewCreateInfo.image = swapchainImages[i];
         imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCreateInfo.format = surfaceFormat.format;
+        imageViewCreateInfo.format = createInfo->surfaceFormat.format;
         imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -413,26 +389,47 @@ static LvnResult lvn_createSwapChain(const LvnVulkanBackends* vkBackends, LvnVkS
         }
     }
 
+    // create swapchain framebuffers
+    swapchainFramebuffers = lvn_calloc(swapchainImageCount * sizeof(VkFramebuffer));
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+    {
+        VkFramebufferCreateInfo framebufferCreateInfo = {0};
+        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferCreateInfo.renderPass = createInfo->renderPass;
+        framebufferCreateInfo.pAttachments = &swapchainImageViews[i];
+        framebufferCreateInfo.attachmentCount = 1;
+        framebufferCreateInfo.width = createInfo->width;
+        framebufferCreateInfo.height = createInfo->height;
+        framebufferCreateInfo.layers = 1;
+
+        if (vkBackends->createFramebuffer(vkBackends->device, &framebufferCreateInfo, NULL, &swapchainFramebuffers[i]) != VK_SUCCESS)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain framebuffers");
+            goto fail_cleanup;
+        }
+    }
+
     swapchainData->swapchain = swapchain;
-    swapchainData->swapchainFormat = surfaceFormat.format;
+    swapchainData->swapchainFormat = createInfo->surfaceFormat.format;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageCount = swapchainImageCount;
     swapchainData->swapchainImageViews = swapchainImageViews;
+    swapchainData->swapchainFramebuffers = swapchainFramebuffers;
 
-    lvn_free(surfaceFormats);
     lvn_free(presentModes);
-
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
-    lvn_free(surfaceFormats);
-    lvn_free(presentModes);
-    lvn_free(swapchainImages);
+    for (uint32_t i = 0; i < swapchainImageCount; i++)
+        vkBackends->destroyFramebuffer(vkBackends->device, swapchainFramebuffers[i], NULL);
+    lvn_free(swapchainFramebuffers);
     for (uint32_t i = 0; i < swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
+    vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
     lvn_free(swapchainImageViews);
+    lvn_free(presentModes);
+    lvn_free(swapchainImages);
     return Lvn_Result_Failure;
 }
 
@@ -644,7 +641,13 @@ static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
 }
 
 // TODO: might try a better way to find supported depth formats
-static VkFormat lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features)
+static VkFormat lvn_findSupportedFormat(
+    const LvnVulkanBackends* vkBackends,
+    VkPhysicalDevice physicalDevice,
+    const VkFormat* candidates,
+    uint32_t count,
+    VkImageTiling tiling,
+    VkFormatFeatureFlags features)
 {
     for (uint32_t i = 0; i < count; i++)
     {
@@ -1087,6 +1090,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateGraphicsPipelines");
     vkBackends->destroyPipeline = (PFN_vkDestroyPipeline)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyPipeline");
+    vkBackends->createFramebuffer = (PFN_vkCreateFramebuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFramebuffer");
+    vkBackends->destroyFramebuffer = (PFN_vkDestroyFramebuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFramebuffer");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1101,7 +1108,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->createPipelineLayout ||
         !vkBackends->destroyPipelineLayout ||
         !vkBackends->createGraphicsPipelines ||
-        !vkBackends->destroyPipeline)
+        !vkBackends->destroyPipeline ||
+        !vkBackends->createFramebuffer ||
+        !vkBackends->destroyFramebuffer)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1184,11 +1193,12 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
-    // surface
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
+    VkSurfaceFormatKHR* swapchainFormats = NULL;
     LvnVkSwapchainData* swapchainData = NULL;
     VkRenderPass renderPass = VK_NULL_HANDLE;
 
+    // surface
     LvnPlatformData platformData = {0};
     platformData.nativeDisplayHandle = createInfo->nativeDisplayHandle;
     platformData.nativeWindowHandle = createInfo->nativeWindowHandle;
@@ -1200,27 +1210,38 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     }
 
     // swap chain
-    LvnVkQueueFamilyIndices queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkSurface);
+    // swapchain format
+    uint32_t formatCount;
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &formatCount, NULL);
 
-    LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
-    swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
-    swapchainCreateInfo.surface = vkSurface;
-    swapchainCreateInfo.queueFamilyIndices = &queueFamilyIndices;
-    swapchainCreateInfo.width = createInfo->width;
-    swapchainCreateInfo.height = createInfo->height;
-
-    swapchainData = lvn_calloc(sizeof(LvnVkSwapchainData));
-    if (lvn_createSwapChain(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    if (!formatCount)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for surface %p", surface);
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to create swapchain for surface %p, no supported surface formats found",
+                      surface);
         goto fail_cleanup;
     }
 
+    swapchainFormats = lvn_calloc(formatCount * sizeof(VkSurfaceFormatKHR));
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &formatCount, swapchainFormats);
+
+    // find desired format, default to first if not found
+    VkSurfaceFormatKHR swapchainFormat = swapchainFormats[0];
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        if (swapchainFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
+            swapchainFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            swapchainFormat = swapchainFormats[i];
+            break;
+        }
+    }
+    LvnVkQueueFamilyIndices queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkSurface);
 
     // render pass
     // color attachment
     VkAttachmentDescription colorAttachment = {0};
-    colorAttachment.format = swapchainData->swapchainFormat; // use the swapchain format for color attachment
+    colorAttachment.format = swapchainFormat.format; // use the swapchain format for color attachment
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1262,7 +1283,6 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-
     VkAttachmentDescription attachments[] = { colorAttachment, /* depthAttachment */ };
     VkRenderPassCreateInfo renderPassInfo = {0};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1279,18 +1299,43 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         goto fail_cleanup;
     }
 
+    // create swapchain data
+    LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
+    swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
+    swapchainCreateInfo.surface = vkSurface;
+    swapchainCreateInfo.surfaceFormat = swapchainFormat;
+    swapchainCreateInfo.queueFamilyIndices = &queueFamilyIndices;
+    swapchainCreateInfo.renderPass = renderPass;
+    swapchainCreateInfo.width = createInfo->width;
+    swapchainCreateInfo.height = createInfo->height;
+
+    swapchainData = lvn_calloc(sizeof(LvnVkSwapchainData));
+    if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for surface %p", surface);
+        goto fail_cleanup;
+    }
+
     surface->surface = vkSurface;
     surface->swapchainData = swapchainData;
     surface->renderPass.renderPassHandle = renderPass;
 
+    lvn_free(swapchainFormats);
     return Lvn_Result_Success;
 
 fail_cleanup:
     vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
     vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->destroyFramebuffer(vkBackends->device, swapchainData->swapchainFramebuffers[i], NULL);
+    lvn_free(swapchainData->swapchainFramebuffers);
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+    lvn_free(swapchainData->swapchainImageViews);
     lvn_free(swapchainData->swapchainImages);
     lvn_free(swapchainData);
+    lvn_free(swapchainFormats);
     return Lvn_Result_Failure;
 }
 
@@ -1301,6 +1346,11 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
     VkRenderPass renderPass = (VkRenderPass) surface->renderPass.renderPassHandle;
+
+    // swapchain framebuffers
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->destroyFramebuffer(vkBackends->device, swapchainData->swapchainFramebuffers[i], NULL);
+    lvn_free(swapchainData->swapchainFramebuffers);
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)

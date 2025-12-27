@@ -156,6 +156,10 @@ int main(int argc, char** argv)
 
     LvnRenderPass* renderPass = lvnSurfaceGetRenderPass(surface);
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctions();
+    pipelineFixedFuncs.viewport.width = 800;
+    pipelineFixedFuncs.viewport.height = 600;
+    pipelineFixedFuncs.scissor.extent.width = 800;
+    pipelineFixedFuncs.scissor.extent.height = 600;
 
     LvnPipelineCreateInfo pipelineCreateInfo = {0};
     pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
