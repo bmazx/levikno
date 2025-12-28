@@ -349,6 +349,11 @@ typedef struct LvnPipelineCreateInfo
     const LvnRenderPass* renderPass;
 } LvnPipelineCreateInfo;
 
+typedef struct LvnCommandBufferCreateInfo
+{
+    
+} LvnCommandBufferCreateInfo;
+
 typedef struct LvnGraphicsContextCreateInfo
 {
     LvnGraphicsApi graphicsapi;                          // graphics api backend
@@ -371,6 +376,8 @@ LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* gr
 LVN_API void                        lvnDestroyShader(LvnShader* shader);
 LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
 LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
+LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
+LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 LVN_API LvnRenderPass*              lvnSurfaceGetRenderPass(LvnSurface* surface);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctions(void);

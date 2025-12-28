@@ -13,5 +13,7 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 void      lvnImplVkDestroyShader(LvnShader* shader);
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
+LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
+void      lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 #endif // !HG_LVN_IMPL_VK_H

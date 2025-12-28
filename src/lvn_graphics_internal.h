@@ -58,6 +58,8 @@ struct LvnGraphicsContext
     void                      (*implDestroyShader)(LvnShader*);
     LvnResult                 (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
     void                      (*implDestroyPipeline)(LvnPipeline*);
+    LvnResult                 (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
+    void                      (*implDestroyCommandBuffer)(LvnCommandBuffer*);
 };
 
 

@@ -174,6 +174,32 @@ void lvnDestroyPipeline(LvnPipeline* pipeline)
     lvn_free(pipeline);
 }
 
+LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer, const LvnCommandBufferCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && commandBuffer && createInfo, "graphicsctx, commandBuffer, and createInfo cannot be null");
+
+    *commandBuffer = (LvnCommandBuffer*) lvn_calloc(sizeof(LvnCommandBuffer));
+
+    if (!*commandBuffer)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at &p", commandBuffer);
+        return Lvn_Result_Failure;
+    }
+
+    LvnCommandBuffer* commandBufferPtr = *commandBuffer;
+    commandBufferPtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreateCommandBuffer(graphicsctx, *commandBuffer, createInfo);
+}
+
+void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    graphicsctx->implDestroyCommandBuffer(commandBuffer);
+    lvn_free(commandBuffer);
+}
+
 LvnRenderPass* lvnSurfaceGetRenderPass(LvnSurface* surface)
 {
     LVN_ASSERT(surface, "surface cannot be null");

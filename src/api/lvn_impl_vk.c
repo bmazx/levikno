@@ -1098,6 +1098,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
     vkBackends->destroyCommandPool = (PFN_vkDestroyCommandPool)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
+    vkBackends->allocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1168,6 +1170,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyShader = lvnImplVkDestroyShader;
     graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
+    graphicsctx->implCreateCommandBuffer = lvnImplVkCreateCommandBuffer;
+    graphicsctx->implDestroyCommandBuffer = lvnImplVkDestroyCommandBuffer;
 
     vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
@@ -1398,6 +1402,8 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
 LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
+
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
     VkShaderModuleCreateInfo shaderCreateInfo = {0};
@@ -1427,6 +1433,8 @@ void lvnImplVkDestroyShader(LvnShader* shader)
 
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
+
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     LvnVkPipelineData* pipelineData = NULL;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -1691,4 +1699,33 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
     vkBackends->destroyPipeline(vkBackends->device, pipelineData->pipeline, NULL);
     vkBackends->destroyPipelineLayout(vkBackends->device, pipelineData->pipelineLayout, NULL);
     lvn_free(pipelineData);
+}
+
+LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && commandBuffer && createInfo, "graphicsctx, commandBuffer, and createInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkCommandBufferAllocateInfo cmdBufferAllocInfo = {0};
+    cmdBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdBufferAllocInfo.commandPool = vkBackends->commandPool;
+    cmdBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdBufferAllocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer cmdBuff;
+    if (vkBackends->allocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, &cmdBuff) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
+        return Lvn_Result_Failure;
+    }
+
+    commandBuffer->commandbuffer = cmdBuff;
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    // NOTE: function left empty, vulkan does not need to destroy command buffers (VkCommandBuffer)
 }
