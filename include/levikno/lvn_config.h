@@ -53,6 +53,13 @@
     #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
 #endif
 
+// boolean type
+#if (defined(__STDC__) && __STDC_VERSION__ >= 199901L)
+    #include <stdbool.h>
+#elif !defined(__cplusplus) && !defined(bool)
+    typedef enum bool { false = 0, true = !false } bool;
+#endif
+
 // logging
 #ifndef LVN_DISABLE_LOGGING
     #define LVN_ENABLE_LOGGING
@@ -64,7 +71,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
 
 typedef uint32_t LvnFlags;
 
