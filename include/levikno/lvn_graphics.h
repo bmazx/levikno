@@ -193,11 +193,14 @@ typedef enum LvnDepthImageFormat
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnRenderPass LvnRenderPass;
+typedef struct LvnFramebuffer LvnFramebuffer;
 typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
 typedef struct LvnShader LvnShader;
 typedef struct LvnPipeline LvnPipeline;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
+typedef struct LvnFence LvnFence;
+typedef struct LvnSemaphore LvnSemaphore;
 
 struct LvnContext;
 
@@ -351,7 +354,7 @@ typedef struct LvnPipelineCreateInfo
 
 typedef struct LvnCommandBufferCreateInfo
 {
-    
+
 } LvnCommandBufferCreateInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
@@ -381,6 +384,10 @@ LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* co
 
 LVN_API LvnRenderPass*              lvnSurfaceGetRenderPass(LvnSurface* surface);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctions(void);
+
+LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
+LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
+
 
 #ifdef __cplusplus
 }

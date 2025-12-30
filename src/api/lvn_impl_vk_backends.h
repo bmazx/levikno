@@ -88,6 +88,8 @@ typedef struct LvnVulkanBackends
     PFN_vkCreateCommandPool                       createCommandPool;
     PFN_vkDestroyCommandPool                      destroyCommandPool;
     PFN_vkAllocateCommandBuffers                  allocateCommandBuffers;
+    PFN_vkBeginCommandBuffer                      beginCommandBuffer;
+    PFN_vkEndCommandBuffer                        endCommandBuffer;
 
     const LvnGraphicsContext*                     graphicsctx;
     bool                                          enableValidationLayers;

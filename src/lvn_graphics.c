@@ -272,3 +272,17 @@ LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctions(void)
 
     return pipelineFixedFunctions;
 }
+
+void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    graphicsctx->implBeginCommandBuffer(commandBuffer);
+}
+
+void lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    graphicsctx->implEndCommandBuffer(commandBuffer);
+}

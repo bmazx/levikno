@@ -1100,6 +1100,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
     vkBackends->allocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
+    vkBackends->beginCommandBuffer = (PFN_vkBeginCommandBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBeginCommandBuffer");
+    vkBackends->endCommandBuffer = (PFN_vkEndCommandBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkEndCommandBuffer");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1118,7 +1122,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->createFramebuffer ||
         !vkBackends->destroyFramebuffer ||
         !vkBackends->createCommandPool ||
-        !vkBackends->destroyCommandPool)
+        !vkBackends->destroyCommandPool ||
+        !vkBackends->allocateCommandBuffers ||
+        !vkBackends->beginCommandBuffer ||
+        !vkBackends->endCommandBuffer)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1222,6 +1229,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     VkSurfaceFormatKHR* swapchainFormats = NULL;
     LvnVkSwapchainData* swapchainData = NULL;
     VkRenderPass renderPass = VK_NULL_HANDLE;
+    LvnFramebuffer* framebuffers = NULL;
 
     // surface
     LvnPlatformData platformData = {0};
@@ -1340,14 +1348,24 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         goto fail_cleanup;
     }
 
+    // create framebuffer render targets
+    framebuffers = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnFramebuffer));
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+    {
+        framebuffers[i].graphicsctx = graphicsctx;
+        framebuffers[i].framebufferData = swapchainData->swapchainFramebuffers[i];
+    }
+
     surface->surface = vkSurface;
     surface->swapchainData = swapchainData;
     surface->renderPass.renderPassHandle = renderPass;
+    surface->swapchainFramebuffers = framebuffers;
 
     lvn_free(swapchainFormats);
     return Lvn_Result_Success;
 
 fail_cleanup:
+    lvn_free(framebuffers);
     vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
     vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
@@ -1375,6 +1393,7 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
         vkBackends->destroyFramebuffer(vkBackends->device, swapchainData->swapchainFramebuffers[i], NULL);
     lvn_free(swapchainData->swapchainFramebuffers);
+    lvn_free(surface->swapchainFramebuffers);
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
@@ -1728,4 +1747,30 @@ void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     // NOTE: function left empty, vulkan does not need to destroy command buffers (VkCommandBuffer)
+}
+
+void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkCommandBufferBeginInfo cmdBuffBeginInfo = {0};
+    cmdBuffBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBuffBeginInfo.flags = 0;
+    cmdBuffBeginInfo.pInheritanceInfo = NULL;
+
+    if (vkBackends->beginCommandBuffer(cmdBuff, &cmdBuffBeginInfo) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to begin command buffer");
+    }
+}
+
+void lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    vkBackends->endCommandBuffer(cmdBuff);
 }

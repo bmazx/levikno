@@ -10,12 +10,20 @@ struct LvnRenderPass
     void* renderPassHandle;
 };
 
+struct LvnFramebuffer
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* framebufferData;
+};
+
 struct LvnSurface
 {
     const LvnGraphicsContext* graphicsctx;
     void* surface;
     void* swapchainData;
     LvnRenderPass renderPass;
+    LvnFramebuffer* swapchainFramebuffers;
+    uint32_t swapchainFramebufferCount;
 };
 
 struct LvnDescriptorLayout
@@ -60,6 +68,9 @@ struct LvnGraphicsContext
     void                      (*implDestroyPipeline)(LvnPipeline*);
     LvnResult                 (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
     void                      (*implDestroyCommandBuffer)(LvnCommandBuffer*);
+
+    void                      (*implBeginCommandBuffer)(LvnCommandBuffer*);
+    void                      (*implEndCommandBuffer)(LvnCommandBuffer*);
 };
 
 

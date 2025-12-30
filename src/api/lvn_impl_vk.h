@@ -16,4 +16,7 @@ void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
 LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
 void      lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
+void      lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
+void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
+
 #endif // !HG_LVN_IMPL_VK_H
