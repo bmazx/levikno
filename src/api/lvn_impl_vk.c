@@ -21,6 +21,11 @@ static const char* s_LvnVkValidationLayers[] =
     "VK_LAYER_KHRONOS_validation",
 };
 
+static const char* s_LvnVkDeviceExtensions[] =
+{
+    VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+};
+
 static LvnResult                   lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, VkSurfaceKHR* surface, const LvnPlatformData* platformData);
 static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
@@ -37,6 +42,8 @@ static VkBlendFactor               lvn_getVkBlendFactorEnum(LvnColorBlendFactor 
 static VkBlendOp                   lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp);
 static VkCompareOp                 lvn_getVkCompareOpEnum(LvnCompareOperation compare);
 static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp);
+static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
+static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
 static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
 static VkFormat                    lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice);
 
@@ -193,14 +200,15 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     physicalDevices = lvn_calloc(physicalDeviceCount * sizeof(VkPhysicalDevice));
     vkBackends->enumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
 
-    const char* requiredExtensions = NULL;
-    uint32_t requiredExtensionCount = 0;
+    uint32_t requiredExtensionCount = LVN_ARRAY_LEN(s_LvnVkDeviceExtensions);
+    const char** requiredExtensions = lvn_calloc(requiredExtensionCount * sizeof(const char*));
+    memcpy(requiredExtensions, s_LvnVkDeviceExtensions, sizeof(s_LvnVkDeviceExtensions));
 
     // get device extensions for surface present support
     if (surface)
     {
-        requiredExtensions = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-        requiredExtensionCount = 1;
+        requiredExtensions = lvn_realloc(requiredExtensions, ++requiredExtensionCount);
+        requiredExtensions[requiredExtensionCount - 1] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
     }
 
     uint32_t bestScore = 0;
@@ -217,7 +225,7 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
             continue;
 
         // check device extension support
-        if (!lvn_checkDeviceExtensionSupport(vkBackends, physicalDevice, &requiredExtensions, requiredExtensionCount))
+        if (!lvn_checkDeviceExtensionSupport(vkBackends, physicalDevice, requiredExtensions, requiredExtensionCount))
             continue;
 
         VkPhysicalDeviceProperties deviceProperties;
@@ -244,6 +252,7 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     }
 
     lvn_free(physicalDevices);
+    lvn_free(requiredExtensions);
 
     return bestDevice;
 }
@@ -257,7 +266,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkImage* swapchainImages = NULL;
     VkImageView* swapchainImageViews = NULL;
-    VkFramebuffer* swapchainFramebuffers = NULL;
     uint32_t swapchainImageCount = 0;
 
     // check for swapchain capabilitie support
@@ -389,41 +397,17 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         }
     }
 
-    // create swapchain framebuffers
-    swapchainFramebuffers = lvn_calloc(swapchainImageCount * sizeof(VkFramebuffer));
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-    {
-        VkFramebufferCreateInfo framebufferCreateInfo = {0};
-        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferCreateInfo.renderPass = createInfo->renderPass;
-        framebufferCreateInfo.pAttachments = &swapchainImageViews[i];
-        framebufferCreateInfo.attachmentCount = 1;
-        framebufferCreateInfo.width = createInfo->width;
-        framebufferCreateInfo.height = createInfo->height;
-        framebufferCreateInfo.layers = 1;
-
-        if (vkBackends->createFramebuffer(vkBackends->device, &framebufferCreateInfo, NULL, &swapchainFramebuffers[i]) != VK_SUCCESS)
-        {
-            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain framebuffers");
-            goto fail_cleanup;
-        }
-    }
-
     swapchainData->swapchain = swapchain;
     swapchainData->swapchainFormat = createInfo->surfaceFormat.format;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageCount = swapchainImageCount;
     swapchainData->swapchainImageViews = swapchainImageViews;
-    swapchainData->swapchainFramebuffers = swapchainFramebuffers;
 
     lvn_free(presentModes);
     return Lvn_Result_Success;
 
 fail_cleanup:
-    for (uint32_t i = 0; i < swapchainImageCount; i++)
-        vkBackends->destroyFramebuffer(vkBackends->device, swapchainFramebuffers[i], NULL);
-    lvn_free(swapchainFramebuffers);
     for (uint32_t i = 0; i < swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
@@ -640,6 +624,41 @@ static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
     return VK_STENCIL_OP_KEEP;
 }
 
+static VkFormat lvn_getVkFormatEnum(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_None: { return VK_FORMAT_UNDEFINED; }
+        case Lvn_Format_R8G8B8_UNORM: { return VK_FORMAT_R8G8B8_UNORM; }
+        case Lvn_Format_R8G8B8_SRGB: { return VK_FORMAT_R8G8B8_SRGB; }
+        case Lvn_Format_R8G8B8A8_UNORM: { return VK_FORMAT_R8G8B8A8_UNORM; }
+        case Lvn_Format_R8G8B8A8_SRGB: { return VK_FORMAT_R8G8B8A8_SRGB; }
+        case Lvn_Format_B8G8R8_SRGB: { return VK_FORMAT_B8G8R8_SRGB; }
+        case Lvn_Format_B8G8R8A8_SRGB: { return VK_FORMAT_B8G8R8A8_SRGB; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum");
+    return VK_FORMAT_UNDEFINED;
+}
+
+static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
+{
+    switch (format)
+    {
+        case VK_FORMAT_UNDEFINED: { return Lvn_Format_None; }
+        case VK_FORMAT_R8G8B8_UNORM: { return Lvn_Format_R8G8B8_UNORM; }
+        case VK_FORMAT_R8G8B8_SRGB: { return Lvn_Format_R8G8B8_SRGB; }
+        case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_R8G8B8A8_UNORM; }
+        case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_R8G8B8A8_SRGB; }
+        case VK_FORMAT_B8G8R8_SRGB: { return Lvn_Format_B8G8R8_SRGB; }
+        case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_B8G8R8A8_SRGB; }
+        default: { break; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum, VkFormat not supported");
+    return Lvn_Format_None;
+}
+
 // TODO: might try a better way to find supported depth formats
 static VkFormat lvn_findSupportedFormat(
     const LvnVulkanBackends* vkBackends,
@@ -696,6 +715,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         goto fail_cleanup;
     }
 
+    // vulkan get instace proc address
     vkBackends->getInstanceProcAddr = (PFN_vkGetInstanceProcAddr)
         lvn_platformGetModuleSymbol(vkBackends->handle, "vkGetInstanceProcAddr");
 
@@ -706,6 +726,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         goto fail_cleanup;
     }
 
+    // vulkan global level function symbols
+    vkBackends->enumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)
+        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
     vkBackends->enumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)
         vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
     vkBackends->enumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)
@@ -714,7 +737,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getInstanceProcAddr(NULL, "vkCreateInstance");
 
 
-    if (!vkBackends->enumerateInstanceExtensionProperties ||
+    if (!vkBackends->enumerateInstanceVersion ||
+        !vkBackends->enumerateInstanceExtensionProperties ||
         !vkBackends->enumerateInstanceLayerProperties ||
         !vkBackends->createInstance)
     {
@@ -860,6 +884,12 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     debugCreateInfo.pfnUserCallback = lvn_debugCallback;
     debugCreateInfo.pUserData = graphicsctx;
 
+    // get vulkan version
+    uint32_t vulkanVersion;
+    vkBackends->enumerateInstanceVersion(&vulkanVersion);
+    vkBackends->versionMajor = VK_VERSION_MAJOR(vulkanVersion);
+    vkBackends->versionMinor = VK_VERSION_MINOR(vulkanVersion);
+
     // create vulkan instance
     VkApplicationInfo appInfo = {0};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -867,7 +897,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = NULL;
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.apiVersion = VK_MAKE_VERSION(vkBackends->versionMajor, vkBackends->versionMinor, 0);
 
     VkInstanceCreateInfo vkCreateInfo = {0};
     vkCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1032,11 +1062,17 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
+    // enable vulkan dynamic rendering features (1.3)
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {0};
+    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+    dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
     VkDeviceCreateInfo deviceCreateInfo = {0};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.pNext = &dynamicRenderingFeatures;
 
     if (vkBackends->enableValidationLayers)
     {
@@ -1229,7 +1265,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     VkSurfaceFormatKHR* swapchainFormats = NULL;
     LvnVkSwapchainData* swapchainData = NULL;
     VkRenderPass renderPass = VK_NULL_HANDLE;
-    LvnFramebuffer* framebuffers = NULL;
+    LvnImageView* swapchainImageViews = NULL;
 
     // surface
     LvnPlatformData platformData = {0};
@@ -1270,67 +1306,6 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         }
     }
 
-    // render pass
-    // color attachment
-    VkAttachmentDescription colorAttachment = {0};
-    colorAttachment.format = swapchainFormat.format; // use the swapchain format for color attachment
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference colorAttachmentRef = {0};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    // depth attachment
-    VkAttachmentDescription depthAttachment = {0};
-    depthAttachment.format = lvn_findDepthFormat(vkBackends, vkBackends->physicalDevice);
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef = {0};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass = {0};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    // subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    VkSubpassDependency dependency = {0};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcAccessMask = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-    VkAttachmentDescription attachments[] = { colorAttachment, /* depthAttachment */ };
-    VkRenderPassCreateInfo renderPassInfo = {0};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = LVN_ARRAY_LEN(attachments);
-    renderPassInfo.pAttachments = attachments;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkBackends->createRenderPass(vkBackends->device, &renderPassInfo, NULL, &renderPass) != VK_SUCCESS)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create render pass for surface %p", surface);
-        goto fail_cleanup;
-    }
-
     // create swapchain data
     LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
@@ -1348,31 +1323,24 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         goto fail_cleanup;
     }
 
-    // create framebuffer render targets
-    framebuffers = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnFramebuffer));
+    swapchainImageViews = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnImageView));
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-    {
-        framebuffers[i].graphicsctx = graphicsctx;
-        framebuffers[i].framebufferData = swapchainData->swapchainFramebuffers[i];
-    }
+        swapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
 
     surface->surface = vkSurface;
     surface->swapchainData = swapchainData;
-    surface->renderPass.renderPassHandle = renderPass;
-    surface->swapchainFramebuffers = framebuffers;
-    surface->swapchainImageCount = swapchainData->swapchainImageCount;
+    surface->pSwapchainImageViews = swapchainImageViews;
+    surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
+    surface->swapchainColorFormat = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
 
     lvn_free(swapchainFormats);
     return Lvn_Result_Success;
 
 fail_cleanup:
-    lvn_free(framebuffers);
+    lvn_free(swapchainImageViews);
     vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
     vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyFramebuffer(vkBackends->device, swapchainData->swapchainFramebuffers[i], NULL);
-    lvn_free(swapchainData->swapchainFramebuffers);
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImageViews);
@@ -1388,13 +1356,6 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
-    VkRenderPass renderPass = (VkRenderPass) surface->renderPass.renderPassHandle;
-
-    // swapchain framebuffers
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyFramebuffer(vkBackends->device, swapchainData->swapchainFramebuffers[i], NULL);
-    lvn_free(swapchainData->swapchainFramebuffers);
-    lvn_free(surface->swapchainFramebuffers);
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
@@ -1410,9 +1371,6 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     // swapchain data struct
     lvn_free(surface->swapchainData);
     surface->swapchainData = NULL;
-
-    // render pass
-    vkBackends->destroyRenderPass(vkBackends->device, renderPass, NULL);
 
     // surface
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
@@ -1521,9 +1479,10 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         descriptorLayouts[i] = descriptorLayout;
     }
 
-    // render pass
-    VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderPassHandle;
-
+    // color attachment formats
+    VkFormat colorAttachmentFormats[createInfo->colorAttachmentCount];
+    for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
+        colorAttachmentFormats[i] = lvn_getVkFormatEnum(createInfo->pColorAttachmentFormats[i]);
 
     // pipeline fixed functions
     const LvnPipelineFixedFunctions* pipelineFixedFunctions = createInfo->pipelineFixedFunctions;
@@ -1670,9 +1629,17 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         goto fail_cleanup;
     }
 
+    // pipeline rendering create info
+    VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo = {0};
+    pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+    pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats;
+    pipelineRenderingCreateInfo.colorAttachmentCount = createInfo->colorAttachmentCount;
+    pipelineRenderingCreateInfo.depthAttachmentFormat = lvn_getVkFormatEnum(createInfo->depthAttachmentFormat);
+    pipelineRenderingCreateInfo.stencilAttachmentFormat = lvn_getVkFormatEnum(createInfo->stencilAttachmentFormat);
+
+    // pipeline create info
     VkGraphicsPipelineCreateInfo pipelineInfo = {0};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.renderPass = renderPass;
     pipelineInfo.stageCount = createInfo->stageCount;
     pipelineInfo.pStages = shaderStages;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -1687,6 +1654,8 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
+    pipelineInfo.pNext = &pipelineRenderingCreateInfo;
 
     if (vkBackends->createGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
     {

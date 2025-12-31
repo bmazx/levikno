@@ -34,7 +34,6 @@ typedef struct LvnVkSwapchainData
     uint32_t swapchainImageCount;
     VkImage* swapchainImages;
     VkImageView* swapchainImageViews;
-    VkFramebuffer* swapchainFramebuffers;
 } LvnVkSwapchainData;
 
 typedef struct LvnVkPipelineData
@@ -47,6 +46,7 @@ typedef struct LvnVulkanBackends
 {
     void*                                         handle;
     PFN_vkGetInstanceProcAddr                     getInstanceProcAddr;
+    PFN_vkEnumerateInstanceVersion                enumerateInstanceVersion;
     PFN_vkEnumerateInstanceExtensionProperties    enumerateInstanceExtensionProperties;
     PFN_vkEnumerateInstanceLayerProperties        enumerateInstanceLayerProperties;
     PFN_vkCreateInstance                          createInstance;
@@ -92,6 +92,8 @@ typedef struct LvnVulkanBackends
     PFN_vkEndCommandBuffer                        endCommandBuffer;
 
     const LvnGraphicsContext*                     graphicsctx;
+    uint32_t                                      versionMajor;
+    uint32_t                                      versionMinor;
     bool                                          enableValidationLayers;
     VkInstance                                    instance;
     VkDebugUtilsMessengerEXT                      debugMessenger;

@@ -5,9 +5,9 @@
 #include "levikno_internal.h"
 
 
-struct LvnRenderPass
+struct LvnImageView
 {
-    void* renderPassHandle;
+    void* imageViewHandle;
 };
 
 struct LvnFramebuffer
@@ -21,9 +21,9 @@ struct LvnSurface
     const LvnGraphicsContext* graphicsctx;
     void* surface;
     void* swapchainData;
-    LvnRenderPass renderPass;
-    LvnFramebuffer* swapchainFramebuffers;
-    uint32_t swapchainImageCount;
+    LvnImageView* pSwapchainImageViews;
+    uint32_t swapchainImageViewCount;
+    LvnFormat swapchainColorFormat;
 };
 
 struct LvnDescriptorLayout

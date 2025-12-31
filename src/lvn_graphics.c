@@ -200,17 +200,17 @@ void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
     lvn_free(commandBuffer);
 }
 
-LvnRenderPass* lvnSurfaceGetRenderPass(LvnSurface* surface)
+LvnFormat lvnSurfaceGetSwapchainFormat(const LvnSurface* surface)
 {
     LVN_ASSERT(surface, "surface cannot be null");
-    return &surface->renderPass;
+    return surface->swapchainColorFormat;
 }
 
-LvnFramebuffer* lvnSurfaceGetSwapchainFramebuffer(LvnSurface* surface, uint32_t imageIndex)
+LvnImageView* lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex)
 {
     LVN_ASSERT(surface, "surface cannot be null");
-    LVN_ASSERT(imageIndex < surface->swapchainImageCount, "imageIndex out of index bounds");
-    return &surface->swapchainFramebuffers[imageIndex];
+    LVN_ASSERT(imageIndex < surface->swapchainImageViewCount, "imageIndex out of index bounds");
+    return &surface->pSwapchainImageViews[imageIndex];
 }
 
 LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)

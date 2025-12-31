@@ -18,6 +18,19 @@ typedef enum LvnPresentationModeFlagBits
 } LvnPresentationModeFlagBits;
 typedef LvnFlags LvnPresentationModeFlags;
 
+typedef enum LvnAttachmentLoadOp
+{
+    Lvn_AttachmentLoadOp_Load,
+    Lvn_AttachmentLoadOp_Clear,
+    Lvn_AttachmentLoadOp_DontCare,
+} LvnAttachmentLoadOp;
+
+typedef enum LvnAttachmentStoreOp
+{
+    Lvn_AttachmentStoreOp_Store,
+    Lvn_AttachmentStoreOp_DontCare,
+} LvnAttachmentStoreOp;
+
 typedef enum LvnTopologyType
 {
     Lvn_TopologyType_Point,
@@ -166,38 +179,25 @@ typedef enum LvnShaderStage
     Lvn_ShaderStage_Fragment,
 } LvnShaderStage;
 
-typedef enum LvnColorImageFormat
+typedef enum LvnFormat
 {
-    Lvn_ColorImageFormat_None = 0,
-    Lvn_ColorImageFormat_RGB,
-    Lvn_ColorImageFormat_RGBA,
-    Lvn_ColorImageFormat_RGBA8,
-    Lvn_ColorImageFormat_RGBA16F,
-    Lvn_ColorImageFormat_RGBA32F,
-    Lvn_ColorImageFormat_SRGB,
-    Lvn_ColorImageFormat_SRGBA,
-    Lvn_ColorImageFormat_SRGBA8,
-    Lvn_ColorImageFormat_SRGBA16F,
-    Lvn_ColorImageFormat_SRGBA32F,
-    Lvn_ColorImageFormat_RedInt,
-} LvnColorImageFormat;
+    Lvn_Format_None = 0,
+    Lvn_Format_R8G8B8_UNORM,
+    Lvn_Format_R8G8B8_SRGB,
+    Lvn_Format_R8G8B8A8_UNORM,
+    Lvn_Format_R8G8B8A8_SRGB,
 
-typedef enum LvnDepthImageFormat
-{
-    Lvn_DepthImageFormat_Depth16,
-    Lvn_DepthImageFormat_Depth32,
-    Lvn_DepthImageFormat_Depth24Stencil8,
-    Lvn_DepthImageFormat_Depth32Stencil8,
-} LvnDepthImageFormat;
+    Lvn_Format_B8G8R8_SRGB,
+    Lvn_Format_B8G8R8A8_SRGB,
+} LvnFormat;
 
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
-typedef struct LvnRenderPass LvnRenderPass;
-typedef struct LvnFramebuffer LvnFramebuffer;
 typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
 typedef struct LvnShader LvnShader;
 typedef struct LvnPipeline LvnPipeline;
+typedef struct LvnImageView LvnImageView;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
 typedef struct LvnFence LvnFence;
 typedef struct LvnSemaphore LvnSemaphore;
@@ -349,13 +349,49 @@ typedef struct LvnPipelineCreateInfo
     uint32_t descriptorLayoutCount;
     const LvnPipelineShaderStageCreateInfo* pStages;
     uint32_t stageCount;
-    const LvnRenderPass* renderPass;
+    const LvnFormat* pColorAttachmentFormats;
+    uint32_t colorAttachmentCount;
+    LvnFormat depthAttachmentFormat;
+    LvnFormat stencilAttachmentFormat;
 } LvnPipelineCreateInfo;
 
 typedef struct LvnCommandBufferCreateInfo
 {
-
+    int temp; // TODO: remove this
 } LvnCommandBufferCreateInfo;
+
+typedef union LvnClearColorValue
+{
+    float float32[4];
+    int32_t int32[4];
+    uint32_t uint32[4];
+} LvnClearColorValue;
+
+typedef struct LvnClearDepthStencilValue
+{
+    float depth;
+    uint32_t stencil;
+} LvnClearDepthStencilValue;
+
+typedef union LvnClearValue
+{
+    LvnClearColorValue color;
+    LvnClearDepthStencilValue depthStencil;
+} LvnClearValue;
+
+typedef struct LvnRenderingAttachmentInfo
+{
+    LvnAttachmentLoadOp loadOp;
+    LvnAttachmentStoreOp storeOp;
+    LvnClearValue clearValue;
+} LvnRenderingAttachmentInfo;
+
+typedef struct LvnRenderingInfo
+{
+    uint32_t colorAttachmentCount;
+    const LvnRenderingAttachmentInfo* pColorAttachments;
+    const LvnRenderingAttachmentInfo* depthAttachment;
+} LvnRenderingInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
@@ -382,13 +418,12 @@ LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
 LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
 LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
-LVN_API LvnRenderPass*              lvnSurfaceGetRenderPass(LvnSurface* surface);
-LVN_API LvnFramebuffer*             lvnSurfaceGetSwapchainFramebuffer(LvnSurface* surface, uint32_t imageIndex);
+LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
+LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
-
 
 #ifdef __cplusplus
 }

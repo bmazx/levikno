@@ -154,12 +154,13 @@ int main(int argc, char** argv)
         { Lvn_ShaderStage_Fragment, fragShader, "main" },
     };
 
-    LvnRenderPass* renderPass = lvnSurfaceGetRenderPass(surface);
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
     pipelineFixedFuncs.viewport.width = 800;
     pipelineFixedFuncs.viewport.height = 600;
     pipelineFixedFuncs.scissor.extent.width = 800;
     pipelineFixedFuncs.scissor.extent.height = 600;
+
+    LvnFormat colorFormat = lvnSurfaceGetSwapchainFormat(surface);
 
     LvnPipelineCreateInfo pipelineCreateInfo = {0};
     pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
@@ -171,7 +172,8 @@ int main(int argc, char** argv)
     pipelineCreateInfo.descriptorLayoutCount = 0;
     pipelineCreateInfo.pStages = stages;
     pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(stages);
-    pipelineCreateInfo.renderPass = renderPass;
+    pipelineCreateInfo.pColorAttachmentFormats = &colorFormat;
+    pipelineCreateInfo.colorAttachmentCount = 1;
 
     LvnPipeline* pipeline;
     lvnCreatePipeline(graphicsctx, &pipeline, &pipelineCreateInfo);
