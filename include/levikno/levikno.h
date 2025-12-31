@@ -55,8 +55,8 @@ typedef struct LvnLogger LvnLogger;
 
 typedef struct LvnFile
 {
-    uint8_t* data;
-    size_t size;
+    uint8_t*    data;
+    size_t      size;
 } LvnFile;
 
 typedef struct LvnSink
@@ -66,38 +66,38 @@ typedef struct LvnSink
 
 typedef struct LvnLogMessage
 {
-    const char* msg;
-    const char* loggerName;
-    LvnLogLevel level;
-    size_t timeEpoch;
+    const char*    msg;
+    const char*    loggerName;
+    LvnLogLevel    level;
+    size_t         timeEpoch;
 } LvnLogMessage;
 
 typedef struct LvnLogPattern
 {
-    char symbol;
-    char* (*func)(const LvnLogMessage*);
+    char     symbol;
+    char*    (*func)(const LvnLogMessage*);
 } LvnLogPattern;
 
 typedef struct LvnLoggerCreateInfo
 {
-    const char* name;
-    const char* format;
-    LvnLogLevel level;
-    const LvnSink* pSinks;
-    uint32_t sinkCount;
+    const char*       name;
+    const char*       format;
+    LvnLogLevel       level;
+    const LvnSink*    pSinks;
+    uint32_t          sinkCount;
 } LvnLoggerCreateInfo;
 
 typedef struct LvnContextCreateInfo
 {
-    const char* appName;
+    const char*           appName;
 
     struct
     {
-        bool enableLogging;          // enable logging for the core logger
-        const char* coreLogFormat;   // the log format for the core logger
-        LvnLogLevel coreLogLevel;    // the log level for the core logger
-        const LvnSink* pCoreSinks;   // array of output sinks for the core logger
-        uint32_t coreSinkCount;      // number of output sinks in pCoreSinks
+        bool              enableLogging;          // enable logging for the core logger
+        const char*       coreLogFormat;          // the log format for the core logger
+        LvnLogLevel       coreLogLevel;           // the log level for the core logger
+        const LvnSink*    pCoreSinks;             // array of output sinks for the core logger
+        uint32_t          coreSinkCount;          // number of output sinks in pCoreSinks
     } logging;
 } LvnContextCreateInfo;
 

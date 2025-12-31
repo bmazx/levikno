@@ -52,25 +52,25 @@ struct LvnCommandBuffer
 
 struct LvnGraphicsContext
 {
-    LvnGraphicsApi            graphicsapi;
-    const LvnContext*         ctx;
-    LvnLogger*                coreLogger;
-    LvnPresentationModeFlags  presentModeFlags;
-    bool                      enableGraphicsApiDebugLogging;
+    LvnGraphicsApi              graphicsapi;
+    const LvnContext*           ctx;
+    LvnLogger*                  coreLogger;
+    LvnPresentationModeFlags    presentModeFlags;
+    bool                        enableGraphicsApiDebugLogging;
 
     // graphics implementation
-    void*                     implData;
-    LvnResult                 (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
-    void                      (*implDestroySurface)(LvnSurface*);
-    LvnResult                 (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
-    void                      (*implDestroyShader)(LvnShader*);
-    LvnResult                 (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
-    void                      (*implDestroyPipeline)(LvnPipeline*);
-    LvnResult                 (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
-    void                      (*implDestroyCommandBuffer)(LvnCommandBuffer*);
+    void*                       implData;
+    LvnResult                   (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
+    void                        (*implDestroySurface)(LvnSurface*);
+    LvnResult                   (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
+    void                        (*implDestroyShader)(LvnShader*);
+    LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
+    void                        (*implDestroyPipeline)(LvnPipeline*);
+    LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
+    void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
 
-    void                      (*implBeginCommandBuffer)(LvnCommandBuffer*);
-    void                      (*implEndCommandBuffer)(LvnCommandBuffer*);
+    void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
+    void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
 };
 
 

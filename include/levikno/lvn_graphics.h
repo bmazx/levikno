@@ -207,28 +207,28 @@ struct LvnContext;
 
 typedef struct LvnPlatformData
 {
-    void* nativeDisplayHandle;
-    void* nativeWindowHandle;
+    void*    nativeDisplayHandle;
+    void*    nativeWindowHandle;
 } LvnPlatformData;
 
 typedef struct LvnSurfaceCreateInfo
 {
-    void* nativeDisplayHandle;
-    void* nativeWindowHandle;
-    uint32_t width;
-    uint32_t height;
+    void*       nativeDisplayHandle;
+    void*       nativeWindowHandle;
+    uint32_t    width;
+    uint32_t    height;
 } LvnSurfaceCreateInfo;
 
 typedef struct LvnShaderCreateInfo
 {
-    const uint8_t* pCode;
-    size_t codeSize;
+    const uint8_t*    pCode;
+    size_t            codeSize;
 } LvnShaderCreateInfo;
 
 typedef struct LvnPipelineInputAssembly
 {
-    LvnTopologyType topology;
-    bool primitiveRestartEnable;
+    LvnTopologyType    topology;
+    bool               primitiveRestartEnable;
 } LvnPipelineInputAssembly;
 
 typedef struct LvnPipelineViewport
@@ -240,82 +240,80 @@ typedef struct LvnPipelineViewport
 
 typedef struct LvnPipelineScissor
 {
-    struct { uint32_t x, y; } offset;
-    struct { uint32_t width, height; } extent;
+    struct { uint32_t x, y; }             offset;
+    struct { uint32_t width, height; }    extent;
 } LvnPipelineScissor;
 
 typedef struct LvnPipelineRasterizer
 {
-    LvnCullFaceMode cullMode;
-    LvnCullFrontFace frontFace;
-
-    float lineWidth;
-    float depthBiasConstantFactor;
-    float depthBiasClamp;
-    float depthBiasSlopeFactor;
-
-    bool depthClampEnable;
-    bool rasterizerDiscardEnable;
-    bool depthBiasEnable;
+    LvnCullFaceMode     cullMode;
+    LvnCullFrontFace    frontFace;
+    float               lineWidth;
+    float               depthBiasConstantFactor;
+    float               depthBiasClamp;
+    float               depthBiasSlopeFactor;
+    bool                depthClampEnable;
+    bool                rasterizerDiscardEnable;
+    bool                depthBiasEnable;
 } LvnPipelineRasterizer;
 
 typedef struct LvnPipelineMultiSampling
 {
-    LvnSampleCountFlagBits rasterizationSamples;
-    float minSampleShading;
-    uint32_t* sampleMask;
-    bool sampleShadingEnable;
-    bool alphaToCoverageEnable;
-    bool alphaToOneEnable;
+    LvnSampleCountFlagBits    rasterizationSamples;
+    float                     minSampleShading;
+    uint32_t*                 sampleMask;
+    bool                      sampleShadingEnable;
+    bool                      alphaToCoverageEnable;
+    bool                      alphaToOneEnable;
 } LvnPipelineMultiSampling;
 
 typedef struct LvnPipelineColorBlendAttachment
 {
-    LvnColorComponentFlags colorWriteMask;
-    LvnColorBlendFactor srcColorBlendFactor;
-    LvnColorBlendFactor dstColorBlendFactor;
-    LvnColorBlendOperation colorBlendOp;
-    LvnColorBlendFactor srcAlphaBlendFactor;
-    LvnColorBlendFactor dstAlphaBlendFactor;
-    LvnColorBlendOperation alphaBlendOp;
-    bool blendEnable;
+    LvnColorComponentFlags    colorWriteMask;
+    LvnColorBlendFactor       srcColorBlendFactor;
+    LvnColorBlendFactor       dstColorBlendFactor;
+    LvnColorBlendOperation    colorBlendOp;
+    LvnColorBlendFactor       srcAlphaBlendFactor;
+    LvnColorBlendFactor       dstAlphaBlendFactor;
+    LvnColorBlendOperation    alphaBlendOp;
+    bool                      blendEnable;
 } LvnPipelineColorBlendAttachment;
 
 typedef struct LvnPipelineColorBlend
 {
-    LvnPipelineColorBlendAttachment* pColorBlendAttachments;
-    uint32_t colorBlendAttachmentCount;
-    float blendConstants[4];
-    bool logicOpEnable;
+    LvnPipelineColorBlendAttachment*    pColorBlendAttachments;
+    uint32_t                            colorBlendAttachmentCount;
+    float                               blendConstants[4];
+    bool                                logicOpEnable;
 } LvnPipelineColorBlend;
 
 typedef struct LvnPipelineStencilAttachment
 {
-    LvnStencilOperation failOp;
-    LvnStencilOperation passOp;
-    LvnStencilOperation depthFailOp;
-    LvnCompareOperation compareOp;
-    uint32_t compareMask;
-    uint32_t writeMask;
-    uint32_t reference;
+    LvnStencilOperation    failOp;
+    LvnStencilOperation    passOp;
+    LvnStencilOperation    depthFailOp;
+    LvnCompareOperation    compareOp;
+    uint32_t               compareMask;
+    uint32_t               writeMask;
+    uint32_t               reference;
 } LvnPipelineStencilAttachment;
 
 typedef struct LvnPipelineDepthStencil
 {
-    LvnCompareOperation depthOpCompare;
-    LvnPipelineStencilAttachment stencil;
-    bool enableDepth, enableStencil;
+    LvnCompareOperation             depthOpCompare;
+    LvnPipelineStencilAttachment    stencil;
+    bool                            enableDepth, enableStencil;
 } LvnPipelineDepthStencil;
 
 typedef struct LvnPipelineFixedFunctions
 {
-    LvnPipelineInputAssembly inputAssembly;
-    LvnPipelineViewport viewport;
-    LvnPipelineScissor scissor;
-    LvnPipelineRasterizer rasterizer;
-    LvnPipelineMultiSampling multisampling;
-    LvnPipelineColorBlend colorBlend;
-    LvnPipelineDepthStencil depthstencil;
+    LvnPipelineInputAssembly    inputAssembly;
+    LvnPipelineViewport         viewport;
+    LvnPipelineScissor          scissor;
+    LvnPipelineRasterizer       rasterizer;
+    LvnPipelineMultiSampling    multisampling;
+    LvnPipelineColorBlend       colorBlend;
+    LvnPipelineDepthStencil     depthstencil;
 } LvnPipelineFixedFunctions;
 
 typedef struct LvnVertexBindingDescription
@@ -325,34 +323,34 @@ typedef struct LvnVertexBindingDescription
 
 typedef struct LvnVertexAttribute
 {
-    uint32_t binding;
-    uint32_t layout;
-    LvnAttributeFormat format;
-    uint64_t offset;
+    uint32_t              binding;
+    uint32_t              layout;
+    LvnAttributeFormat    format;
+    uint64_t              offset;
 } LvnVertexAttribute;
 
 typedef struct LvnPipelineShaderStageCreateInfo
 {
-    LvnShaderStage stage;
-    const LvnShader* shader;
-    const char* entryPoint;
+    LvnShaderStage      stage;
+    const LvnShader*    shader;
+    const char*         entryPoint;
 } LvnPipelineShaderStageCreateInfo;
 
 typedef struct LvnPipelineCreateInfo
 {
-    const LvnPipelineFixedFunctions* pipelineFixedFunctions;
-    const LvnVertexBindingDescription* pVertexBindingDescriptions;
-    uint32_t vertexBindingDescriptionCount;
-    const LvnVertexAttribute* pVertexAttributes;
-    uint32_t vertexAttributeCount;
-    const LvnDescriptorLayout* const* pDescriptorLayouts;
-    uint32_t descriptorLayoutCount;
-    const LvnPipelineShaderStageCreateInfo* pStages;
-    uint32_t stageCount;
-    const LvnFormat* pColorAttachmentFormats;
-    uint32_t colorAttachmentCount;
-    LvnFormat depthAttachmentFormat;
-    LvnFormat stencilAttachmentFormat;
+    const LvnPipelineFixedFunctions*           pipelineFixedFunctions;
+    const LvnVertexBindingDescription*         pVertexBindingDescriptions;
+    uint32_t                                   vertexBindingDescriptionCount;
+    const LvnVertexAttribute*                  pVertexAttributes;
+    uint32_t                                   vertexAttributeCount;
+    const LvnDescriptorLayout* const*          pDescriptorLayouts;
+    uint32_t                                   descriptorLayoutCount;
+    const LvnPipelineShaderStageCreateInfo*    pStages;
+    uint32_t                                   stageCount;
+    const LvnFormat*                           pColorAttachmentFormats;
+    uint32_t                                   colorAttachmentCount;
+    LvnFormat                                  depthAttachmentFormat;
+    LvnFormat                                  stencilAttachmentFormat;
 } LvnPipelineCreateInfo;
 
 typedef struct LvnCommandBufferCreateInfo
@@ -362,43 +360,43 @@ typedef struct LvnCommandBufferCreateInfo
 
 typedef union LvnClearColorValue
 {
-    float float32[4];
-    int32_t int32[4];
-    uint32_t uint32[4];
+    float       float32[4];
+    int32_t     int32[4];
+    uint32_t    uint32[4];
 } LvnClearColorValue;
 
 typedef struct LvnClearDepthStencilValue
 {
-    float depth;
-    uint32_t stencil;
+    float       depth;
+    uint32_t    stencil;
 } LvnClearDepthStencilValue;
 
 typedef union LvnClearValue
 {
-    LvnClearColorValue color;
-    LvnClearDepthStencilValue depthStencil;
+    LvnClearColorValue           color;
+    LvnClearDepthStencilValue    depthStencil;
 } LvnClearValue;
 
 typedef struct LvnRenderingAttachmentInfo
 {
-    LvnAttachmentLoadOp loadOp;
-    LvnAttachmentStoreOp storeOp;
-    LvnClearValue clearValue;
+    LvnAttachmentLoadOp     loadOp;
+    LvnAttachmentStoreOp    storeOp;
+    LvnClearValue           clearValue;
 } LvnRenderingAttachmentInfo;
 
 typedef struct LvnRenderingInfo
 {
-    uint32_t colorAttachmentCount;
-    const LvnRenderingAttachmentInfo* pColorAttachments;
-    const LvnRenderingAttachmentInfo* depthAttachment;
+    uint32_t                             colorAttachmentCount;
+    const LvnRenderingAttachmentInfo*    pColorAttachments;
+    const LvnRenderingAttachmentInfo*    depthAttachment;
 } LvnRenderingInfo;
 
 typedef struct LvnGraphicsContextCreateInfo
 {
-    LvnGraphicsApi graphicsapi;                          // graphics api backend
-    LvnPresentationModeFlags presentationModeFlags;      // type of output the graphics api will render to
-    const LvnPlatformData* platformData;                 // native platform data for surface creation
-    bool enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
+    LvnGraphicsApi              graphicsapi;                                    // graphics api backend
+    LvnPresentationModeFlags    presentationModeFlags;                          // type of output the graphics api will render to
+    const LvnPlatformData*      platformData;                                   // native platform data for surface creation
+    bool                        enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
 } LvnGraphicsContextCreateInfo;
 
 
