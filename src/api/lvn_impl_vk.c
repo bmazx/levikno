@@ -1360,6 +1360,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     surface->swapchainData = swapchainData;
     surface->renderPass.renderPassHandle = renderPass;
     surface->swapchainFramebuffers = framebuffers;
+    surface->swapchainImageCount = swapchainData->swapchainImageCount;
 
     lvn_free(swapchainFormats);
     return Lvn_Result_Success;

@@ -383,7 +383,8 @@ LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsCont
 LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 LVN_API LvnRenderPass*              lvnSurfaceGetRenderPass(LvnSurface* surface);
-LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctions(void);
+LVN_API LvnFramebuffer*             lvnSurfaceGetSwapchainFramebuffer(LvnSurface* surface, uint32_t imageIndex);
+LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);

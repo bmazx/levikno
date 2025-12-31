@@ -206,7 +206,14 @@ LvnRenderPass* lvnSurfaceGetRenderPass(LvnSurface* surface)
     return &surface->renderPass;
 }
 
-LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctions(void)
+LvnFramebuffer* lvnSurfaceGetSwapchainFramebuffer(LvnSurface* surface, uint32_t imageIndex)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    LVN_ASSERT(imageIndex < surface->swapchainImageCount, "imageIndex out of index bounds");
+    return &surface->swapchainFramebuffers[imageIndex];
+}
+
+LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
 {
     LvnPipelineFixedFunctions pipelineFixedFunctions = {0};
 

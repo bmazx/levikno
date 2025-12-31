@@ -23,7 +23,7 @@ struct LvnSurface
     void* swapchainData;
     LvnRenderPass renderPass;
     LvnFramebuffer* swapchainFramebuffers;
-    uint32_t swapchainFramebufferCount;
+    uint32_t swapchainImageCount;
 };
 
 struct LvnDescriptorLayout
