@@ -381,11 +381,19 @@ typedef struct LvnRenderingAttachmentInfo
 {
     LvnAttachmentLoadOp     loadOp;
     LvnAttachmentStoreOp    storeOp;
+    LvnImageView*           imageView;
     LvnClearValue           clearValue;
 } LvnRenderingAttachmentInfo;
 
+typedef struct LvnRenderArea
+{
+    int32_t offsetX, offsetY;
+    uint32_t width, height;
+} LvnRenderArea;
+
 typedef struct LvnRenderingInfo
 {
+    LvnRenderArea                        renderArea;
     uint32_t                             colorAttachmentCount;
     const LvnRenderingAttachmentInfo*    pColorAttachments;
     const LvnRenderingAttachmentInfo*    depthAttachment;
@@ -415,6 +423,10 @@ LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* 
 LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
 LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
 LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
+LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence);
+LVN_API void                        lvnDestroyFence(LvnFence* fence);
+LVN_API LvnResult                   lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore** semaphore);
+LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore);
 
 LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
 LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);
@@ -422,6 +434,9 @@ LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
+LVN_API void                        lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
+LVN_API void                        lvnCmdEndRendering(LvnCommandBuffer* commandBuffer);
+LVN_API LvnResult                   lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 
 #ifdef __cplusplus
 }

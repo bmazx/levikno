@@ -2,6 +2,7 @@
 #include "lvn_impl_vk_backends.h"
 
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 
 
 #if defined(LVN_INCLUDE_WAYLAND)
@@ -42,6 +43,8 @@ static VkBlendFactor               lvn_getVkBlendFactorEnum(LvnColorBlendFactor 
 static VkBlendOp                   lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp);
 static VkCompareOp                 lvn_getVkCompareOpEnum(LvnCompareOperation compare);
 static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp);
+static VkAttachmentLoadOp          lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp);
+static VkAttachmentStoreOp         lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp storeOp);
 static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
 static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -624,6 +627,31 @@ static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
     return VK_STENCIL_OP_KEEP;
 }
 
+static VkAttachmentLoadOp lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp)
+{
+    switch (loadOp)
+    {
+        case Lvn_AttachmentLoadOp_Load: { return VK_ATTACHMENT_LOAD_OP_LOAD; }
+        case Lvn_AttachmentLoadOp_Clear: { return VK_ATTACHMENT_LOAD_OP_CLEAR; }
+        case Lvn_AttachmentLoadOp_DontCare: { return VK_ATTACHMENT_LOAD_OP_DONT_CARE; }
+    }
+
+    LVN_ASSERT(false, "invalid attachment load operator enum");
+    return VK_ATTACHMENT_LOAD_OP_LOAD;
+}
+
+static VkAttachmentStoreOp lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp storeOp)
+{
+    switch (storeOp)
+    {
+        case Lvn_AttachmentStoreOp_Store: { return VK_ATTACHMENT_STORE_OP_STORE; }
+        case Lvn_AttachmentStoreOp_DontCare: { return VK_ATTACHMENT_STORE_OP_DONT_CARE; }
+    }
+
+    LVN_ASSERT(false, "invalid attachment store operator enum");
+    return VK_ATTACHMENT_STORE_OP_STORE;
+}
+
 static VkFormat lvn_getVkFormatEnum(LvnFormat format)
 {
     switch (format)
@@ -1130,6 +1158,14 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFramebuffer");
     vkBackends->destroyFramebuffer = (PFN_vkDestroyFramebuffer)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFramebuffer");
+    vkBackends->createFence = (PFN_vkCreateFence)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFence");
+    vkBackends->destroyFence = (PFN_vkDestroyFence)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFence");
+    vkBackends->createSemaphore = (PFN_vkCreateSemaphore)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSemaphore");
+    vkBackends->destroySemaphore = (PFN_vkDestroySemaphore)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySemaphore");
     vkBackends->createCommandPool = (PFN_vkCreateCommandPool)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
     vkBackends->destroyCommandPool = (PFN_vkDestroyCommandPool)
@@ -1140,6 +1176,16 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkBeginCommandBuffer");
     vkBackends->endCommandBuffer = (PFN_vkEndCommandBuffer)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkEndCommandBuffer");
+    vkBackends->cmdBeginRendering = (PFN_vkCmdBeginRendering)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBeginRendering");
+    vkBackends->cmdEndRendering = (PFN_vkCmdEndRendering)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdEndRendering");
+    vkBackends->cmdBeginRenderPass = (PFN_vkCmdBeginRenderPass)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBeginRenderPass");
+    vkBackends->cmdEndRenderPass = (PFN_vkCmdEndRenderPass)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdEndRenderPass");
+    vkBackends->queueSubmit = (PFN_vkQueueSubmit)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueSubmit");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1157,11 +1203,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->destroyPipeline ||
         !vkBackends->createFramebuffer ||
         !vkBackends->destroyFramebuffer ||
+        !vkBackends->createFence ||
+        !vkBackends->destroyFence ||
+        !vkBackends->createSemaphore ||
+        !vkBackends->destroySemaphore ||
         !vkBackends->createCommandPool ||
         !vkBackends->destroyCommandPool ||
         !vkBackends->allocateCommandBuffers ||
         !vkBackends->beginCommandBuffer ||
-        !vkBackends->endCommandBuffer)
+        !vkBackends->endCommandBuffer ||
+        !vkBackends->cmdBeginRendering ||
+        !vkBackends->cmdEndRenderPass ||
+        !vkBackends->cmdBeginRenderPass ||
+        !vkBackends->cmdEndRenderPass ||
+        !vkBackends->queueSubmit)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1175,10 +1230,16 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySwapchainKHR");
         vkBackends->getSwapchainImagesKHR = (PFN_vkGetSwapchainImagesKHR)
             vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetSwapchainImagesKHR");
+        vkBackends->acquireNextImageKHR = (PFN_vkAcquireNextImageKHR)
+            vkBackends->getDeviceProcAddr(vkBackends->device, "vkAcquireNextImageKHR");
+        vkBackends->queuePresentKHR = (PFN_vkQueuePresentKHR)
+            vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueuePresentKHR");
 
         if (!vkBackends->createSwapchainKHR ||
             !vkBackends->destroySwapchainKHR ||
-            !vkBackends->getSwapchainImagesKHR)
+            !vkBackends->getSwapchainImagesKHR ||
+            !vkBackends->acquireNextImageKHR ||
+            !vkBackends->queuePresentKHR)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan device level surface function symbol");
@@ -1215,6 +1276,15 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
     graphicsctx->implCreateCommandBuffer = lvnImplVkCreateCommandBuffer;
     graphicsctx->implDestroyCommandBuffer = lvnImplVkDestroyCommandBuffer;
+    graphicsctx->implCreateFence = lvnImplVkCreateFence;
+    graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
+    graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
+    graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
+    graphicsctx->implBeginCommandBuffer = lvnImplVkBeginCommandBuffer;
+    graphicsctx->implEndCommandBuffer = lvnImplVkEndCommandBuffer;
+    graphicsctx->implCmdBeginRendering = lvnImplVkCmdBeginRendering;
+    graphicsctx->implCmdEndRendering = lvnImplVkCmdEndRendering;
+    graphicsctx->implSurfaceAcquireNextImage = lvnImplVkSurfaceAcquireNextImage;
 
     vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
@@ -1325,7 +1395,11 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     swapchainImageViews = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnImageView));
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+    {
         swapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        swapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
+        swapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
+    }
 
     surface->surface = vkSurface;
     surface->swapchainData = swapchainData;
@@ -1719,6 +1793,63 @@ void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
     // NOTE: function left empty, vulkan does not need to destroy command buffers (VkCommandBuffer)
 }
 
+LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
+{
+    LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkFenceCreateInfo fenceInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    };
+
+    VkFence vkFence;
+    if (vkBackends->createFence(vkBackends->device, &fenceInfo, NULL, &vkFence) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkFence");
+        return Lvn_Result_Failure;
+    }
+
+    fence->fenceHandle = vkFence;
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroyFence(LvnFence* fence)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
+    VkFence vkFence = (VkFence) fence->fenceHandle;
+    vkBackends->destroyFence(vkBackends->device, vkFence, NULL);
+}
+
+LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore)
+{
+    LVN_ASSERT(graphicsctx && semaphore, "graphicsctx and semaphore cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkSemaphoreCreateInfo semaphoreInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+    };
+
+    VkSemaphore vkSemaphore;
+    if (vkBackends->createSemaphore(vkBackends->device, &semaphoreInfo, NULL, &vkSemaphore) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkSemaphore");
+        return Lvn_Result_Failure;
+    }
+
+    semaphore->semaphoreHandle = vkSemaphore;
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
+{
+    LVN_ASSERT(semaphore, "semaphore cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) semaphore->graphicsctx->implData;
+    VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
+    vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
+}
+
 void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
@@ -1743,4 +1874,74 @@ void lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
     vkBackends->endCommandBuffer(cmdBuff);
+}
+
+void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo)
+{
+    LVN_ASSERT(commandBuffer && renderInfo, "commandBuffer and renderInfo cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkRenderingAttachmentInfoKHR colorAttachmentInfos[renderInfo->colorAttachmentCount];
+    for (uint32_t i = 0; i < renderInfo->colorAttachmentCount; i++)
+    {
+        VkRenderingAttachmentInfoKHR colorAttachment =
+        {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+            .imageView = (VkImageView) renderInfo->pColorAttachments[i].imageView->imageViewHandle,
+            .imageLayout = (VkImageLayout) renderInfo->pColorAttachments[i].imageView->imageLayoutEnum,
+            .loadOp = lvn_getVkAttackmentLoadOpEnum(renderInfo->pColorAttachments[i].loadOp),
+            .storeOp = lvn_getVkAttackmentStoreOpEnum(renderInfo->pColorAttachments[i].storeOp),
+            .clearValue.color = {{
+                renderInfo->pColorAttachments[i].clearValue.color.float32[0],
+                renderInfo->pColorAttachments[i].clearValue.color.float32[1],
+                renderInfo->pColorAttachments[i].clearValue.color.float32[2],
+                renderInfo->pColorAttachments[i].clearValue.color.float32[3],
+            }},
+        };
+        colorAttachmentInfos[i] = colorAttachment;
+    }
+
+    VkRect2D renderArea =
+    {
+        .offset = { renderInfo->renderArea.offsetX, renderInfo->renderArea.offsetY },
+        .extent = { renderInfo->renderArea.width, renderInfo->renderArea.height },
+    };
+
+    VkRenderingInfoKHR renderingInfo = {0};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+    renderingInfo.renderArea = renderArea;
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = renderInfo->colorAttachmentCount;
+    renderingInfo.pColorAttachments = colorAttachmentInfos;
+
+    vkBackends->cmdBeginRendering(cmdBuff, &renderingInfo);
+}
+
+void lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    vkBackends->cmdEndRendering(cmdBuff);
+}
+
+LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
+{
+    LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+    VkSwapchainKHR swapchain = ((LvnVkSwapchainData*)surface->swapchainData)->swapchain;
+    VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreHandle : VK_NULL_HANDLE;
+    VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceHandle : VK_NULL_HANDLE;
+
+    VkResult result = vkBackends->acquireNextImageKHR(vkBackends->device, swapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        // recreateSwapChain(vkBackends, window);
+        return Lvn_Result_Success;
+    }
+
+    return (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ? Lvn_Result_Success : Lvn_Result_Failure;
 }

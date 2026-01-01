@@ -117,7 +117,7 @@ LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** s
 void lvnDestroySurface(LvnSurface* surface)
 {
     LVN_ASSERT(surface, "surface cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) surface->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
     graphicsctx->implDestroySurface(surface);
     lvn_free(surface);
 }
@@ -143,7 +143,7 @@ LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** sha
 void lvnDestroyShader(LvnShader* shader)
 {
     LVN_ASSERT(shader, "shader cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) shader->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = shader->graphicsctx;
     graphicsctx->implDestroyShader(shader);
     lvn_free(shader);
 }
@@ -169,7 +169,7 @@ LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline**
 void lvnDestroyPipeline(LvnPipeline* pipeline)
 {
     LVN_ASSERT(pipeline, "pipeline cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) pipeline->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = pipeline->graphicsctx;
     graphicsctx->implDestroyPipeline(pipeline);
     lvn_free(pipeline);
 }
@@ -182,7 +182,7 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
 
     if (!*commandBuffer)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at &p", commandBuffer);
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at %p", commandBuffer);
         return Lvn_Result_Failure;
     }
 
@@ -195,9 +195,61 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
 void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implDestroyCommandBuffer(commandBuffer);
     lvn_free(commandBuffer);
+}
+
+LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence)
+{
+    LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
+
+    *fence = (LvnFence*) lvn_calloc(sizeof(LvnFence));
+
+    if (!*fence)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", fence);
+        return Lvn_Result_Failure;
+    }
+
+    LvnFence* fencePtr = *fence;
+    fencePtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreateFence(graphicsctx, *fence);
+}
+
+void lvnDestroyFence(LvnFence* fence)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnGraphicsContext* graphicsctx = fence->graphicsctx;
+    graphicsctx->implDestroyFence(fence);
+    lvn_free(fence);
+}
+
+LvnResult lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore** semaphore)
+{
+    LVN_ASSERT(graphicsctx && semaphore, "graphicsctx and semaphore cannot be null");
+
+    *semaphore = (LvnSemaphore*) lvn_calloc(sizeof(LvnSemaphore));
+
+    if (!*semaphore)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", semaphore);
+        return Lvn_Result_Failure;
+    }
+
+    LvnSemaphore* semaphorePtr = *semaphore;
+    semaphorePtr->graphicsctx = graphicsctx;
+
+    return graphicsctx->implCreateSemaphore(graphicsctx, *semaphore);
+}
+
+void lvnDestroySemaphore(LvnSemaphore* semaphore)
+{
+    LVN_ASSERT(semaphore, "semaphore cannot be null");
+    const LvnGraphicsContext* graphicsctx = semaphore->graphicsctx;
+    graphicsctx->implDestroySemaphore(semaphore);
+    lvn_free(semaphore);
 }
 
 LvnFormat lvnSurfaceGetSwapchainFormat(const LvnSurface* surface)
@@ -283,13 +335,34 @@ LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
 void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implBeginCommandBuffer(commandBuffer);
 }
 
 void lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
-    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implEndCommandBuffer(commandBuffer);
+}
+
+void lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdBeginRendering(commandBuffer, renderInfo);
+}
+
+void lvnCmdEndRendering(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdEndRendering(commandBuffer);
+}
+
+LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
+{
+    LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
 }

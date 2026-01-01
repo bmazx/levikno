@@ -7,7 +7,9 @@
 
 struct LvnImageView
 {
-    void* imageViewHandle;
+    void*      imageViewHandle;
+    int32_t    imageLayoutEnum;
+    int32_t    formatEnum;
 };
 
 struct LvnFramebuffer
@@ -50,6 +52,18 @@ struct LvnCommandBuffer
     void* commandbuffer;
 };
 
+struct LvnFence
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* fenceHandle;
+};
+
+struct LvnSemaphore
+{
+    const LvnGraphicsContext* graphicsctx;
+    void* semaphoreHandle;
+};
+
 struct LvnGraphicsContext
 {
     LvnGraphicsApi              graphicsapi;
@@ -68,9 +82,16 @@ struct LvnGraphicsContext
     void                        (*implDestroyPipeline)(LvnPipeline*);
     LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
     void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
+    LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*);
+    void                        (*implDestroyFence)(LvnFence*);
+    LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
+    void                        (*implDestroySemaphore)(LvnSemaphore*);
 
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
+    void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
+    void                        (*implCmdEndRendering)(LvnCommandBuffer*);
+    LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
 };
 
 

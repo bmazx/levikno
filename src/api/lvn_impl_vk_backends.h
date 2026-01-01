@@ -85,11 +85,22 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyPipeline                            destroyPipeline;
     PFN_vkCreateFramebuffer                          createFramebuffer;
     PFN_vkDestroyFramebuffer                         destroyFramebuffer;
+    PFN_vkCreateFence                                createFence;
+    PFN_vkDestroyFence                               destroyFence;
+    PFN_vkCreateSemaphore                            createSemaphore;
+    PFN_vkDestroySemaphore                           destroySemaphore;
     PFN_vkCreateCommandPool                          createCommandPool;
     PFN_vkDestroyCommandPool                         destroyCommandPool;
     PFN_vkAllocateCommandBuffers                     allocateCommandBuffers;
     PFN_vkBeginCommandBuffer                         beginCommandBuffer;
     PFN_vkEndCommandBuffer                           endCommandBuffer;
+    PFN_vkCmdBeginRendering                          cmdBeginRendering;
+    PFN_vkCmdEndRendering                            cmdEndRendering;
+    PFN_vkCmdBeginRenderPass                         cmdBeginRenderPass;
+    PFN_vkCmdEndRenderPass                           cmdEndRenderPass;
+    PFN_vkAcquireNextImageKHR                        acquireNextImageKHR;
+    PFN_vkQueueSubmit                                queueSubmit;
+    PFN_vkQueuePresentKHR                            queuePresentKHR;
 
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;

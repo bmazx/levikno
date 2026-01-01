@@ -183,11 +183,54 @@ int main(int argc, char** argv)
     lvnUnloadFile(&vertfile);
     lvnUnloadFile(&fragfile);
 
+    LvnCommandBufferCreateInfo cmdBuffCreateInfo = {0};
+
+    LvnCommandBuffer* cmdBuff;
+    lvnCreateCommandBuffer(graphicsctx, &cmdBuff, &cmdBuffCreateInfo);
+
+    LvnFence* fence;
+    lvnCreateFence(graphicsctx, &fence);
+
+    LvnSemaphore* imageWaitSemaphore;
+    lvnCreateSemaphore(graphicsctx, &imageWaitSemaphore);
+
     // while (!glfwWindowShouldClose(window))
     {
+        uint32_t imageIndex;
+        if (lvnSurfaceAcquireNextImage(surface, imageWaitSemaphore, NULL, &imageIndex) != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(logger, "failed to get image");
+        }
+
+        lvnBeginCommandBuffer(cmdBuff);
+
+        LvnRenderingAttachmentInfo colorAttachment =
+        {
+            .loadOp = Lvn_AttachmentLoadOp_Clear,
+            .storeOp = Lvn_AttachmentStoreOp_Store,
+            .clearValue.color = {{ 0.0f, 0.0f, 0.0f, 0.0f }},
+            .imageView = lvnSurfaceGetSwapchainImageView(surface, 0),
+        };
+
+        LvnRenderingInfo renderInfo = {0};
+        renderInfo.renderArea.width = 600;
+        renderInfo.renderArea.height = 800;
+        renderInfo.renderArea.offsetX = 0;
+        renderInfo.renderArea.offsetY = 0;
+        renderInfo.pColorAttachments = &colorAttachment;
+        renderInfo.colorAttachmentCount = 1;
+
+        lvnCmdBeginRendering(cmdBuff, &renderInfo);
+        lvnCmdEndRendering(cmdBuff);
+
+        lvnEndCommandBuffer(cmdBuff);
+
         glfwPollEvents();
     }
 
+    lvnDestroyFence(fence);
+    lvnDestroySemaphore(imageWaitSemaphore);
+    lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyPipeline(pipeline);
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
