@@ -19,11 +19,12 @@ typedef struct LvnVkSwapChainCreateInfo
 {
     VkPhysicalDevice                  physicalDevice;
     VkSurfaceKHR                      surface;
-    VkSurfaceFormatKHR                surfaceFormat;
+    VkFormat                          surfaceFormat;
+    VkPresentModeKHR                  presentMode;
     const LvnVkQueueFamilyIndices*    queueFamilyIndices;
-    VkRenderPass                      renderPass;
     uint32_t                          width;
     uint32_t                          height;
+    uint32_t                          minImageCount;
 } LvnVkSwapChainCreateInfo;
 
 typedef struct LvnVkSwapchainData

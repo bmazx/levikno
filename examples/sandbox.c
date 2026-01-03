@@ -127,6 +127,9 @@ int main(int argc, char** argv)
     sci.nativeWindowHandle = wlsurface;
     sci.width = 600;
     sci.height = 800;
+    sci.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
+    sci.presentMode = Lvn_PresentMode_Mailbox;
+    sci.minImageCount = 3;
 
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);

@@ -3,7 +3,6 @@
 
 
 #include "lvn_config.h"
-#include "lvn_graphics.h"
 
 
 #ifdef LVN_ENABLE_LOGGING

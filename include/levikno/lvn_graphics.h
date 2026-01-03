@@ -2,6 +2,7 @@
 #define HG_LVN_GRAPHICS_H
 
 #include "lvn_config.h"
+#include <stdint.h>
 
 
 typedef enum LvnGraphicsApi
@@ -191,6 +192,12 @@ typedef enum LvnFormat
     Lvn_Format_B8G8R8A8_SRGB,
 } LvnFormat;
 
+typedef enum LvnPresentMode
+{
+    Lvn_PresentMode_FIFO,
+    Lvn_PresentMode_Mailbox,
+    Lvn_PresentMode_Immediate,
+} LvnPresentMode;
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnSurface LvnSurface;
@@ -213,10 +220,13 @@ typedef struct LvnPlatformData
 
 typedef struct LvnSurfaceCreateInfo
 {
-    void*       nativeDisplayHandle;
-    void*       nativeWindowHandle;
-    uint32_t    width;
-    uint32_t    height;
+    void*             nativeDisplayHandle;
+    void*             nativeWindowHandle;
+    uint32_t          width;
+    uint32_t          height;
+    uint32_t          minImageCount;
+    LvnFormat         surfaceFormat;
+    LvnPresentMode    presentMode;
 } LvnSurfaceCreateInfo;
 
 typedef struct LvnShaderCreateInfo
@@ -399,6 +409,25 @@ typedef struct LvnRenderingInfo
     const LvnRenderingAttachmentInfo*    depthAttachment;
 } LvnRenderingInfo;
 
+typedef struct LvnSubmitInfo
+{
+    uint32_t                    waitSemaphoreCount;
+    const LvnSemaphore**        pWaitSemaphores;
+    uint32_t                    signalSemaphoreCount;
+    const LvnSemaphore**        pSignalSemaphores;
+    uint32_t                    commandBufferCount;
+    const LvnCommandBuffer**    pCommandBuffers;
+} LvnSubmitInfo;
+
+typedef struct LvnPresentInfo
+{
+    uint32_t                waitSemaphoreCount;
+    const LvnSemaphore**    pWaitSemaphores;
+    uint32_t                surfaceCount;
+    const LvnSurface**      pSurfaces;
+    const uint32_t*         pImageIndices;
+} LvnPresentInfo;
+
 typedef struct LvnGraphicsContextCreateInfo
 {
     LvnGraphicsApi              graphicsapi;                                    // graphics api backend
@@ -437,6 +466,8 @@ LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* comman
 LVN_API void                        lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 LVN_API void                        lvnCmdEndRendering(LvnCommandBuffer* commandBuffer);
 LVN_API LvnResult                   lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
+LVN_API LvnResult                   lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LVN_API LvnResult                   lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
 #ifdef __cplusplus
 }

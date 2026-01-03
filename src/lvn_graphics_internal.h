@@ -92,6 +92,8 @@ struct LvnGraphicsContext
     void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
     void                        (*implCmdEndRendering)(LvnCommandBuffer*);
     LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
+    LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, LvnSubmitInfo*, uint32_t, LvnFence*);
+    LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
 };
 
 

@@ -25,5 +25,7 @@ void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 void      lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer);
 LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
+LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
 #endif // !HG_LVN_IMPL_VK_H

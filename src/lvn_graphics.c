@@ -1,3 +1,4 @@
+#include "lvn_config.h"
 #include "lvn_graphics_internal.h"
 
 #ifdef LVN_INCLUDE_VULKAN
@@ -365,4 +366,16 @@ LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphor
     LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
     const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
     return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
+}
+
+LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    return graphicsctx->implRenderSubmit(graphicsctx, pSubmits, submitCount, fence);
+}
+
+LvnResult lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    return graphicsctx->implRenderPresent(graphicsctx, presentInfo);
 }
