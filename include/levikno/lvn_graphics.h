@@ -2,7 +2,6 @@
 #define HG_LVN_GRAPHICS_H
 
 #include "lvn_config.h"
-#include <stdint.h>
 
 
 typedef enum LvnGraphicsApi
@@ -412,19 +411,19 @@ typedef struct LvnRenderingInfo
 typedef struct LvnSubmitInfo
 {
     uint32_t                    waitSemaphoreCount;
-    const LvnSemaphore**        pWaitSemaphores;
+    LvnSemaphore* const*        pWaitSemaphores;
     uint32_t                    signalSemaphoreCount;
-    const LvnSemaphore**        pSignalSemaphores;
+    LvnSemaphore* const*        pSignalSemaphores;
     uint32_t                    commandBufferCount;
-    const LvnCommandBuffer**    pCommandBuffers;
+    LvnCommandBuffer* const*    pCommandBuffers;
 } LvnSubmitInfo;
 
 typedef struct LvnPresentInfo
 {
     uint32_t                waitSemaphoreCount;
-    const LvnSemaphore**    pWaitSemaphores;
+    LvnSemaphore* const*    pWaitSemaphores;
     uint32_t                surfaceCount;
-    const LvnSurface**      pSurfaces;
+    LvnSurface* const*      pSurfaces;
     const uint32_t*         pImageIndices;
 } LvnPresentInfo;
 
@@ -460,13 +459,15 @@ LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore)
 LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
 LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
+LVN_API LvnResult                   lvnFenceWait(LvnFence* fence, uint64_t timeout);
+LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 LVN_API void                        lvnCmdEndRendering(LvnCommandBuffer* commandBuffer);
 LVN_API LvnResult                   lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
-LVN_API LvnResult                   lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LVN_API LvnResult                   lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
 LVN_API LvnResult                   lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
 #ifdef __cplusplus

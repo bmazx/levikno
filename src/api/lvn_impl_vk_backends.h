@@ -99,9 +99,12 @@ typedef struct LvnVulkanBackends
     PFN_vkCmdEndRendering                            cmdEndRendering;
     PFN_vkCmdBeginRenderPass                         cmdBeginRenderPass;
     PFN_vkCmdEndRenderPass                           cmdEndRenderPass;
+    PFN_vkCmdPipelineBarrier                         cmdPipelineBarrier;
     PFN_vkAcquireNextImageKHR                        acquireNextImageKHR;
     PFN_vkQueueSubmit                                queueSubmit;
     PFN_vkQueuePresentKHR                            queuePresentKHR;
+    PFN_vkWaitForFences                              waitForFences;
+    PFN_vkResetFences                                resetFences;
 
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;

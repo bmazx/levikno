@@ -197,9 +197,18 @@ int main(int argc, char** argv)
     LvnSemaphore* imageWaitSemaphore;
     lvnCreateSemaphore(graphicsctx, &imageWaitSemaphore);
 
-    // while (!glfwWindowShouldClose(window))
+    // NOTE: hard coding to be 4 images temporarily for now
+    LvnSemaphore* renderFinishedSemaphore[4];
+    for (uint32_t i = 0; i < 4; i++)
+        lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphore[i]);
+
+    uint32_t imageIndex = 0;
+
+    while (!glfwWindowShouldClose(window))
     {
-        uint32_t imageIndex;
+        lvnFenceWait(fence, UINT64_MAX);
+        lvnFenceReset(fence);
+
         if (lvnSurfaceAcquireNextImage(surface, imageWaitSemaphore, NULL, &imageIndex) != Lvn_Result_Success)
         {
             LVN_LOG_ERROR(logger, "failed to get image");
@@ -212,7 +221,7 @@ int main(int argc, char** argv)
             .loadOp = Lvn_AttachmentLoadOp_Clear,
             .storeOp = Lvn_AttachmentStoreOp_Store,
             .clearValue.color = {{ 0.0f, 0.0f, 0.0f, 0.0f }},
-            .imageView = lvnSurfaceGetSwapchainImageView(surface, 0),
+            .imageView = lvnSurfaceGetSwapchainImageView(surface, imageIndex),
         };
 
         LvnRenderingInfo renderInfo = {0};
@@ -228,11 +237,32 @@ int main(int argc, char** argv)
 
         lvnEndCommandBuffer(cmdBuff);
 
+        LvnSubmitInfo submitInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &imageWaitSemaphore,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &renderFinishedSemaphore[imageIndex],
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cmdBuff,
+        };
+        lvnRenderSubmit(graphicsctx, &submitInfo, 1, fence);
+
+        LvnPresentInfo presentInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &renderFinishedSemaphore[imageIndex],
+            .surfaceCount = 1,
+            .pSurfaces = &surface,
+            .pImageIndices = &imageIndex,
+        };
+        lvnRenderPresent(graphicsctx, &presentInfo);
+
         glfwPollEvents();
     }
 
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
+    for (uint32_t i = 0; i < 4; i++)
+        lvnDestroySemaphore(renderFinishedSemaphore[i]);
     lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyPipeline(pipeline);
     lvnDestroySurface(surface);

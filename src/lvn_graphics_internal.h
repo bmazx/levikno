@@ -7,6 +7,7 @@
 
 struct LvnImageView
 {
+    void*      imageHandle;
     void*      imageViewHandle;
     int32_t    imageLayoutEnum;
     int32_t    formatEnum;
@@ -20,12 +21,12 @@ struct LvnFramebuffer
 
 struct LvnSurface
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* surface;
-    void* swapchainData;
-    LvnImageView* pSwapchainImageViews;
-    uint32_t swapchainImageViewCount;
-    LvnFormat swapchainColorFormat;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        surface;
+    void*                        swapchainData;
+    LvnImageView*                pSwapchainImageViews;
+    uint32_t                     swapchainImageViewCount;
+    LvnFormat                    swapchainColorFormat;
 };
 
 struct LvnDescriptorLayout
@@ -48,8 +49,10 @@ struct LvnPipeline
 
 struct LvnCommandBuffer
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* commandbuffer;
+    const LvnGraphicsContext*       graphicsctx;
+    void*                           commandbuffer;
+    LvnImageView**                  pColorAttachmentImages;       // use in vulkan to store swapchain color attachment images per rendering/renderpass
+    uint32_t                        colorAttachmentImageCount;    // vulkan color attachment image count
 };
 
 struct LvnFence
@@ -87,12 +90,15 @@ struct LvnGraphicsContext
     LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
     void                        (*implDestroySemaphore)(LvnSemaphore*);
 
+    LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
+    LvnResult                   (*implFenceReset)(LvnFence*);
+
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
     void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
     void                        (*implCmdEndRendering)(LvnCommandBuffer*);
     LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
-    LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, LvnSubmitInfo*, uint32_t, LvnFence*);
+    LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
     LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
 };
 

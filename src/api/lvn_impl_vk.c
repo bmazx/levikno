@@ -1,4 +1,5 @@
 #include "lvn_impl_vk.h"
+#include "lvn_config.h"
 #include "lvn_impl_vk_backends.h"
 
 #include <string.h>
@@ -49,6 +50,8 @@ static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
 static VkFormat                    lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice);
+static VkPipelineStageFlags        lvn_getPipelineStageFlags(VkImageLayout layout);
+static void                        lvn_transitionImageLayout( const LvnVulkanBackends* vkBackends, VkCommandBuffer commandBuffer, VkImage image, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout, const VkImageSubresourceRange subresourceRange);
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -769,6 +772,93 @@ static VkFormat lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysi
     return lvn_findSupportedFormat(vkBackends, physicalDevice, formats, LVN_ARRAY_LEN(formats), VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
+static VkAccessFlags lvn_getAccessFlags(VkImageLayout layout)
+{
+    switch (layout)
+    {
+        case VK_IMAGE_LAYOUT_UNDEFINED:
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+            return 0;
+        case VK_IMAGE_LAYOUT_PREINITIALIZED:
+            return VK_ACCESS_HOST_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+            return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+            return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+            return VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+            return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            return VK_ACCESS_TRANSFER_READ_BIT;
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+            return VK_ACCESS_TRANSFER_WRITE_BIT;
+        case VK_IMAGE_LAYOUT_GENERAL:
+            assert(false && "dont know how to get a meaningful VkAccessFlags for VK_IMAGE_LAYOUT_GENERAL, Dont use it!");
+            return 0;
+        default:
+            assert(false && "cannot interpret correct access flag from image layout");
+            return 0;
+    }
+}
+
+static VkPipelineStageFlags lvn_getPipelineStageFlags(VkImageLayout layout)
+{
+    switch (layout)
+    {
+        case VK_IMAGE_LAYOUT_UNDEFINED:
+            return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        case VK_IMAGE_LAYOUT_PREINITIALIZED:
+            return VK_PIPELINE_STAGE_HOST_BIT;
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            return VK_PIPELINE_STAGE_TRANSFER_BIT;
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+            return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+            return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+            return VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+            return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+            return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        case VK_IMAGE_LAYOUT_GENERAL:
+            assert(false && "dont know how to get a meaningful VkPipelineStageFlags for VK_IMAGE_LAYOUT_GENERAL, Dont use it!");
+            return 0;
+        default:
+            assert(false && "cannot interpret correct pipeline stage flag from image layout");
+            return 0;
+    }
+}
+
+static void lvn_transitionImageLayout(
+    const LvnVulkanBackends* vkBackends,
+    VkCommandBuffer commandBuffer,
+    VkImage image,
+    VkPipelineStageFlags srcStageMask,
+    VkPipelineStageFlags dstStageMask,
+    VkAccessFlags srcAccessMask,
+    VkAccessFlags dstAccessMask,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    const VkImageSubresourceRange subresourceRange)
+{
+    VkImageMemoryBarrier imageMemoryBarrier = {
+        .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask       = srcAccessMask,
+        .dstAccessMask       = dstAccessMask,
+        .oldLayout           = oldLayout,
+        .newLayout           = newLayout,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .image               = image,
+        .subresourceRange    = subresourceRange,
+    };
+
+    vkBackends->cmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, NULL, 0, NULL, 1, &imageMemoryBarrier);
+}
+
 // TODO: remove this function in the future
 static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
 {
@@ -1255,8 +1345,14 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBeginRenderPass");
     vkBackends->cmdEndRenderPass = (PFN_vkCmdEndRenderPass)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdEndRenderPass");
+    vkBackends->cmdPipelineBarrier = (PFN_vkCmdPipelineBarrier)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdPipelineBarrier");
     vkBackends->queueSubmit = (PFN_vkQueueSubmit)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueSubmit");
+    vkBackends->waitForFences = (PFN_vkWaitForFences)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkWaitForFences");
+    vkBackends->resetFences = (PFN_vkResetFences)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkResetFences");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1284,10 +1380,13 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->beginCommandBuffer ||
         !vkBackends->endCommandBuffer ||
         !vkBackends->cmdBeginRendering ||
-        !vkBackends->cmdEndRenderPass ||
+        !vkBackends->cmdEndRendering ||
         !vkBackends->cmdBeginRenderPass ||
         !vkBackends->cmdEndRenderPass ||
-        !vkBackends->queueSubmit)
+        !vkBackends->cmdPipelineBarrier ||
+        !vkBackends->queueSubmit ||
+        !vkBackends->waitForFences ||
+        !vkBackends->resetFences)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1351,6 +1450,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
     graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
+    graphicsctx->implFenceWait = lvnImplVkFenceWait;
+    graphicsctx->implFenceReset = lvnImplVkFenceReset;
     graphicsctx->implBeginCommandBuffer = lvnImplVkBeginCommandBuffer;
     graphicsctx->implEndCommandBuffer = lvnImplVkEndCommandBuffer;
     graphicsctx->implCmdBeginRendering = lvnImplVkCmdBeginRendering;
@@ -1440,6 +1541,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     swapchainImageViews = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnImageView));
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
+        swapchainImageViews[i].imageHandle = swapchainData->swapchainImages[i];
         swapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
         swapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
         swapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
@@ -1831,7 +1933,9 @@ LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, Lv
 void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
-    // NOTE: function left empty, vulkan does not need to destroy command buffers (VkCommandBuffer)
+    // TODO: might refactor command buffer implmentation to allocate cmdbuffers instead
+    if (commandBuffer->pColorAttachmentImages)
+        lvn_free(commandBuffer->pColorAttachmentImages);
 }
 
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
@@ -1891,6 +1995,26 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
 
+LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
+    VkFence vkFence = (VkFence) fence->fenceHandle;
+    return (vkBackends->waitForFences(vkBackends->device, 1, &vkFence, VK_TRUE, timeout) == VK_SUCCESS)
+        ? Lvn_Result_Success
+        : Lvn_Result_Failure;
+}
+
+LvnResult lvnImplVkFenceReset(LvnFence* fence)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
+    VkFence vkFence = (VkFence) fence->fenceHandle;
+    return (vkBackends->resetFences(vkBackends->device, 1, &vkFence) == VK_SUCCESS)
+        ? Lvn_Result_Success
+        : Lvn_Result_Failure;
+}
+
 void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
@@ -1923,11 +2047,37 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
 
+    // store images for begin/end rendering
+    commandBuffer->colorAttachmentImageCount = renderInfo->colorAttachmentCount;
+    commandBuffer->pColorAttachmentImages =
+        lvn_realloc(commandBuffer->pColorAttachmentImages, renderInfo->colorAttachmentCount * sizeof(LvnImageView*));
+
+    VkImageSubresourceRange subresourceRange = {
+        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel   = 0,
+        .levelCount     = VK_REMAINING_MIP_LEVELS,
+        .baseArrayLayer = 0,
+        .layerCount     = VK_REMAINING_ARRAY_LAYERS,
+    };
+
+    // begin rendering
     VkRenderingAttachmentInfoKHR colorAttachmentInfos[renderInfo->colorAttachmentCount];
     for (uint32_t i = 0; i < renderInfo->colorAttachmentCount; i++)
     {
-        VkRenderingAttachmentInfoKHR colorAttachment =
-        {
+        // transition swapchain color attachment images to color optimal
+        lvn_transitionImageLayout(
+            vkBackends,
+            cmdBuff,
+            renderInfo->pColorAttachments[i].imageView->imageHandle,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0,
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            subresourceRange);
+
+        VkRenderingAttachmentInfoKHR colorAttachment = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
             .imageView = (VkImageView) renderInfo->pColorAttachments[i].imageView->imageViewHandle,
             .imageLayout = (VkImageLayout) renderInfo->pColorAttachments[i].imageView->imageLayoutEnum,
@@ -1941,21 +2091,25 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
             }},
         };
         colorAttachmentInfos[i] = colorAttachment;
+
+        // store images
+        commandBuffer->pColorAttachmentImages[i] = renderInfo->pColorAttachments[i].imageView;
     }
 
-    VkRect2D renderArea =
-    {
+    VkRect2D renderArea = {
         .offset = { renderInfo->renderArea.offsetX, renderInfo->renderArea.offsetY },
         .extent = { renderInfo->renderArea.width, renderInfo->renderArea.height },
     };
 
-    VkRenderingInfoKHR renderingInfo = {0};
-    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
-    renderingInfo.renderArea = renderArea;
-    renderingInfo.layerCount = 1;
-    renderingInfo.colorAttachmentCount = renderInfo->colorAttachmentCount;
-    renderingInfo.pColorAttachments = colorAttachmentInfos;
+    VkRenderingInfoKHR renderingInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+        .renderArea = renderArea,
+        .layerCount = 1,
+        .colorAttachmentCount = renderInfo->colorAttachmentCount,
+        .pColorAttachments = colorAttachmentInfos,
+    };
 
+    // begin render
     vkBackends->cmdBeginRendering(cmdBuff, &renderingInfo);
 }
 
@@ -1964,7 +2118,36 @@ void lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer)
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    // end render
     vkBackends->cmdEndRendering(cmdBuff);
+
+    VkImageSubresourceRange subresourceRange = {
+        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel   = 0,
+        .levelCount     = VK_REMAINING_MIP_LEVELS,
+        .baseArrayLayer = 0,
+        .layerCount     = VK_REMAINING_ARRAY_LAYERS,
+    };
+
+    VkImageLayout oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // transition swapchain color attachment images to shader ready
+    for (uint32_t i = 0; i < commandBuffer->colorAttachmentImageCount; i++)
+    {
+        lvn_transitionImageLayout(
+            vkBackends,
+            cmdBuff,
+            commandBuffer->pColorAttachmentImages[i]->imageHandle,
+            lvn_getPipelineStageFlags(oldLayout),
+            lvn_getPipelineStageFlags(newLayout),
+            lvn_getAccessFlags(oldLayout),
+            lvn_getAccessFlags(newLayout),
+            oldLayout,
+            newLayout,
+            subresourceRange);
+    }
 }
 
 LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
@@ -1987,12 +2170,106 @@ LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* se
     return (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ? Lvn_Result_Success : Lvn_Result_Failure;
 }
 
-LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
+LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
 
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkFence vkFence = fence ? (VkFence)fence->fenceHandle : VK_NULL_HANDLE;
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    // get count of all semaphores and command buffers
+    uint32_t waitSemaphoreCount = 0, signalSemaphoreCount = 0, commandBufferCount = 0;
+    for (uint32_t i = 0; i < submitCount; i++)
+    {
+        waitSemaphoreCount += pSubmits[i].waitSemaphoreCount;
+        signalSemaphoreCount += pSubmits[i].signalSemaphoreCount;
+        commandBufferCount += pSubmits[i].commandBufferCount;
+    }
+
+    // arrays to store semaphores and command buffers for submit infos
+    VkSemaphore waitSemaphores[waitSemaphoreCount];
+    VkSemaphore signalSemaphores[signalSemaphoreCount];
+    VkCommandBuffer commandBuffers[commandBufferCount];
+    uint32_t waitSemaphoreOffset = 0, signalSemaphoreOffset = 0, commandBufferOffset = 0;
+
+    VkSubmitInfo submitInfos[submitCount];
+    memset(submitInfos, 0, sizeof(submitInfos));
+
+    for (uint32_t i = 0; i < submitCount; i++)
+    {
+        // get vulkan semaphore/command buffer handles
+        for (uint32_t j = 0; j < pSubmits[i].waitSemaphoreCount; j++)
+            waitSemaphores[waitSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pWaitSemaphores[j]->semaphoreHandle;
+
+        for (uint32_t j = 0; j < pSubmits[i].signalSemaphoreCount; j++)
+            signalSemaphores[signalSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pSignalSemaphores[j]->semaphoreHandle;
+
+        for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++)
+            commandBuffers[commandBufferOffset + j] = (VkCommandBuffer) pSubmits[i].pCommandBuffers[j]->commandbuffer;
+
+        submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfos[i].waitSemaphoreCount = pSubmits[i].waitSemaphoreCount;
+        submitInfos[i].pWaitSemaphores = &waitSemaphores[waitSemaphoreOffset];
+        submitInfos[i].pWaitDstStageMask = &waitStage;
+        submitInfos[i].signalSemaphoreCount = pSubmits[i].signalSemaphoreCount;
+        submitInfos[i].pSignalSemaphores = &signalSemaphores[signalSemaphoreOffset];
+        submitInfos[i].commandBufferCount = pSubmits[i].commandBufferCount;
+        submitInfos[i].pCommandBuffers = &commandBuffers[commandBufferOffset];
+
+        // offset arrays for each submit info
+        waitSemaphoreOffset += pSubmits[i].waitSemaphoreCount;
+        signalSemaphoreOffset += pSubmits[i].signalSemaphoreCount;
+        commandBufferOffset += pSubmits[i].commandBufferCount;
+    }
+
+    // queue submit
+    if (vkBackends->queueSubmit(vkBackends->graphicsQueue, submitCount, submitInfos, vkFence) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to submit command buffers to queue");
+        return Lvn_Result_Failure;
+    }
+
+    return Lvn_Result_Success;
 }
 
 LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
 {
+    LVN_ASSERT(graphicsctx && presentInfo, "graphicsctx and presentInfo cannot be null");
 
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkSemaphore waitSemaphores[presentInfo->waitSemaphoreCount];
+    for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
+        waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreHandle;
+
+    VkSwapchainKHR swapchains[presentInfo->surfaceCount];
+    for (uint32_t i = 0; i < presentInfo->surfaceCount; i++)
+        swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSurfaces[i]->swapchainData)->swapchain;
+
+    VkPresentInfoKHR vkPresentInfo = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = presentInfo->waitSemaphoreCount,
+        .pWaitSemaphores = waitSemaphores,
+        .swapchainCount = presentInfo->surfaceCount,
+        .pSwapchains = swapchains,
+        .pImageIndices = presentInfo->pImageIndices,
+        .pResults = NULL,
+    };
+
+    VkResult result = vkBackends->queuePresentKHR(vkBackends->presentQueue, &vkPresentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    {
+        // vks::recreateSwapChain(vkBackends, window);
+    }
+    else if (result != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to present swapchain image");
+        return Lvn_Result_Failure;
+    }
+
+    return Lvn_Result_Success;
 }

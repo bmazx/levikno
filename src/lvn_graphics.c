@@ -333,6 +333,20 @@ LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
     return pipelineFixedFunctions;
 }
 
+LvnResult lvnFenceWait(LvnFence* fence, uint64_t timeout)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnGraphicsContext* graphicsctx = fence->graphicsctx;
+    return graphicsctx->implFenceWait(fence, timeout);
+}
+
+LvnResult lvnFenceReset(LvnFence* fence)
+{
+    LVN_ASSERT(fence, "fence cannot be null");
+    const LvnGraphicsContext* graphicsctx = fence->graphicsctx;
+    return graphicsctx->implFenceReset(fence);
+}
+
 void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
@@ -368,7 +382,7 @@ LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphor
     return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
 }
 
-LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
+LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
     return graphicsctx->implRenderSubmit(graphicsctx, pSubmits, submitCount, fence);
@@ -376,6 +390,6 @@ LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* 
 
 LvnResult lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
 {
-    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    LVN_ASSERT(graphicsctx && presentInfo, "graphicsctx and presentInfo cannot be null");
     return graphicsctx->implRenderPresent(graphicsctx, presentInfo);
 }

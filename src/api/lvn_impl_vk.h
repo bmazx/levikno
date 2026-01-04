@@ -20,12 +20,15 @@ void      lvnImplVkDestroyFence(LvnFence* fence);
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
 
+LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);
+LvnResult lvnImplVkFenceReset(LvnFence* fence);
+
 void      lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 void      lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer);
 LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
-LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
 LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
 #endif // !HG_LVN_IMPL_VK_H
