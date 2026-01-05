@@ -375,6 +375,41 @@ void lvnCmdEndRendering(LvnCommandBuffer* commandBuffer)
     graphicsctx->implCmdEndRendering(commandBuffer);
 }
 
+void lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdBindPipeline(commandBuffer, pipeline);
+}
+
+void lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
+{
+    LVN_ASSERT(commandBuffer && viewport, "commandBuffer and viewport cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdSetViewport(commandBuffer, viewport);
+}
+
+void lvnCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor)
+{
+    LVN_ASSERT(commandBuffer && scissor, "commandBuffer and scissor cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdSetScissor(commandBuffer, scissor);
+}
+
+void lvnCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void lvnCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
 LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
 {
     LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");

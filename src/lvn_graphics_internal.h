@@ -44,7 +44,8 @@ struct LvnShader
 struct LvnPipeline
 {
     const LvnGraphicsContext* graphicsctx;
-    void* pipeline;
+    void* pipelineHandle;
+    void* pipelineLayoutHandle;
 };
 
 struct LvnCommandBuffer
@@ -97,6 +98,11 @@ struct LvnGraphicsContext
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
     void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
     void                        (*implCmdEndRendering)(LvnCommandBuffer*);
+    void                        (*implCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
+    void                        (*implCmdSetViewport)(LvnCommandBuffer*, const LvnViewport*);
+    void                        (*implCmdSetScissor)(LvnCommandBuffer*, const LvnRenderArea*);
+    void                        (*implCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);
+    void                        (*implCmdDrawIndexed)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, int32_t, uint32_t);
     LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
     LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
     LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);

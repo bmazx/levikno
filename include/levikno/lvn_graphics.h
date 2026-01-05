@@ -396,9 +396,14 @@ typedef struct LvnRenderingAttachmentInfo
 
 typedef struct LvnRenderArea
 {
-    int32_t offsetX, offsetY;
-    uint32_t width, height;
+    struct { int32_t x, y; }              offset;
+    struct { uint32_t width, height; }    extent;
 } LvnRenderArea;
+
+typedef struct LvnViewport
+{
+    float x, y, width, height, minDepth, maxDepth;
+} LvnViewport;
 
 typedef struct LvnRenderingInfo
 {
@@ -466,6 +471,11 @@ LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* comm
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 LVN_API void                        lvnCmdEndRendering(LvnCommandBuffer* commandBuffer);
+LVN_API void                        lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
+LVN_API void                        lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
+LVN_API void                        lvnCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
+LVN_API void                        lvnCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+LVN_API void                        lvnCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 LVN_API LvnResult                   lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 LVN_API LvnResult                   lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
 LVN_API LvnResult                   lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);

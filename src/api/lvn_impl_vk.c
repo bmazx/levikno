@@ -1347,12 +1347,24 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdEndRenderPass");
     vkBackends->cmdPipelineBarrier = (PFN_vkCmdPipelineBarrier)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdPipelineBarrier");
+    vkBackends->cmdBindPipeline = (PFN_vkCmdBindPipeline)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindPipeline");
+    vkBackends->cmdSetViewport = (PFN_vkCmdSetViewport)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdSetViewport");
+    vkBackends->cmdSetScissor = (PFN_vkCmdSetScissor)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdSetScissor");
+    vkBackends->cmdDraw = (PFN_vkCmdDraw)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdDraw");
+    vkBackends->cmdDrawIndexed = (PFN_vkCmdDrawIndexed)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdDrawIndexed");
     vkBackends->queueSubmit = (PFN_vkQueueSubmit)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueSubmit");
     vkBackends->waitForFences = (PFN_vkWaitForFences)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkWaitForFences");
     vkBackends->resetFences = (PFN_vkResetFences)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkResetFences");
+    vkBackends->deviceWaitIdle = (PFN_vkDeviceWaitIdle)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDeviceWaitIdle");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1384,9 +1396,15 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->cmdBeginRenderPass ||
         !vkBackends->cmdEndRenderPass ||
         !vkBackends->cmdPipelineBarrier ||
+        !vkBackends->cmdBindPipeline ||
+        !vkBackends->cmdSetViewport ||
+        !vkBackends->cmdSetScissor ||
+        !vkBackends->cmdDraw ||
+        !vkBackends->cmdDrawIndexed ||
         !vkBackends->queueSubmit ||
         !vkBackends->waitForFences ||
-        !vkBackends->resetFences)
+        !vkBackends->resetFences ||
+        !vkBackends->deviceWaitIdle)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1456,6 +1474,11 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implEndCommandBuffer = lvnImplVkEndCommandBuffer;
     graphicsctx->implCmdBeginRendering = lvnImplVkCmdBeginRendering;
     graphicsctx->implCmdEndRendering = lvnImplVkCmdEndRendering;
+    graphicsctx->implCmdBindPipeline = lvnImplVkCmdBindPipeline;
+    graphicsctx->implCmdSetViewport = lvnImplVkCmdSetViewport;
+    graphicsctx->implCmdSetScissor = lvnImplVkCmdSetScissor;
+    graphicsctx->implCmdDraw = lvnImplVkCmdDraw;
+    graphicsctx->implCmdDrawIndexed = lvnImplVkCmdDrawIndexed;
     graphicsctx->implSurfaceAcquireNextImage = lvnImplVkSurfaceAcquireNextImage;
     graphicsctx->implRenderSubmit = lvnImplVkRenderSubmit;
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
@@ -1482,6 +1505,8 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
+
+    vkBackends->deviceWaitIdle(vkBackends->device);
 
     if (vkBackends->commandPool)
         vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
@@ -1574,6 +1599,8 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
 
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
@@ -1621,6 +1648,9 @@ void lvnImplVkDestroyShader(LvnShader* shader)
 {
     LVN_ASSERT(shader, "shader cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) shader->graphicsctx->implData;
+
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
     VkShaderModule shaderModule = (VkShaderModule) shader->shader;
     vkBackends->destroyShaderModule(vkBackends->device, shaderModule, NULL);
     shader->shader = NULL;
@@ -1631,7 +1661,6 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    LvnVkPipelineData* pipelineData = NULL;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline vkPipeline = VK_NULL_HANDLE;
 
@@ -1880,18 +1909,14 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         goto fail_cleanup;
     }
 
-    pipelineData = lvn_calloc(sizeof(LvnVkPipelineData));
-    pipelineData->pipelineLayout = pipelineLayout;
-    pipelineData->pipeline = vkPipeline;
-
-    pipeline->pipeline = pipelineData;
+    pipeline->pipelineHandle = vkPipeline;
+    pipeline->pipelineLayoutHandle = pipelineLayout;
 
     return Lvn_Result_Success;
 
 fail_cleanup:
     vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
     vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
-    lvn_free(pipelineData);
     return Lvn_Result_Failure;
 }
 
@@ -1900,11 +1925,14 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
     LVN_ASSERT(pipeline, "pipeline cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) pipeline->graphicsctx->implData;
-    LvnVkPipelineData* pipelineData = (LvnVkPipelineData*) pipeline->pipeline;
 
-    vkBackends->destroyPipeline(vkBackends->device, pipelineData->pipeline, NULL);
-    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineData->pipelineLayout, NULL);
-    lvn_free(pipelineData);
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
+    VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
+    VkPipelineLayout pipelineLayout = (VkPipelineLayout) pipeline->pipelineLayoutHandle;
+
+    vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
+    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
 }
 
 LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo)
@@ -1963,6 +1991,7 @@ void lvnImplVkDestroyFence(LvnFence* fence)
 {
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
+    vkBackends->deviceWaitIdle(vkBackends->device);
     VkFence vkFence = (VkFence) fence->fenceHandle;
     vkBackends->destroyFence(vkBackends->device, vkFence, NULL);
 }
@@ -1991,6 +2020,7 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
 {
     LVN_ASSERT(semaphore, "semaphore cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) semaphore->graphicsctx->implData;
+    vkBackends->deviceWaitIdle(vkBackends->device);
     VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
     vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
@@ -2097,8 +2127,8 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
     }
 
     VkRect2D renderArea = {
-        .offset = { renderInfo->renderArea.offsetX, renderInfo->renderArea.offsetY },
-        .extent = { renderInfo->renderArea.width, renderInfo->renderArea.height },
+        .offset = { renderInfo->renderArea.offset.x, renderInfo->renderArea.offset.y },
+        .extent = { renderInfo->renderArea.extent.width, renderInfo->renderArea.extent.height },
     };
 
     VkRenderingInfoKHR renderingInfo = {
@@ -2148,6 +2178,64 @@ void lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer)
             newLayout,
             subresourceRange);
     }
+}
+
+void lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
+
+    vkBackends->cmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+}
+
+void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
+{
+    LVN_ASSERT(commandBuffer && viewport, "commandBuffer and viewport cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkViewport viewportInfo = {
+        .x        = viewport->x,
+        .y        = viewport->y,
+        .width    = viewport->width,
+        .height   = viewport->height,
+        .minDepth = viewport->minDepth,
+        .maxDepth = viewport->maxDepth,
+    };
+
+    vkBackends->cmdSetViewport(cmdBuff, 0, 1, &viewportInfo);
+}
+
+void lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor)
+{
+    LVN_ASSERT(commandBuffer && scissor, "commandBuffer and scissor cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkRect2D scissorInfo = {
+        .extent = { scissor->extent.width, scissor->extent.height },
+        .offset = { scissor->offset.x, scissor->offset.y },
+    };
+
+    vkBackends->cmdSetScissor(cmdBuff, 0, 1, &scissorInfo);
+}
+
+void lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    vkBackends->cmdDraw(cmdBuff, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    vkBackends->cmdDrawIndexed(cmdBuff, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)

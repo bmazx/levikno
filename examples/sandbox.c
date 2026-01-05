@@ -225,14 +225,34 @@ int main(int argc, char** argv)
         };
 
         LvnRenderingInfo renderInfo = {0};
-        renderInfo.renderArea.width = 600;
-        renderInfo.renderArea.height = 800;
-        renderInfo.renderArea.offsetX = 0;
-        renderInfo.renderArea.offsetY = 0;
+        renderInfo.renderArea.extent.width = 600;
+        renderInfo.renderArea.extent.height = 800;
+        renderInfo.renderArea.offset.x = 0;
+        renderInfo.renderArea.offset.y = 0;
         renderInfo.pColorAttachments = &colorAttachment;
         renderInfo.colorAttachmentCount = 1;
 
         lvnCmdBeginRendering(cmdBuff, &renderInfo);
+
+        lvnCmdBindPipeline(cmdBuff, pipeline);
+
+        LvnViewport viewport = {
+            .x = 0, .y = 0,
+            .width = 600, .height = 800,
+            .minDepth = 0.0f, .maxDepth = 1.0f,
+        };
+
+        lvnCmdSetViewport(cmdBuff, &viewport);
+
+        LvnRenderArea renderArea = {
+            .extent = { 600, 800 },
+            .offset = { 0.0f, 0.0f },
+        };
+
+        lvnCmdSetScissor(cmdBuff, &renderArea);
+
+        lvnCmdDraw(cmdBuff, 3, 1, 0, 0);
+
         lvnCmdEndRendering(cmdBuff);
 
         lvnEndCommandBuffer(cmdBuff);

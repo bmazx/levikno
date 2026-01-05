@@ -37,12 +37,6 @@ typedef struct LvnVkSwapchainData
     VkImageView*      swapchainImageViews;
 } LvnVkSwapchainData;
 
-typedef struct LvnVkPipelineData
-{
-    VkPipeline          pipeline;
-    VkPipelineLayout    pipelineLayout;
-} LvnVkPipelineData;
-
 typedef struct LvnVulkanBackends
 {
     void*                                            handle;
@@ -100,11 +94,17 @@ typedef struct LvnVulkanBackends
     PFN_vkCmdBeginRenderPass                         cmdBeginRenderPass;
     PFN_vkCmdEndRenderPass                           cmdEndRenderPass;
     PFN_vkCmdPipelineBarrier                         cmdPipelineBarrier;
+    PFN_vkCmdBindPipeline                            cmdBindPipeline;
+    PFN_vkCmdSetViewport                             cmdSetViewport;
+    PFN_vkCmdSetScissor                              cmdSetScissor;
+    PFN_vkCmdDraw                                    cmdDraw;
+    PFN_vkCmdDrawIndexed                             cmdDrawIndexed;
     PFN_vkAcquireNextImageKHR                        acquireNextImageKHR;
     PFN_vkQueueSubmit                                queueSubmit;
     PFN_vkQueuePresentKHR                            queuePresentKHR;
     PFN_vkWaitForFences                              waitForFences;
     PFN_vkResetFences                                resetFences;
+    PFN_vkDeviceWaitIdle                             deviceWaitIdle;
 
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;
