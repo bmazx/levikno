@@ -27,6 +27,7 @@ struct LvnSurface
     LvnImageView*                pSwapchainImageViews;
     uint32_t                     swapchainImageViewCount;
     LvnFormat                    swapchainColorFormat;
+    LvnExtent2D                  extent;
 };
 
 struct LvnDescriptorLayout
@@ -91,6 +92,7 @@ struct LvnGraphicsContext
     LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
     void                        (*implDestroySemaphore)(LvnSemaphore*);
 
+    LvnResult                   (*implSurfaceResize)(LvnSurface*, uint32_t, uint32_t);
     LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
     LvnResult                   (*implFenceReset)(LvnFence*);
 
@@ -104,7 +106,6 @@ struct LvnGraphicsContext
     void                        (*implCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);
     void                        (*implCmdDrawIndexed)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, int32_t, uint32_t);
     LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
-    LvnResult                   (*implSurfaceResize)(LvnSurface*, uint32_t, uint32_t);
     LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
     LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
 };

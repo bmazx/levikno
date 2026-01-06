@@ -460,12 +460,11 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     }
 
     swapchainData->swapchain = swapchain;
-    swapchainData->oldSwapchain = VK_NULL_HANDLE;
     swapchainData->swapchainFormat = swapchainFormat.format;
     swapchainData->presentMode = presentMode;
     swapchainData->swapchainExtent = extent;
-    swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageCount = swapchainImageCount;
+    swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageViews = swapchainImageViews;
 
     lvn_free(presentModes);
@@ -1484,6 +1483,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCmdDraw = lvnImplVkCmdDraw;
     graphicsctx->implCmdDrawIndexed = lvnImplVkCmdDrawIndexed;
     graphicsctx->implSurfaceAcquireNextImage = lvnImplVkSurfaceAcquireNextImage;
+    graphicsctx->implSurfaceResize = lvnImplVkSurfaceResize;
     graphicsctx->implRenderSubmit = lvnImplVkRenderSubmit;
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
 
@@ -1581,6 +1581,8 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     surface->pSwapchainImageViews = swapchainImageViews;
     surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
     surface->swapchainColorFormat = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
+    surface->extent.width = swapchainData->swapchainExtent.width;
+    surface->extent.height = swapchainData->swapchainExtent.height;
 
     return Lvn_Result_Success;
 
@@ -2029,6 +2031,73 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
 
+LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+
+    // destroy swapchain resources
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+    lvn_free(swapchainData->swapchainImages);
+    lvn_free(swapchainData->swapchainImageViews);
+
+    // set current swapchain to old swapchain
+    swapchainData->oldSwapchain = swapchainData->swapchain;
+    swapchainData->swapchain = VK_NULL_HANDLE;
+
+    LvnVkSwapChainCreateInfo swapchainCreateInfo = {
+        .physicalDevice = vkBackends->physicalDevice,
+        .surface = vkSurface,
+        .surfaceFormat = swapchainData->swapchainFormat,
+        .presentMode = swapchainData->presentMode,
+        .queueFamilyIndices = &vkBackends->queueFamilyIndices,
+        .width = width,
+        .height = height,
+        .minImageCount = swapchainData->swapchainImageCount,
+    };
+
+    // create new swapchain
+    if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to recreate swapchain in LvnSurface %p",
+                      surface);
+        return Lvn_Result_Failure;
+    }
+
+    // destroy old swapchain
+    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
+    swapchainData->oldSwapchain = VK_NULL_HANDLE;
+
+    if (surface->swapchainImageViewCount != swapchainData->swapchainImageCount)
+    {
+        surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
+        lvn_realloc(surface->pSwapchainImageViews, swapchainData->swapchainImageCount * sizeof(LvnImageView));
+    }
+
+    // update image views in LvnSurface struct
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+    {
+        surface->pSwapchainImageViews[i].imageHandle = swapchainData->swapchainImages[i];
+        surface->pSwapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        surface->pSwapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
+        surface->pSwapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
+    }
+
+    // update extent
+    surface->extent.width = swapchainData->swapchainExtent.width;
+    surface->extent.height = swapchainData->swapchainExtent.height;
+
+    return Lvn_Result_Success;
+}
+
 LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
 {
     LVN_ASSERT(fence, "fence cannot be null");
@@ -2258,54 +2327,6 @@ LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* se
 
     return (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ? Lvn_Result_Success : Lvn_Result_Failure;
 }
-
-LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
-{
-    LVN_ASSERT(surface, "surface cannot be null");
-
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
-
-    vkBackends->deviceWaitIdle(vkBackends->device);
-
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
-
-    // destroy swapchain resources
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
-    lvn_free(swapchainData->swapchainImages);
-    lvn_free(swapchainData->swapchainImageViews);
-
-    // set current swapchain to old swapchain
-    swapchainData->oldSwapchain = swapchainData->swapchain;
-    swapchainData->swapchain = VK_NULL_HANDLE;
-
-    LvnVkSwapChainCreateInfo swapchainCreateInfo = {
-        .physicalDevice = vkBackends->physicalDevice,
-        .surface = vkSurface,
-        .surfaceFormat = swapchainData->swapchainFormat,
-        .presentMode = swapchainData->presentMode,
-        .queueFamilyIndices = &vkBackends->queueFamilyIndices,
-        .width = width,
-        .height = height,
-        .minImageCount = swapchainData->swapchainImageCount,
-    };
-
-    // create new swapchain
-    if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
-    {
-        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
-                      "[vulkan] failed to recreate swapchain in LvnSurface %p",
-                      surface);
-        return Lvn_Result_Failure;
-    }
-
-    // destroy old swapchain
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
-
-    return Lvn_Result_Success;
-}
-
 
 LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {

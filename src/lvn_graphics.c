@@ -266,6 +266,19 @@ LvnImageView* lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imag
     return &surface->pSwapchainImageViews[imageIndex];
 }
 
+LVN_API LvnExtent2D lvnSurfaceGetExtent(const LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    return surface->extent;
+}
+
+LvnResult lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    return graphicsctx->implSurfaceResize(surface, width, height);
+}
+
 LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
 {
     LvnPipelineFixedFunctions pipelineFixedFunctions = {0};
@@ -415,13 +428,6 @@ LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphor
     LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
     const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
     return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
-}
-
-LvnResult lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
-{
-    LVN_ASSERT(surface, "surface cannot be null");
-    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
-    return graphicsctx->implSurfaceResize(surface, width, height);
 }
 
 LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
