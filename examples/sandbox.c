@@ -206,13 +206,20 @@ int main(int argc, char** argv)
 
     while (!glfwWindowShouldClose(window))
     {
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
 
-        if (lvnSurfaceAcquireNextImage(surface, imageWaitSemaphore, NULL, &imageIndex) != Lvn_Result_Success)
+        LvnResult result = lvnSurfaceAcquireNextImage(surface, imageWaitSemaphore, NULL, &imageIndex);
+
+        if (result == Lvn_Result_OutOfDate)
         {
-            LVN_LOG_ERROR(logger, "failed to get image");
+            lvnSurfaceResize(surface, width, height);
         }
+        else if (result != Lvn_Result_Success)
+            LVN_LOG_ERROR(logger, "failed to get image");
 
         lvnBeginCommandBuffer(cmdBuff);
 
@@ -225,8 +232,8 @@ int main(int argc, char** argv)
         };
 
         LvnRenderingInfo renderInfo = {0};
-        renderInfo.renderArea.extent.width = 600;
-        renderInfo.renderArea.extent.height = 800;
+        renderInfo.renderArea.extent.width = width;
+        renderInfo.renderArea.extent.height = height;
         renderInfo.renderArea.offset.x = 0;
         renderInfo.renderArea.offset.y = 0;
         renderInfo.pColorAttachments = &colorAttachment;
@@ -238,14 +245,14 @@ int main(int argc, char** argv)
 
         LvnViewport viewport = {
             .x = 0, .y = 0,
-            .width = 600, .height = 800,
+            .width = width, .height = height,
             .minDepth = 0.0f, .maxDepth = 1.0f,
         };
 
         lvnCmdSetViewport(cmdBuff, &viewport);
 
         LvnRenderArea renderArea = {
-            .extent = { 600, 800 },
+            .extent = { width, height },
             .offset = { 0.0f, 0.0f },
         };
 

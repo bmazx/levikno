@@ -78,6 +78,7 @@ typedef enum LvnResult
 {
     Lvn_Result_Success =  0,
     Lvn_Result_Failure = -1,
+    Lvn_Result_OutOfDate = 1,
 } LvnResult;
 
 

@@ -29,12 +29,13 @@ typedef struct LvnVkSwapChainCreateInfo
 
 typedef struct LvnVkSwapchainData
 {
-    VkSwapchainKHR    swapchain;
-    VkExtent2D        swapchainExtent;
-    VkFormat          swapchainFormat;
-    uint32_t          swapchainImageCount;
-    VkImage*          swapchainImages;
-    VkImageView*      swapchainImageViews;
+    VkSwapchainKHR      swapchain, oldSwapchain;
+    VkExtent2D          swapchainExtent;
+    VkFormat            swapchainFormat;
+    VkPresentModeKHR    presentMode;
+    uint32_t            swapchainImageCount;
+    VkImage*            swapchainImages;
+    VkImageView*        swapchainImageViews;
 } LvnVkSwapchainData;
 
 typedef struct LvnVulkanBackends

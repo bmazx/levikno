@@ -417,6 +417,13 @@ LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphor
     return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
 }
 
+LvnResult lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    return graphicsctx->implSurfaceResize(surface, width, height);
+}
+
 LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
