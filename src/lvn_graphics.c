@@ -266,7 +266,13 @@ LvnImageView* lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imag
     return &surface->pSwapchainImageViews[imageIndex];
 }
 
-LVN_API LvnExtent2D lvnSurfaceGetExtent(const LvnSurface* surface)
+uint32_t lvnSurfaceGetSwapchainImageCount(const LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+    return surface->swapchainImageViewCount;
+}
+
+LvnExtent2D lvnSurfaceGetSwapchainExtent(const LvnSurface* surface)
 {
     LVN_ASSERT(surface, "surface cannot be null");
     return surface->extent;

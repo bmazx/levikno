@@ -197,10 +197,10 @@ int main(int argc, char** argv)
     LvnSemaphore* imageWaitSemaphore;
     lvnCreateSemaphore(graphicsctx, &imageWaitSemaphore);
 
-    // NOTE: hard coding to be 4 images temporarily for now
-    LvnSemaphore* renderFinishedSemaphore[4];
-    for (uint32_t i = 0; i < 4; i++)
-        lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphore[i]);
+    // NOTE: hard coding to be set number of images temporarily for now
+    LvnSemaphore* renderFinishedSemaphores[12];
+    for (uint32_t i = 0; i < 12; i++)
+        lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphores[i]);
 
     uint32_t imageIndex = 0;
     int width = 0, height = 0, oldWidth = 0, oldHeight = 0;
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
             continue;
         }
 
-        LvnExtent2D extent = lvnSurfaceGetExtent(surface);
+        LvnExtent2D extent = lvnSurfaceGetSwapchainExtent(surface);
 
         lvnBeginCommandBuffer(cmdBuff);
 
@@ -277,7 +277,7 @@ int main(int argc, char** argv)
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &imageWaitSemaphore,
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &renderFinishedSemaphore[imageIndex],
+            .pSignalSemaphores = &renderFinishedSemaphores[imageIndex],
             .commandBufferCount = 1,
             .pCommandBuffers = &cmdBuff,
         };
@@ -285,7 +285,7 @@ int main(int argc, char** argv)
 
         LvnPresentInfo presentInfo = {
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &renderFinishedSemaphore[imageIndex],
+            .pWaitSemaphores = &renderFinishedSemaphores[imageIndex],
             .surfaceCount = 1,
             .pSurfaces = &surface,
             .pImageIndices = &imageIndex,
@@ -306,8 +306,8 @@ int main(int argc, char** argv)
 
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
-    for (uint32_t i = 0; i < 4; i++)
-        lvnDestroySemaphore(renderFinishedSemaphore[i]);
+    for (uint32_t i = 0; i < 12; i++)
+        lvnDestroySemaphore(renderFinishedSemaphores[i]);
     lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyPipeline(pipeline);
     lvnDestroySurface(surface);

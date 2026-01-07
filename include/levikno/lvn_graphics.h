@@ -473,7 +473,8 @@ LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore)
 
 LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
 LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);
-LVN_API LvnExtent2D                 lvnSurfaceGetExtent(const LvnSurface* surface);
+LVN_API uint32_t                    lvnSurfaceGetSwapchainImageCount(const LvnSurface* surface);
+LVN_API LvnExtent2D                 lvnSurfaceGetSwapchainExtent(const LvnSurface* surface);
 LVN_API LvnResult                   lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 LVN_API LvnResult                   lvnFenceWait(LvnFence* fence, uint64_t timeout);
