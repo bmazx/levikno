@@ -89,7 +89,6 @@ target_include_directories(levikno
 )
 
 # graphics
-
 set(LVN_GRAPHICS_SRC
     include/levikno/lvn_graphics.h
     src/lvn_graphics.c
@@ -99,7 +98,7 @@ set(LVN_GRAPHICS_SRC
 
 # vulkanSDK
 if (LVN_BUILD_VULKAN)
-    set(MIN_VULKAN_VERSION 1.2)
+    set(MIN_VULKAN_VERSION 1.3)
     find_package(Vulkan ${MIN_VULKAN_VERSION})
 
     if(Vulkan_FOUND)
