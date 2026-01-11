@@ -300,11 +300,17 @@ LvnFile lvnLoadFile(const char* filepath, LvnFileType type)
     fseek(fileptr, 0, SEEK_SET);
 
     file.data = lvn_calloc(filesize * sizeof(uint8_t));
+    if (!file.data) { goto fail_cleanup; }
     file.size = filesize;
 
     fread(file.data, sizeof(uint8_t), filesize, fileptr);
     fclose(fileptr);
+    return file;
 
+fail_cleanup:
+    file.data = NULL;
+    file.size = 0;
+    fclose(fileptr);
     return file;
 }
 
@@ -323,8 +329,7 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
 
     *ctx = (LvnContext*) lvn_calloc(sizeof(LvnContext));
 
-    if (!*ctx)
-        return Lvn_Result_Failure;
+    if (!*ctx) { goto fail_cleanup; }
 
     memset(*ctx, 0, sizeof(LvnContext));
     LvnContext* ctxPtr = *ctx;
@@ -350,38 +355,49 @@ LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createI
     else
         ctxPtr->appName = lvn_strdup(LVN_DEFAULT_APP_NAME);
 
+    if (!ctxPtr->appName) { goto fail_cleanup; }
+
     // logging
     if (createInfo && createInfo->logging.coreLogFormat)
         ctxPtr->coreLogger.logPatternFormat = lvn_strdup(createInfo->logging.coreLogFormat);
     else
         ctxPtr->coreLogger.logPatternFormat = lvn_strdup(LVN_DEFAULT_LOG_PATTERN);
 
+    if (!ctxPtr->coreLogger.logPatternFormat) { goto fail_cleanup; }
+
     if (createInfo && createInfo->logging.pCoreSinks)
     {
         ctxPtr->coreLogger.pSinks = (LvnSink*) lvn_calloc(sizeof(LvnSink) * createInfo->logging.coreSinkCount);
+        if (!ctxPtr->coreLogger.pSinks) { goto fail_cleanup; }
         memcpy(ctxPtr->coreLogger.pSinks, createInfo->logging.pCoreSinks, sizeof(LvnSink) * createInfo->logging.coreSinkCount);
         ctxPtr->coreLogger.sinkCount = createInfo->logging.coreSinkCount;
     }
     else
     {
         ctxPtr->coreLogger.pSinks = (LvnSink*) lvn_calloc(sizeof(LvnSink));
+        if (!ctxPtr->coreLogger.pSinks) { goto fail_cleanup; }
         ctxPtr->coreLogger.pSinks->logFunc = printWrapper;
         ctxPtr->coreLogger.sinkCount = 1;
     }
 
     ctxPtr->coreLogger.ctx = ctxPtr;
     ctxPtr->coreLogger.loggerName = lvn_strdup("CORE");
+    if (!ctxPtr->coreLogger.loggerName) { goto fail_cleanup; }
     ctxPtr->coreLogger.pLogPatterns = lvn_logParseFormat(ctxPtr, LVN_DEFAULT_LOG_PATTERN, &ctxPtr->coreLogger.logPatternCount);
     ctxPtr->coreLogger.logging = true;
 
     LVN_LOG_TRACE(&ctxPtr->coreLogger, "levikno context created: (%p)", *ctx);
     return Lvn_Result_Success;
+
+fail_cleanup:
+    lvnDestroyContext(*ctx);
+    *ctx = NULL;
+    return Lvn_Result_Failure;
 }
 
 void lvnDestroyContext(LvnContext* ctx)
 {
-    if (!ctx)
-        return;
+    if (!ctx) return;
 
     LVN_LOG_TRACE(&ctx->coreLogger, "terminating levikno context: (%p)", ctx);
 
@@ -581,7 +597,7 @@ void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
     if (!logger->logging) { return; }
 
     char* msgstr = NULL;
-    int msglen = 0;
+    size_t msglen = 0;
 
     for (uint32_t i = 0; i < logger->logPatternCount; i++)
     {
@@ -593,13 +609,16 @@ void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
         else // call func of special format
         {
             char* logmsg = logger->pLogPatterns[i].func(msg);
-            int loglen = strlen(logmsg);
+            size_t loglen = strlen(logmsg);
             msglen += loglen;
             msgstr = lvn_realloc(msgstr, msglen * sizeof(char) + 1);
             memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
             lvn_free(logmsg);
         }
     }
+
+    if (!msgstr)
+        return;
 
     msgstr[msglen] = '\0';
     for (uint32_t i = 0; i < logger->sinkCount; i++)
@@ -660,15 +679,16 @@ uint32_t lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t le
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return 0; }
     vsnprintf(buff, len + 1, fmt, argcopy);
-    uint32_t msgLen = lvnLogFormatMessage(logger, dst, length, level, buff);
+    uint32_t msglen = lvnLogFormatMessage(logger, dst, length, level, buff);
 
     va_end(argcopy);
     va_end(argptr);
 
     lvn_free(buff);
 
-    return msgLen;
+    return msglen;
 }
 
 void lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt)
@@ -725,6 +745,7 @@ void lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Trace, buff);
 
@@ -749,6 +770,7 @@ void lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Debug, buff);
 
@@ -774,6 +796,7 @@ void lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Info, buff);
 
@@ -799,6 +822,7 @@ void lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Warn, buff);
 
@@ -823,6 +847,7 @@ void lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Error, buff);
 
@@ -847,6 +872,7 @@ void lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...)
 
     int len = vsnprintf(NULL, 0, fmt, argptr);
     buff = lvn_calloc((len + 1) * sizeof(char));
+    if (!buff) { return; }
     vsnprintf(buff, len + 1, fmt, argcopy);
     lvnLogMessage(logger, Lvn_LogLevel_Fatal, buff);
 
@@ -872,27 +898,40 @@ LvnResult lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLo
     if (!*logger)
     {
         LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for logger at %p", logger);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
     LvnLogger* loggerPtr = *logger;
     loggerPtr->ctx = ctx;
     loggerPtr->logging = true;
-    loggerPtr->loggerName = lvn_strdup(createInfo->name);
     loggerPtr->logLevel = createInfo->level;
-    loggerPtr->logPatternFormat = lvn_strdup(createInfo->format);
-    loggerPtr->pLogPatterns = lvn_logParseFormat(ctx, createInfo->format, &loggerPtr->logPatternCount);
-    loggerPtr->pSinks = lvn_calloc(createInfo->sinkCount * sizeof(LvnSink));
-    memcpy(loggerPtr->pSinks, createInfo->pSinks, createInfo->sinkCount * sizeof(LvnSink));
     loggerPtr->sinkCount = createInfo->sinkCount;
     loggerPtr->logging = true;
 
+    loggerPtr->loggerName = lvn_strdup(createInfo->name);
+    if (!loggerPtr->loggerName) { goto fail_cleanup; }
+
+    loggerPtr->logPatternFormat = lvn_strdup(createInfo->format);
+    if (!loggerPtr->logPatternFormat) { goto fail_cleanup; }
+
+    loggerPtr->pLogPatterns = lvn_logParseFormat(ctx, createInfo->format, &loggerPtr->logPatternCount);
+    if (!loggerPtr->pLogPatterns) { goto fail_cleanup;}
+
+    loggerPtr->pSinks = lvn_calloc(createInfo->sinkCount * sizeof(LvnSink));
+    if (!loggerPtr->pSinks) { goto fail_cleanup; }
+    memcpy(loggerPtr->pSinks, createInfo->pSinks, createInfo->sinkCount * sizeof(LvnSink));
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    lvnDestroyLogger(*logger);
+    *logger = NULL;
+    return Lvn_Result_OutOfMemory;
 }
 
 void lvnDestroyLogger(LvnLogger* logger)
 {
-    LVN_ASSERT(logger, "logger cannot be null");
+    if (!logger) return;
 
     if (logger->loggerName)
         lvn_free(logger->loggerName);
@@ -929,6 +968,7 @@ char* lvn_strdup(const char* str)
     LVN_ASSERT(str, "str cannot be null");
     const size_t length = strlen(str) + 1;
     char* result = (char*) lvn_calloc(length);
+    if (!result) { return NULL; }
     memcpy(result, str, length);
     return result;
 }

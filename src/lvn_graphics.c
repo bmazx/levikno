@@ -31,11 +31,17 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
         return Lvn_Result_Failure;
     }
 
+    LvnResult result = Lvn_Result_Success;
+
     // create and init graphics context
     *graphicsctx = (LvnGraphicsContext*) lvn_calloc(sizeof(LvnGraphicsContext));
 
     if (!*graphicsctx)
-        return Lvn_Result_Failure;
+    {
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for graphics context at %p", graphicsctx);
+        result = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
 
     LvnGraphicsContext* gctxPtr = *graphicsctx;
     gctxPtr->graphicsapi = createInfo->graphicsapi;
@@ -45,7 +51,6 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
 
     // setup graphics api
-    LvnResult result = Lvn_Result_Success;
     switch (createInfo->graphicsapi)
     {
         case Lvn_GraphicsApi_None:
@@ -64,7 +69,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     {
         LVN_LOG_ERROR(gctxPtr->coreLogger, "failed to create graphics context, graphics api: %s",
                       lvn_getGraphicsApiEnumName(createInfo->graphicsapi));
-        return result;
+        goto fail_cleanup_setapi;
     }
 
     LVN_LOG_TRACE(gctxPtr->coreLogger, "graphics context created: (%p), graphics api set: %s",
@@ -72,6 +77,11 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
                   lvn_getGraphicsApiEnumName(createInfo->graphicsapi));
 
     return Lvn_Result_Success;
+
+fail_cleanup_setapi:
+    lvn_free(*graphicsctx);
+fail_cleanup:
+    return result;
 }
 
 void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
@@ -106,13 +116,17 @@ LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** s
     if (!*surface)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for surface at %p", surface);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnSurface* surfacePtr = *surface;
     surfacePtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreateSurface(graphicsctx, *surface, createInfo);
+    LvnResult result = graphicsctx->implCreateSurface(graphicsctx, *surface, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*surface);
+
+    return result;
 }
 
 void lvnDestroySurface(LvnSurface* surface)
@@ -132,13 +146,17 @@ LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** sha
     if (!*shader)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for shader at %p", shader);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnShader* shaderPtr = *shader;
     shaderPtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreateShader(graphicsctx, *shader, createInfo);
+    LvnResult result = graphicsctx->implCreateShader(graphicsctx, *shader, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*shader);
+
+    return result;
 }
 
 void lvnDestroyShader(LvnShader* shader)
@@ -158,13 +176,17 @@ LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline**
     if (!*pipeline)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for pipeline at %p", pipeline);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnPipeline* pipelinePtr = *pipeline;
     pipelinePtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreatePipeline(graphicsctx, *pipeline, createInfo);
+    LvnResult result = graphicsctx->implCreatePipeline(graphicsctx, *pipeline, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*pipeline);
+
+    return result;
 }
 
 void lvnDestroyPipeline(LvnPipeline* pipeline)
@@ -184,13 +206,17 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
     if (!*commandBuffer)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at %p", commandBuffer);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnCommandBuffer* commandBufferPtr = *commandBuffer;
     commandBufferPtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreateCommandBuffer(graphicsctx, *commandBuffer, createInfo);
+    LvnResult result = graphicsctx->implCreateCommandBuffer(graphicsctx, *commandBuffer, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*commandBuffer);
+
+    return result;
 }
 
 void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
@@ -210,13 +236,17 @@ LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence
     if (!*fence)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", fence);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnFence* fencePtr = *fence;
     fencePtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreateFence(graphicsctx, *fence);
+    LvnResult result = graphicsctx->implCreateFence(graphicsctx, *fence);
+    if (result != Lvn_Result_Success)
+        lvn_free(*fence);
+
+    return result;
 }
 
 void lvnDestroyFence(LvnFence* fence)
@@ -236,13 +266,17 @@ LvnResult lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore
     if (!*semaphore)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", semaphore);
-        return Lvn_Result_Failure;
+        return Lvn_Result_OutOfMemory;
     }
 
     LvnSemaphore* semaphorePtr = *semaphore;
     semaphorePtr->graphicsctx = graphicsctx;
 
-    return graphicsctx->implCreateSemaphore(graphicsctx, *semaphore);
+    LvnResult result = graphicsctx->implCreateSemaphore(graphicsctx, *semaphore);
+    if (result != Lvn_Result_Success)
+        lvn_free(*semaphore);
+
+    return result;
 }
 
 void lvnDestroySemaphore(LvnSemaphore* semaphore)
