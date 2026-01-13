@@ -134,4 +134,4 @@ typedef struct LvnVulkanBackends
 
 } LvnVulkanBackends;
 
-#endif // !HG_LVN_VK_BACKENDS_H
+#endif // HG_LVN_VK_BACKENDS_H

@@ -39,4 +39,4 @@ void*     lvn_platformLoadModule(const char* path);
 void      lvn_platformFreeModule(void* handle);
 LvnProc   lvn_platformGetModuleSymbol(void* handle, const char* name);
 
-#endif // !HG_LVN_INTERNAL_H
+#endif // HG_LVN_INTERNAL_H

@@ -166,4 +166,4 @@ LVN_API void                    lvnDestroyLogger(LvnLogger* logger);            
 #endif
 
 
-#endif // !HG_LEVIKNO_H
+#endif // HG_LEVIKNO_H
