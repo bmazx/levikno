@@ -84,4 +84,4 @@ typedef enum LvnResult
 
 
 
-#endif // HG_LVN_CONFIG_H
+#endif // !HG_LVN_CONFIG_H

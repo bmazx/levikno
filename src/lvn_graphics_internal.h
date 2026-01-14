@@ -111,4 +111,4 @@ struct LvnGraphicsContext
 };
 
 
-#endif // HG_LVN_GRAPHICS_INTERNAL_H
+#endif // !HG_LVN_GRAPHICS_INTERNAL_H

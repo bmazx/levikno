@@ -498,4 +498,4 @@ LVN_API LvnResult                   lvnRenderPresent(const LvnGraphicsContext* g
 #endif
 
 
-#endif // HG_LVN_GRAPHICS_H
+#endif // !HG_LVN_GRAPHICS_H
