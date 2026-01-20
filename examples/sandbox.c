@@ -32,7 +32,6 @@ void* customMalloc(size_t size, void* userData)
     void* ptr = malloc(size);
     if (!ptr) { printf("alloc fail\n"); exit(-1); }
     s_MemAllocCount++;
-    printf("s_MemAllocCount: %zu\n", s_MemAllocCount);
     return ptr;
 }
 
@@ -143,8 +142,8 @@ int main(int argc, char** argv)
     Window x11win = glfwGetX11Window(window);
 
     LvnPlatformData pd = {0};
-    pd.nativeDisplayHandle = x11display;
-    pd.nativeWindowHandle = &x11win;
+    pd.ndh = x11display;
+    pd.nwh = &x11win;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
     graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
@@ -294,7 +293,7 @@ int main(int argc, char** argv)
         lvnCmdSetViewport(cmdBuff, &viewport);
 
         LvnRenderArea renderArea = {
-            .extent = { extent.width, extent.height },
+            .extent = extent,
             .offset = { 0.0f, 0.0f },
         };
 

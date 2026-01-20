@@ -1,4 +1,3 @@
-#include "lvn_config.h"
 #include "lvn_graphics_internal.h"
 
 #ifdef LVN_INCLUDE_VULKAN

@@ -156,8 +156,8 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
     {
         VkWaylandSurfaceCreateInfoKHR sci = {
             .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
-            .display = (struct wl_display*) platformData->nativeDisplayHandle,
-            .surface = (struct wl_surface*) platformData->nativeWindowHandle,
+            .display = (struct wl_display*) platformData->ndh,
+            .surface = (struct wl_surface*) platformData->nwh,
         };
         PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
             (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
@@ -169,8 +169,8 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
     {
         VkXlibSurfaceCreateInfoKHR sci = {
             .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
-            .dpy = (Display*) platformData->nativeDisplayHandle,
-            .window = *(Window*) platformData->nativeWindowHandle,
+            .dpy = (Display*) platformData->ndh,
+            .window = *(Window*) platformData->nwh,
         };
         PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR =
             (PFN_vkCreateXlibSurfaceKHR) vkBackends->createSurfaceProc;
@@ -1609,8 +1609,8 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     // surface
     LvnPlatformData platformData = {0};
-    platformData.nativeDisplayHandle = createInfo->nativeDisplayHandle;
-    platformData.nativeWindowHandle = createInfo->nativeWindowHandle;
+    platformData.ndh = createInfo->nativeDisplayHandle;
+    platformData.nwh = createInfo->nativeWindowHandle;
 
     if (lvn_createPlatformSurface(vkBackends, &vkSurface, &platformData) != Lvn_Result_Success)
     {
