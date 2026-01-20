@@ -135,15 +135,15 @@ int main(int argc, char** argv)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    // struct wl_display* wldisplay = glfwGetWaylandDisplay();
-    // struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
+    // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
+    // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
-    Display* x11display = glfwGetX11Display();
-    Window x11win = glfwGetX11Window(window);
+    Display* nativeDisplay = glfwGetX11Display();
+    Window nativeWindow = glfwGetX11Window(window);
 
     LvnPlatformData pd = {0};
-    pd.ndh = x11display;
-    pd.nwh = &x11win;
+    pd.ndh = nativeDisplay;
+    pd.nwh = &nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
     graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
@@ -155,8 +155,8 @@ int main(int argc, char** argv)
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
     LvnSurfaceCreateInfo sci = {0};
-    sci.nativeDisplayHandle = x11display;
-    sci.nativeWindowHandle = &x11win;
+    sci.nativeDisplayHandle = nativeDisplay;
+    sci.nativeWindowHandle = &nativeWindow;
     sci.width = 600;
     sci.height = 800;
     sci.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
