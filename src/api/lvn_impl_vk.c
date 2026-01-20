@@ -1689,7 +1689,9 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
     // swapchain data struct
     lvn_free(surface->swapchainData);
+    lvn_free(surface->pSwapchainImageViews);
     surface->swapchainData = NULL;
+    surface->pSwapchainImageViews = NULL;
 
     // surface
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
@@ -2148,7 +2150,7 @@ LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t h
     if (surface->swapchainImageViewCount != swapchainData->swapchainImageCount)
     {
         surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
-        lvn_realloc(surface->pSwapchainImageViews, swapchainData->swapchainImageCount * sizeof(LvnImageView));
+        surface->pSwapchainImageViews = lvn_realloc(surface->pSwapchainImageViews, swapchainData->swapchainImageCount * sizeof(LvnImageView));
     }
 
     // update image views in LvnSurface struct

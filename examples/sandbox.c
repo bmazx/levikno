@@ -24,8 +24,37 @@ static void GLFWerrorCallback(int error, const char* descripion)
     printf("[glfw]: (%d): %s\n", error, descripion);
 }
 
+static size_t s_MemAllocCount = 0;
+
+void* customMalloc(size_t size, void* userData)
+{
+    if (!size) { return NULL; }
+    void* ptr = malloc(size);
+    if (!ptr) { printf("alloc fail\n"); exit(-1); }
+    s_MemAllocCount++;
+    printf("s_MemAllocCount: %zu\n", s_MemAllocCount);
+    return ptr;
+}
+
+void customFree(void* ptr, void* userData)
+{
+    if (!ptr) { return; }
+    s_MemAllocCount--;
+    free(ptr);
+}
+
+void* customRealloc(void* ptr, size_t size, void* userData)
+{
+    if (!ptr) { return customMalloc(size, userData); }
+    void* newptr = realloc(ptr, size);
+    if (!newptr) { printf("realloc fail\n"); exit(-1); }
+    return newptr;
+}
+
 int main(int argc, char** argv)
 {
+    lvnSetMemAllocCallbacks(customMalloc, customFree, customRealloc, NULL);
+
     LvnContextCreateInfo ctxCreateInfo =
     {
         .logging.enableLogging = true,
@@ -321,4 +350,6 @@ int main(int argc, char** argv)
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    printf("s_MemAllocCount: %zu\n", s_MemAllocCount);
 }
