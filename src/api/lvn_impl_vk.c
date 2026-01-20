@@ -1,13 +1,18 @@
 #include "lvn_impl_vk.h"
-#include "lvn_config.h"
 #include "lvn_impl_vk_backends.h"
 
+#include <stdlib.h>
 #include <string.h>
-#include <vulkan/vulkan_core.h>
 
 
-#if defined(LVN_INCLUDE_WAYLAND)
-    #include <vulkan/vulkan_wayland.h>
+#if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
+    #if defined(LVN_INCLUDE_WAYLAND)
+        #include <vulkan/vulkan_wayland.h>
+    #endif
+    #if defined(LVN_INCLUDE_X11)
+        #include <X11/Xlib.h>
+        #include <vulkan/vulkan_xlib.h>
+    #endif
 #endif
 
 #if defined(LVN_PLATFORM_LINUX)
@@ -28,6 +33,8 @@ static const char* s_LvnVkDeviceExtensions[] =
     VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
 };
 
+static void                        lvn_getWindowPlatform(bool* useWayland, bool* useX11);
+static PFN_vkVoidFunction          lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBackends* vkBackends);
 static LvnResult                   lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, VkSurfaceKHR* surface, const LvnPlatformData* platformData);
 static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
@@ -92,18 +99,83 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     return VK_FALSE;
 }
 
+static void lvn_getWindowPlatform(bool* useWayland, bool* useX11)
+{
+    LVN_ASSERT(useWayland && useX11, "useWayland and useX11 cannot be null");
+
+#if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
+    const char* session = getenv("XDG_SESSION_TYPE");
+    if (session && (strcmp(session, "wayland") == 0 || strcmp(session, "x11") == 0))
+    {
+        if (strcmp(session, "wayland") == 0)
+            *useWayland = true;
+        else if (strcmp(session, "x11") == 0)
+            *useX11 = true;
+    }
+    else
+    {
+        const char* waylandenv = getenv("WAYLAND_DISPLAY");
+        const char* x11env = getenv("DISPLAY");
+        if (waylandenv)
+            *useWayland = true;
+        else if (x11env)
+            *useX11 = true;
+    }
+#else
+    *useWayland = false;
+    *useX11 = false;
+#endif
+}
+
+static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBackends* vkBackends)
+{
+    LVN_ASSERT(vkBackends, "vkBackends cannot be null");
+
+    bool useWayland = false, useX11 = false;
+    lvn_getWindowPlatform(&useWayland, &useX11);
+#if defined(LVN_INCLUDE_WAYLAND)
+    if (useWayland)
+        return vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
+#endif
+#if defined(LVN_INCLUDE_X11)
+    if (useX11)
+        return vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
+#endif
+
+    return VK_NULL_HANDLE;
+}
+
 static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, VkSurfaceKHR* surface, const LvnPlatformData* platformData)
 {
-    VkResult result;
+    VkResult result = VK_ERROR_UNKNOWN;
+    bool useWayland = false, useX11 = false;
+    lvn_getWindowPlatform(&useWayland, &useX11);
 
 #if defined(LVN_INCLUDE_WAYLAND)
-    VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {0};
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.display = (struct wl_display*) platformData->nativeDisplayHandle;
-    surfaceCreateInfo.surface = (struct wl_surface*) platformData->nativeWindowHandle;
-    PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
-        (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
-    result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &surfaceCreateInfo, NULL, surface);
+    if (useWayland)
+    {
+        VkWaylandSurfaceCreateInfoKHR sci = {
+            .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+            .display = (struct wl_display*) platformData->nativeDisplayHandle,
+            .surface = (struct wl_surface*) platformData->nativeWindowHandle,
+        };
+        PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
+            (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
+        result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &sci, NULL, surface);
+    }
+#endif
+#if defined(LVN_INCLUDE_X11)
+    if (useX11)
+    {
+        VkXlibSurfaceCreateInfoKHR sci = {
+            .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+            .dpy = (Display*) platformData->nativeDisplayHandle,
+            .window = *(Window*) platformData->nativeWindowHandle,
+        };
+        PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR =
+            (PFN_vkCreateXlibSurfaceKHR) vkBackends->createSurfaceProc;
+        result = vkCreateXlibSurfaceKHR(vkBackends->instance, &sci, NULL, surface);
+    }
 #endif
 
     return result == VK_SUCCESS ? Lvn_Result_Success : Lvn_Result_Failure;
@@ -1173,10 +1245,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
 
         // get create surface PFN based on window platform
-#if defined(LVN_INCLUDE_WAYLAND)
-        vkBackends->createSurfaceProc = (PFN_vkVoidFunction)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
-#endif
+        vkBackends->createSurfaceProc = lvn_getVulkanCreateSurfaceProcAddr(vkBackends);
 
         if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR ||
             !vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR ||

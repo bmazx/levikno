@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #define GLFW_EXPOSE_NATIVE_WAYLAND
+#define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
 void myPrint(const char* msg)
@@ -106,12 +107,15 @@ int main(int argc, char** argv)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    struct wl_display* wldisplay = glfwGetWaylandDisplay();
-    struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
+    // struct wl_display* wldisplay = glfwGetWaylandDisplay();
+    // struct wl_surface* wlsurface = glfwGetWaylandWindow(window);
+
+    Display* x11display = glfwGetX11Display();
+    Window x11win = glfwGetX11Window(window);
 
     LvnPlatformData pd = {0};
-    pd.nativeDisplayHandle = wldisplay;
-    pd.nativeWindowHandle = wlsurface;
+    pd.nativeDisplayHandle = x11display;
+    pd.nativeWindowHandle = &x11win;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
     graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
@@ -123,8 +127,8 @@ int main(int argc, char** argv)
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
     LvnSurfaceCreateInfo sci = {0};
-    sci.nativeDisplayHandle = wldisplay;
-    sci.nativeWindowHandle = wlsurface;
+    sci.nativeDisplayHandle = x11display;
+    sci.nativeWindowHandle = &x11win;
     sci.width = 600;
     sci.height = 800;
     sci.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
