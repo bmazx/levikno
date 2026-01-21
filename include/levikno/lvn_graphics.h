@@ -213,8 +213,8 @@ struct LvnContext;
 
 typedef struct LvnPlatformData
 {
-    void*    nativeDisplayHandle;
-    void*    nativeWindowHandle;
+    void*    ndh;
+    void*    nwh;
 } LvnPlatformData;
 
 typedef struct LvnSurfaceCreateInfo
