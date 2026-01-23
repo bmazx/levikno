@@ -51,7 +51,7 @@
     #define LVN_ASSERT(x, ...)
 #elif defined(LVN_ENABLE_ASSERTS)
     #include <assert.h>
-    #define LVN_ASSERT(x, ...) assert(x && __VA_ARGS__)
+    #define LVN_ASSERT(x, str) assert(x)
 #endif
 
 // boolean type

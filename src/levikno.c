@@ -1104,15 +1104,23 @@ void lvn_memPoolFree(LvnMemoryPool* memPool, void* ptr)
 {
     LVN_ASSERT(memPool && ptr, "memPool and ptr cannot be null");
 
+    // find which pool ptr was allocated from
     while (memPool && !lvn_memBlockPtrInBlock(memPool->memBlock, ptr))
         memPool = memPool->next;
-
     LVN_ASSERT(memPool, "ptr not found within pool chain memory boundaries");
 
+    // check alignment of pointer
+    size_t offset = (uint8_t*)ptr - (uint8_t*)memPool->memBlock->block;
+    LVN_ASSERT(offset % memPool->strideAligned == 0, "invalid pool pointer, pointer not aligned to pool stride align");
+
 #ifdef LVN_CONFIG_DEBUG
+    // checks if ptr was already freed (double free)
+    for (LvnFreeNode* node = memPool->freeList; node; node = node->next)
+        LVN_ASSERT(node != ptr, "double free in memory pool");
     memset(ptr, LVN_DEBUG_FREE_VALUE, memPool->strideAligned);
 #endif
 
+    // free ptr, add to free list
     LvnFreeNode* node = (LvnFreeNode*) ptr;
     node->next = memPool->freeList;
     memPool->freeList = node;
