@@ -41,9 +41,10 @@
     #endif
 #endif
 
-// asserts
 #ifdef LVN_CONFIG_DEBUG
     #define LVN_ENABLE_ASSERTS
+    #define LVN_DEBUG_ALLOC_VALUE (0xDD)
+    #define LVN_DEBUG_FREE_VALUE (0xEE)
 #endif
 
 #if defined(LVN_DISABLE_ASSERTS)
@@ -59,6 +60,20 @@
 #elif !defined(__cplusplus) && !defined(bool)
     typedef enum bool { false = 0, true = !false } bool;
 #endif
+
+// align
+#if defined(__cplusplus)
+    #define LVN_ALIGNOF(T) alignof(T)
+#elif defined(__STDC__) && (__STDC_VERSION__ >= 201112L)
+    #define LVN_ALIGNOF(T) _Alignof(T)
+#else
+    #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
+#endif
+
+#define LVN_DEFAULT_ALIGN (sizeof(void*))
+#define LVN_ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
+#define LVN_ALIGN_DOWN(x, a) ((x) & ~((a) - 1))
+#define LVN_ALIGNED(x, a) (((x) & ((a) - 1)) == 0)
 
 // logging
 #ifndef LVN_DISABLE_LOGGING
