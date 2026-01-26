@@ -49,6 +49,11 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->presentModeFlags = createInfo->presentationModeFlags;
     gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
 
+    size_t frameArenaSize = (createInfo->memory.baseFrameArenaAllocSize > 0)
+        ? createInfo->memory.baseFrameArenaAllocSize
+        : 16e+3; // 16 KB
+    gctxPtr->frameArena = lvn_memArenaCreate(frameArenaSize, LVN_DEFAULT_ALIGN);
+
     // setup graphics api
     switch (createInfo->graphicsapi)
     {
@@ -102,6 +107,8 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
     }
 
     LVN_LOG_TRACE(graphicsctx->coreLogger, "graphics context terminated: (%p)", graphicsctx);
+
+    lvn_memArenaDestroy(graphicsctx->frameArena);
 
     lvn_free(graphicsctx);
 }

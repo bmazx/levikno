@@ -77,6 +77,8 @@ struct LvnGraphicsContext
     LvnPresentationModeFlags    presentModeFlags;
     bool                        enableGraphicsApiDebugLogging;
 
+    LvnMemoryArena*             frameArena;
+
     // graphics implementation
     void*                       implData;
     LvnResult                   (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);

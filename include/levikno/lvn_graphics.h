@@ -448,6 +448,10 @@ typedef struct LvnGraphicsContextCreateInfo
     LvnPresentationModeFlags    presentationModeFlags;                          // type of output the graphics api will render to
     const LvnPlatformData*      platformData;                                   // native platform data for surface creation
     bool                        enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
+    struct
+    {
+        size_t                  baseFrameArenaAllocSize;
+    } memory;
 } LvnGraphicsContextCreateInfo;
 
 

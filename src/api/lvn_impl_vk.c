@@ -2282,7 +2282,8 @@ void lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer)
 void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo)
 {
     LVN_ASSERT(commandBuffer && renderInfo, "commandBuffer and renderInfo cannot be null");
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
 
     // store images for begin/end rendering
@@ -2299,7 +2300,9 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
     };
 
     // begin rendering
-    VkRenderingAttachmentInfoKHR colorAttachmentInfos[renderInfo->colorAttachmentCount];
+    VkRenderingAttachmentInfoKHR* colorAttachmentInfos =
+        lvn_memArenaAlloc(graphicsctx->frameArena,
+                          renderInfo->colorAttachmentCount * sizeof(VkRenderingAttachmentInfoKHR));
     for (uint32_t i = 0; i < renderInfo->colorAttachmentCount; i++)
     {
         // transition swapchain color attachment images to color optimal
@@ -2349,6 +2352,8 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
 
     // begin render
     vkBackends->cmdBeginRendering(cmdBuff, &renderingInfo);
+
+    lvn_memArenaReset(graphicsctx->frameArena);
 }
 
 void lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer)
@@ -2481,13 +2486,13 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     }
 
     // arrays to store semaphores and command buffers for submit infos
-    VkSemaphore waitSemaphores[waitSemaphoreCount];
-    VkSemaphore signalSemaphores[signalSemaphoreCount];
-    VkCommandBuffer commandBuffers[commandBufferCount];
+    VkSemaphore* waitSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena, waitSemaphoreCount * sizeof(VkSemaphore));
+    VkSemaphore* signalSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena, signalSemaphoreCount * sizeof(VkSemaphore));
+    VkCommandBuffer* commandBuffers = lvn_memArenaAlloc(graphicsctx->frameArena, commandBufferCount * sizeof(VkCommandBuffer));
     uint32_t waitSemaphoreOffset = 0, signalSemaphoreOffset = 0, commandBufferOffset = 0;
 
-    VkSubmitInfo submitInfos[submitCount];
-    memset(submitInfos, 0, sizeof(submitInfos));
+    VkSubmitInfo* submitInfos = lvn_memArenaAlloc(graphicsctx->frameArena, submitCount * sizeof(VkSubmitInfo));
+    memset(submitInfos, 0, submitCount * sizeof(VkSubmitInfo));
 
     for (uint32_t i = 0; i < submitCount; i++)
     {
@@ -2524,6 +2529,8 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
         return Lvn_Result_Failure;
     }
 
+    lvn_memArenaReset(graphicsctx->frameArena);
+
     return Lvn_Result_Success;
 }
 
@@ -2533,11 +2540,13 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
-    VkSemaphore waitSemaphores[presentInfo->waitSemaphoreCount];
+    VkSemaphore* waitSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena,
+                                                    presentInfo->waitSemaphoreCount * sizeof(VkSemaphore));
     for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
         waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreHandle;
 
-    VkSwapchainKHR swapchains[presentInfo->surfaceCount];
+    VkSwapchainKHR* swapchains = lvn_memArenaAlloc(graphicsctx->frameArena,
+                                                   presentInfo->surfaceCount * sizeof(VkSwapchainKHR));
     for (uint32_t i = 0; i < presentInfo->surfaceCount; i++)
         swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSurfaces[i]->swapchainData)->swapchain;
 
@@ -2561,6 +2570,8 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
                       "[vulkan] failed to present swapchain image");
         return Lvn_Result_Failure;
     }
+
+    lvn_memArenaReset(graphicsctx->frameArena);
 
     return Lvn_Result_Success;
 }
