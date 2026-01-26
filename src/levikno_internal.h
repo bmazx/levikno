@@ -11,44 +11,51 @@ typedef struct LvnFreeNode
 
 typedef struct LvnMemoryBlock
 {
-    void* block;
-    size_t size;
+    void* block;                   /* the actual pointer to the allocation */
+    uint8_t* blockAligned;         /* aligned pointer offset within the block allocation, alignment needs to be specified */
+    size_t size;                   /* size of the allocation in bytes */
 } LvnMemoryBlock;
 
 typedef struct LvnMemoryPool
 {
-    LvnMemoryBlock* memBlock;      /* the memory block */
+    LvnMemoryBlock memBlock;       /* the memory block */
     size_t currIndex;              /* current index to allocate the next element from the memory block */
-    size_t capacity;               /* the max count of elements within the pool */
-    size_t stride;                 /* the stride of the element in bytes in the pool */
+    size_t capacity;               /* the max count of elements within the pool (not to be confused with size of block allocation in bytes) */
+    size_t stride;                 /* the stride of the element in bytes in the pool (requested size) */
     size_t align;                  /* the alignment multiple of the elements in bytes */
-    size_t strideAligned;          /* the stride aligned to a multiple of align */
-    size_t nextAllocCount;         /* the alloc size count for the next memory block */
+    size_t strideAligned;          /* the stride aligned to a multiple of align (actual size alloced by pool) */
     LvnFreeNode* freeList;         /* node list of free memory indices in the pool */
     struct LvnMemoryPool* next;    /* next memory pool */
+
+#ifdef LVN_CONFIG_DEBUG
+    size_t d_AllocCount;            /* track allocations allocced from pool for debugging */
+#endif
 } LvnMemoryPool;
 
 typedef struct LvnMemoryArena
 {
-    LvnMemoryBlock* memBlock;       /* the memory block */
+    LvnMemoryBlock memBlock;        /* the memory block */
     size_t currIndex;               /* current index to allocate the next element from the memory block */
-    size_t capacity;                /* the capacity of the memory allocation in bytes */
+    size_t capacity;                /* the capacity of the user specified memory allocation in bytes (capacity may be different from block allocation size due to alignment) */
     size_t align;                   /* the alignment multiple of the allocation in bytes */
-    size_t nextAllocSize;           /* the alloc size for the next memory allocation */
     struct LvnMemoryArena* next;    /* next memory arena */
+
+#ifdef LVN_CONFIG_DEBUG
+    size_t d_AllocCount;            /* track allocations allocced from pool for debugging */
+#endif
 } LvnMemoryArena;
 
 struct LvnLogger
 {
-    const LvnContext*    ctx;
-    char*                loggerName;
-    char*                logPatternFormat;
-    LvnLogLevel          logLevel;
-    LvnLogPattern*       pLogPatterns;
-    uint32_t             logPatternCount;
-    LvnSink*             pSinks;
-    uint32_t             sinkCount;
-    bool                 logging;
+    const LvnContext*    ctx;                 /* pointer to context */
+    char*                loggerName;          /* the name of the logger */
+    char*                logPatternFormat;    /* string representation of log pattern format */
+    LvnLogLevel          logLevel;            /* log level enum */
+    LvnLogPattern*       pLogPatterns;        /* array containing the log patterns */
+    uint32_t             logPatternCount;     /* size of log patterns array */
+    LvnSink*             pSinks;              /* array containing the sinks */
+    uint32_t             sinkCount;           /* size of the sink array */
+    bool                 logging;             /* whether the logger should log to the sinks or not */
 };
 
 struct LvnContext
@@ -69,20 +76,20 @@ void*              lvn_realloc(void* ptr, size_t size);
 
 char*              lvn_strdup(const char* str);
 
-LvnMemoryBlock*    lvn_memBlockAlloc(size_t size);
-void               lvn_memBlockFree(LvnMemoryBlock* headBlock);
-bool               lvn_memBlockPtrInBlock(LvnMemoryBlock* memBlock, void* ptr);
-LvnMemoryPool*     lvn_memPoolCreate(size_t count, size_t stride, size_t align, size_t nextAllocCount);
-LvnMemoryPool*     lvn_memPoolPush(LvnMemoryPool* headPool, size_t count, size_t nextAllocCount);
+LvnMemoryPool*     lvn_memPoolCreate(size_t count, size_t stride, size_t align);
+LvnMemoryPool*     lvn_memPoolPush(LvnMemoryPool* headPool, size_t count);
 void               lvn_memPoolDestroy(LvnMemoryPool* headPool);
 void*              lvn_memPoolAlloc(LvnMemoryPool* memPool);
 void               lvn_memPoolFree(LvnMemoryPool* memPool, void* ptr);
-LvnMemoryArena*    lvn_memArenaCreate(size_t size, size_t align, size_t nextAllocSize);
-LvnMemoryArena*    lvn_memArenaPush(LvnMemoryArena* headArena, size_t size, size_t nextAllocSize);
+void               lvn_memPoolReset(LvnMemoryPool* headPool);
+LvnMemoryPool*     lvn_memPoolRebuild(LvnMemoryPool* headPool);
+LvnMemoryArena*    lvn_memArenaCreate(size_t size, size_t align);
+LvnMemoryArena*    lvn_memArenaPush(LvnMemoryArena* headArena, size_t size);
 void               lvn_memArenaDestroy(LvnMemoryArena* headArena);
 void*              lvn_memArenaAlloc(LvnMemoryArena* memArena, size_t size);
+void*              lvn_memArenaAllocAligned(LvnMemoryArena* memArena, size_t size, size_t align);
 void               lvn_memArenaReset(LvnMemoryArena* headArena);
-LvnMemoryArena*    lvn_memArenaResetGlob(LvnMemoryArena* headArena);
+LvnMemoryArena*    lvn_memArenaRebuild(LvnMemoryArena* headArena);
 
 void*              lvn_platformLoadModule(const char* path);
 void               lvn_platformFreeModule(void* handle);

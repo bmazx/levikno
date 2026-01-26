@@ -73,7 +73,7 @@ struct LvnGraphicsContext
 {
     LvnGraphicsApi              graphicsapi;
     const LvnContext*           ctx;
-    LvnLogger*                  coreLogger;
+    const LvnLogger*            coreLogger;
     LvnPresentationModeFlags    presentModeFlags;
     bool                        enableGraphicsApiDebugLogging;
 

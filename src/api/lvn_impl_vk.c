@@ -1741,8 +1741,22 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline vkPipeline = VK_NULL_HANDLE;
 
+    VkPipelineShaderStageCreateInfo* shaderStages = NULL;
+    VkVertexInputBindingDescription* bindingDescriptions = NULL;
+    VkVertexInputAttributeDescription* vertexAttributes = NULL;
+    VkDescriptorSetLayout* descriptorLayouts = NULL;
+    VkFormat* colorAttachmentFormats = NULL;
+    VkPipelineColorBlendAttachmentState* colorBlendAttachments = NULL;
+
     // shader stages
-    VkPipelineShaderStageCreateInfo shaderStages[createInfo->stageCount];
+    shaderStages = (VkPipelineShaderStageCreateInfo*)
+        lvn_calloc(createInfo->stageCount * sizeof(VkPipelineShaderStageCreateInfo));
+    if (createInfo->stageCount && !shaderStages)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating shaderStages array (VkPipelineShaderStageCreateInfo*)");
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < createInfo->stageCount; i++)
     {
         VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
@@ -1754,7 +1768,14 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     }
 
     // vertex binding descriptions
-    VkVertexInputBindingDescription bindingDescriptions[createInfo->vertexBindingDescriptionCount];
+    bindingDescriptions = (VkVertexInputBindingDescription*)
+        lvn_calloc(createInfo->vertexBindingDescriptionCount * sizeof(VkVertexInputBindingDescription));
+    if (createInfo->vertexBindingDescriptionCount && !bindingDescriptions)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating bindingDescriptions array (VkVertexInputBindingDescription*)");
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < createInfo->vertexBindingDescriptionCount; i++)
     {
         VkVertexInputBindingDescription bindingDescription = {0};
@@ -1766,7 +1787,14 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     }
 
     // vertex attributes
-    VkVertexInputAttributeDescription vertexAttributes[createInfo->vertexAttributeCount];
+    vertexAttributes = (VkVertexInputAttributeDescription*)
+        lvn_calloc(createInfo->vertexAttributeCount * sizeof(VkVertexInputAttributeDescription));
+    if (createInfo->vertexAttributeCount && !vertexAttributes)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating vertexAttributes array (VkVertexInputAttributeDescription*)");
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < createInfo->vertexAttributeCount; i++)
     {
         VkVertexInputAttributeDescription attributeDescription = {0};
@@ -1795,7 +1823,15 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     }
 
     // descriptor layouts
-    VkDescriptorSetLayout descriptorLayouts[createInfo->descriptorLayoutCount];
+    descriptorLayouts = (VkDescriptorSetLayout*)
+        lvn_calloc(createInfo->descriptorLayoutCount * sizeof(VkDescriptorSetLayout));
+
+    if (createInfo->descriptorLayoutCount && !descriptorLayouts)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating descriptorLayouts array (VkDescriptorSetLayout*)");
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < createInfo->descriptorLayoutCount; i++)
     {
         VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayout;
@@ -1803,7 +1839,15 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     }
 
     // color attachment formats
-    VkFormat colorAttachmentFormats[createInfo->colorAttachmentCount];
+    colorAttachmentFormats = (VkFormat*)
+        lvn_calloc(createInfo->colorAttachmentCount * sizeof(VkFormat));
+
+    if (createInfo->colorAttachmentCount && !colorAttachmentFormats)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating colorAttachmentFormats array (VkFormat*)");
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
         colorAttachmentFormats[i] = lvn_getVkFormatEnum(createInfo->pColorAttachmentFormats[i]);
 
@@ -1865,7 +1909,14 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         ? 1
         : pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount;
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachments[colorBlendAttachmentCount];
+    colorBlendAttachments = (VkPipelineColorBlendAttachmentState*)
+        lvn_calloc(colorBlendAttachmentCount * sizeof(VkPipelineColorBlendAttachmentState));
+
+    if (colorBlendAttachmentCount && !colorBlendAttachments)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating colorBlendAttachments array (VkPipelineColorBlendAttachmentState*)");
+        goto fail_cleanup;
+    }
 
     if (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
     {
@@ -1989,11 +2040,24 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     pipeline->pipelineHandle = vkPipeline;
     pipeline->pipelineLayoutHandle = pipelineLayout;
 
+    lvn_free(colorBlendAttachments);
+    lvn_free(colorAttachmentFormats);
+    lvn_free(descriptorLayouts);
+    lvn_free(vertexAttributes);
+    lvn_free(bindingDescriptions);
+    lvn_free(shaderStages);
+
     return Lvn_Result_Success;
 
 fail_cleanup:
     vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
     vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    lvn_free(colorBlendAttachments);
+    lvn_free(colorAttachmentFormats);
+    lvn_free(descriptorLayouts);
+    lvn_free(vertexAttributes);
+    lvn_free(bindingDescriptions);
+    lvn_free(shaderStages);
     return Lvn_Result_Failure;
 }
 

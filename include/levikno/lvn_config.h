@@ -61,7 +61,7 @@
     typedef enum bool { false = 0, true = !false } bool;
 #endif
 
-// align
+// alignment
 #if defined(__cplusplus)
     #define LVN_ALIGNOF(T) alignof(T)
 #elif defined(__STDC__) && (__STDC_VERSION__ >= 201112L)
@@ -74,6 +74,14 @@
 #define LVN_ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
 #define LVN_ALIGN_DOWN(x, a) ((x) & ~((a) - 1))
 #define LVN_ALIGNED(x, a) (((x) & ((a) - 1)) == 0)
+
+// memory growth mutipler
+#ifndef LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER
+    #define LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER (2)
+#endif
+#ifndef LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER
+    #define LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER (2)
+#endif
 
 // logging
 #ifndef LVN_DISABLE_LOGGING
