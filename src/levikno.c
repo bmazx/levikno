@@ -1240,11 +1240,13 @@ void* lvn_memArenaAlloc(LvnMemoryArena* memArena, size_t size)
     while (memArena)
     {
         // get arena next memory block index
-        memArena->currIndex = LVN_ALIGN_UP(memArena->currIndex, memArena->align);
-        if (size <= memArena->capacity - memArena->currIndex)
+        uintptr_t base = (uintptr_t)memArena->memBlock.blockAligned;
+        uintptr_t aligned = LVN_ALIGN_UP(base + memArena->currIndex, memArena->align);
+        size_t newIndex = aligned - base;
+        if (newIndex + size <= memArena->capacity)
         {
             void* ptr = &(memArena->memBlock.blockAligned)[memArena->currIndex];
-            memArena->currIndex += size;
+            memArena->currIndex = newIndex + size;
 #ifdef LVN_CONFIG_DEBUG
             memArena->d_AllocCount++;
 #endif
