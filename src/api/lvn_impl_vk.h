@@ -13,12 +13,11 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 void      lvnImplVkDestroyShader(LvnShader* shader);
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
-LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
-void      lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence);
 void      lvnImplVkDestroyFence(LvnFence* fence);
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
+LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
 LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height);
 LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);

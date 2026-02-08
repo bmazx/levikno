@@ -218,10 +218,13 @@ int main(int argc, char** argv)
     lvnUnloadFile(&vertfile);
     lvnUnloadFile(&fragfile);
 
-    LvnCommandBufferCreateInfo cmdBuffCreateInfo = {0};
+    LvnCommandBufferAllocInfo cmdBuffAllocInfo = {
+        .level = Lvn_CommandBufferLevel_Primary,
+        .count = 1,
+    };
 
     LvnCommandBuffer* cmdBuff;
-    lvnCreateCommandBuffer(graphicsctx, &cmdBuff, &cmdBuffCreateInfo);
+    lvnAllocateCommandBuffers(graphicsctx, &cmdBuffAllocInfo, &cmdBuff);
 
     LvnFence* fence;
     lvnCreateFence(graphicsctx, &fence);
@@ -340,7 +343,6 @@ int main(int argc, char** argv)
     lvnDestroySemaphore(imageWaitSemaphore);
     for (uint32_t i = 0; i < 12; i++)
         lvnDestroySemaphore(renderFinishedSemaphores[i]);
-    lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyPipeline(pipeline);
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);

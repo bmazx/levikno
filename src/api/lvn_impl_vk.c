@@ -53,6 +53,7 @@ static VkCompareOp                 lvn_getVkCompareOpEnum(LvnCompareOperation co
 static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp);
 static VkAttachmentLoadOp          lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp);
 static VkAttachmentStoreOp         lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp storeOp);
+static VkCommandBufferLevel        lvn_getVkCommandBufferLevelEnum(LvnCommandBufferLevel level);
 static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -785,6 +786,18 @@ static VkAttachmentStoreOp lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp s
 
     LVN_ASSERT(false, "invalid attachment store operator enum");
     return VK_ATTACHMENT_STORE_OP_STORE;
+}
+
+static VkCommandBufferLevel lvn_getVkCommandBufferLevelEnum(LvnCommandBufferLevel level)
+{
+    switch (level)
+    {
+        case Lvn_CommandBufferLevel_Primary: { return VK_COMMAND_BUFFER_LEVEL_PRIMARY; }
+        case Lvn_CommandBufferLevel_Secondary: { return VK_COMMAND_BUFFER_LEVEL_SECONDARY; }
+    }
+
+    LVN_ASSERT(false, "invalid command buffer level enum");
+    return VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 }
 
 static VkFormat lvn_getVkFormatEnum(LvnFormat format)
@@ -1534,8 +1547,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyShader = lvnImplVkDestroyShader;
     graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
-    graphicsctx->implCreateCommandBuffer = lvnImplVkCreateCommandBuffer;
-    graphicsctx->implDestroyCommandBuffer = lvnImplVkDestroyCommandBuffer;
+    graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
     graphicsctx->implCreateFence = lvnImplVkCreateFence;
     graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
@@ -2076,37 +2088,6 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
     vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
 }
 
-LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer, const LvnCommandBufferCreateInfo* createInfo)
-{
-    LVN_ASSERT(graphicsctx && commandBuffer && createInfo, "graphicsctx, commandBuffer, and createInfo cannot be null");
-
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-
-    VkCommandBufferAllocateInfo cmdBufferAllocInfo = {0};
-    cmdBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdBufferAllocInfo.commandPool = vkBackends->commandPool;
-    cmdBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdBufferAllocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer cmdBuff;
-    if (vkBackends->allocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, &cmdBuff) != VK_SUCCESS)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
-        return Lvn_Result_Failure;
-    }
-
-    commandBuffer->commandbuffer = cmdBuff;
-    return Lvn_Result_Success;
-}
-
-void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
-{
-    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
-    // TODO: might refactor command buffer implmentation to allocate cmdbuffers instead
-    if (commandBuffer->pColorAttachmentImages)
-        lvn_free(commandBuffer->pColorAttachmentImages);
-}
-
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
 {
     LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
@@ -2164,6 +2145,33 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     vkBackends->deviceWaitIdle(vkBackends->device);
     VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
     vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
+}
+
+LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
+{
+    LVN_ASSERT(graphicsctx && allocInfo && pCommandBuffers, "graphicsctx, allocInfo, and pCommandBuffers cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = vkBackends->commandPool,
+        .level = lvn_getVkCommandBufferLevelEnum(allocInfo->level),
+        .commandBufferCount = allocInfo->count,
+    };
+
+    VkCommandBuffer* commandBuffers = lvn_calloc(allocInfo->count * sizeof(VkCommandBuffer));
+    if (vkBackends->allocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, commandBuffers) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
+        return Lvn_Result_Failure;
+    }
+
+    for (uint32_t i = 0; i < allocInfo->count; i++)
+        pCommandBuffers[i]->commandbuffer = commandBuffers[i];
+
+    lvn_free(commandBuffers);
+    return Lvn_Result_Success;
 }
 
 LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
@@ -2286,10 +2294,13 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
 
+    // reset arena at begin render, must not be reset anytime between render begin and render end
+    lvn_memArenaReset(graphicsctx->frameArena);
+
     // store images for begin/end rendering
     commandBuffer->colorAttachmentImageCount = renderInfo->colorAttachmentCount;
     commandBuffer->pColorAttachmentImages =
-        lvn_realloc(commandBuffer->pColorAttachmentImages, renderInfo->colorAttachmentCount * sizeof(LvnImageView*));
+        lvn_memArenaAlloc(graphicsctx->frameArena, renderInfo->colorAttachmentCount * sizeof(LvnImageView*));
 
     VkImageSubresourceRange subresourceRange = {
         .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -2352,8 +2363,6 @@ void lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRender
 
     // begin render
     vkBackends->cmdBeginRendering(cmdBuff, &renderingInfo);
-
-    lvn_memArenaReset(graphicsctx->frameArena);
 }
 
 void lvnImplVkCmdEndRendering(LvnCommandBuffer* commandBuffer)

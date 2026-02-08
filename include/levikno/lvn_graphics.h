@@ -198,6 +198,12 @@ typedef enum LvnPresentMode
     Lvn_PresentMode_Immediate,
 } LvnPresentMode;
 
+typedef enum LvnCommandBufferLevel
+{
+    Lvn_CommandBufferLevel_Primary,
+    Lvn_CommandBufferLevel_Secondary,
+} LvnCommandBufferLevel;
+
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
@@ -362,10 +368,11 @@ typedef struct LvnPipelineCreateInfo
     LvnFormat                                  stencilAttachmentFormat;
 } LvnPipelineCreateInfo;
 
-typedef struct LvnCommandBufferCreateInfo
+typedef struct LvnCommandBufferAllocInfo
 {
-    int temp; // TODO: remove this
-} LvnCommandBufferCreateInfo;
+    LvnCommandBufferLevel level;
+    uint32_t count;
+} LvnCommandBufferAllocInfo;
 
 typedef union LvnClearColorValue
 {
@@ -444,13 +451,14 @@ typedef struct LvnPresentInfo
 
 typedef struct LvnGraphicsContextCreateInfo
 {
-    LvnGraphicsApi              graphicsapi;                                    // graphics api backend
-    LvnPresentationModeFlags    presentationModeFlags;                          // type of output the graphics api will render to
-    const LvnPlatformData*      platformData;                                   // native platform data for surface creation
-    bool                        enableGraphicsApiDebugLogging;                  // enable logging for graphics api layer debug logs
+    LvnGraphicsApi              graphicsapi;                      // graphics api backend
+    LvnPresentationModeFlags    presentationModeFlags;            // type of output the graphics api will render to
+    const LvnPlatformData*      platformData;                     // native platform data for surface creation
+    bool                        enableGraphicsApiDebugLogging;    // enable logging for graphics api layer debug logs
     struct
     {
-        size_t                  baseFrameArenaAllocSize;
+        size_t                  baseFrameArenaAllocSize;          // base size of frame arena in bytes
+        size_t                  baseCmdBuffPoolAllocSize;         // base count of cmdBuff pool
     } memory;
 } LvnGraphicsContextCreateInfo;
 
@@ -468,12 +476,11 @@ LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* gr
 LVN_API void                        lvnDestroyShader(LvnShader* shader);
 LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
 LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
-LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer, const LvnCommandBufferCreateInfo* createInfo);
-LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence);
 LVN_API void                        lvnDestroyFence(LvnFence* fence);
 LVN_API LvnResult                   lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore** semaphore);
 LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore);
+LVN_API LvnResult                   lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
 LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
 LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);

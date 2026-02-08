@@ -77,6 +77,7 @@ struct LvnGraphicsContext
     LvnPresentationModeFlags    presentModeFlags;
     bool                        enableGraphicsApiDebugLogging;
 
+    LvnMemoryPool*              cmdBuffPool;
     LvnMemoryArena*             frameArena;
 
     // graphics implementation
@@ -87,12 +88,11 @@ struct LvnGraphicsContext
     void                        (*implDestroyShader)(LvnShader*);
     LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
     void                        (*implDestroyPipeline)(LvnPipeline*);
-    LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*, const LvnCommandBufferCreateInfo*);
-    void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
     LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*);
     void                        (*implDestroyFence)(LvnFence*);
     LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
     void                        (*implDestroySemaphore)(LvnSemaphore*);
+    LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
 
     LvnResult                   (*implSurfaceResize)(LvnSurface*, uint32_t, uint32_t);
     LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
