@@ -92,12 +92,16 @@ typedef struct LvnContextCreateInfo
 
     struct
     {
-        bool              enableLogging;          // enable logging for the core logger
-        const char*       coreLogFormat;          // the log format for the core logger
-        LvnLogLevel       coreLogLevel;           // the log level for the core logger
-        const LvnSink*    pCoreSinks;             // array of output sinks for the core logger
-        uint32_t          coreSinkCount;          // number of output sinks in pCoreSinks
+        bool              enableLogging;         // enable logging for the core logger
+        const char*       coreLogFormat;         // the log format for the core logger
+        LvnLogLevel       coreLogLevel;          // the log level for the core logger
+        const LvnSink*    pCoreSinks;            // array of output sinks for the core logger
+        uint32_t          coreSinkCount;         // number of output sinks in pCoreSinks
     } logging;
+    struct
+    {
+        size_t            baseArenaAllocSize;    // base size of the memory arena
+    } memory;
 } LvnContextCreateInfo;
 
 
