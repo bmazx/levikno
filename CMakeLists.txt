@@ -107,6 +107,8 @@ if (LVN_BUILD_VULKAN)
             src/api/lvn_impl_vk.c
             src/api/lvn_impl_vk.h
             src/api/lvn_impl_vk_backends.h
+            src/external/vk_mem_alloc.cpp
+            src/external/vk_mem_alloc.h
         )
 
         # find glslang
@@ -132,6 +134,7 @@ target_include_directories(lvngraphics
     PRIVATE
         include/levikno
         src/api
+        src/external
         src
 )
 

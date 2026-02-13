@@ -15,6 +15,9 @@
     #endif
 #endif
 
+#include <vk_mem_alloc.h>
+
+
 #if defined(LVN_PLATFORM_LINUX)
     static const char* s_LvnVkLibName = "libvulkan.so.1";
 #elif defined(LVN_PLATFORM_WINDOWS)
@@ -1224,6 +1227,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumerateDeviceExtensionProperties");
     vkBackends->getPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceProperties");
+    vkBackends->getPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties)
+        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceMemoryProperties");
     vkBackends->getPhysicalDeviceFormatProperties = (PFN_vkGetPhysicalDeviceFormatProperties)
         vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFormatProperties");
     vkBackends->getDeviceProcAddr = (PFN_vkGetDeviceProcAddr)
@@ -1236,6 +1241,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->getPhysicalDeviceQueueFamilyProperties ||
         !vkBackends->enumerateDeviceExtensionProperties ||
         !vkBackends->getPhysicalDeviceProperties ||
+        !vkBackends->getPhysicalDeviceMemoryProperties ||
         !vkBackends->getDeviceProcAddr ||
         !vkBackends->createDevice)
     {
@@ -1450,6 +1456,32 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkResetFences");
     vkBackends->deviceWaitIdle = (PFN_vkDeviceWaitIdle)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDeviceWaitIdle");
+    vkBackends->allocateMemory = (PFN_vkAllocateMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateMemory");
+    vkBackends->freeMemory = (PFN_vkFreeMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFreeMemory");
+    vkBackends->mapMemory = (PFN_vkMapMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkMapMemory");
+    vkBackends->unmapMemory = (PFN_vkUnmapMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkUnmapMemory");
+    vkBackends->flushMappedMemoryRanges = (PFN_vkFlushMappedMemoryRanges)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFlushMappedMemoryRanges");
+    vkBackends->invalidateMappedMemoryRanges = (PFN_vkInvalidateMappedMemoryRanges)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkInvalidateMappedMemoryRanges");
+    vkBackends->bindBufferMemory = (PFN_vkBindBufferMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBindBufferMemory");
+    vkBackends->bindImageMemory = (PFN_vkBindImageMemory)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBindImageMemory");
+    vkBackends->getBufferMemoryRequirements = (PFN_vkGetBufferMemoryRequirements)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetBufferMemoryRequirements");
+    vkBackends->getImageMemoryRequirements = (PFN_vkGetImageMemoryRequirements)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetImageMemoryRequirements");
+    vkBackends->createBuffer = (PFN_vkCreateBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateBuffer");
+    vkBackends->destroyBuffer = (PFN_vkDestroyBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyBuffer");
+    vkBackends->cmdCopyBuffer = (PFN_vkCmdCopyBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdCopyBuffer");
 
     if (!vkBackends->destroyDevice ||
         !vkBackends->getDeviceQueue ||
@@ -1489,7 +1521,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->queueSubmit ||
         !vkBackends->waitForFences ||
         !vkBackends->resetFences ||
-        !vkBackends->deviceWaitIdle)
+        !vkBackends->deviceWaitIdle ||
+        !vkBackends->allocateMemory ||
+        !vkBackends->freeMemory ||
+        !vkBackends->mapMemory ||
+        !vkBackends->unmapMemory ||
+        !vkBackends->flushMappedMemoryRanges ||
+        !vkBackends->invalidateMappedMemoryRanges ||
+        !vkBackends->bindBufferMemory ||
+        !vkBackends->bindImageMemory ||
+        !vkBackends->getBufferMemoryRequirements ||
+        !vkBackends->getImageMemoryRequirements ||
+        !vkBackends->createBuffer ||
+        !vkBackends->destroyBuffer ||
+        !vkBackends->cmdCopyBuffer)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1539,6 +1584,39 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         goto fail_cleanup;
     }
 
+    // create vma allocator
+    VmaVulkanFunctions vkFuncs = {
+        .vkGetPhysicalDeviceProperties       = vkBackends->getPhysicalDeviceProperties,
+        .vkGetPhysicalDeviceMemoryProperties = vkBackends->getPhysicalDeviceMemoryProperties,
+        .vkAllocateMemory                    = vkBackends->allocateMemory,
+        .vkFreeMemory                        = vkBackends->freeMemory,
+        .vkMapMemory                         = vkBackends->mapMemory,
+        .vkUnmapMemory                       = vkBackends->unmapMemory,
+        .vkFlushMappedMemoryRanges           = vkBackends->flushMappedMemoryRanges,
+        .vkInvalidateMappedMemoryRanges      = vkBackends->invalidateMappedMemoryRanges,
+        .vkBindBufferMemory                  = vkBackends->bindBufferMemory,
+        .vkBindImageMemory                   = vkBackends->bindImageMemory,
+        .vkGetBufferMemoryRequirements       = vkBackends->getBufferMemoryRequirements,
+        .vkGetImageMemoryRequirements        = vkBackends->getImageMemoryRequirements,
+        .vkCreateBuffer                      = vkBackends->createBuffer,
+        .vkDestroyBuffer                     = vkBackends->destroyBuffer,
+        .vkCreateImage                       = vkBackends->createImage,
+        .vkDestroyImage                      = vkBackends->destroyImage,
+        .vkCmdCopyBuffer                     = vkBackends->cmdCopyBuffer,
+    };
+
+    VmaAllocatorCreateInfo allocatorInfo = {
+        .device = vkBackends->device,
+        .physicalDevice = vkBackends->physicalDevice,
+        .instance = vkBackends->instance,
+        .pVulkanFunctions = &vkFuncs,
+    };
+
+    if (vmaCreateAllocator(&allocatorInfo, &vkBackends->vmaAllocator) != VK_SUCCESS )
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vma] failed to create vma memory allocator for vulkan");
+        goto fail_cleanup;
+    }
 
     // set vulkan implementation function pointers
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
@@ -1576,6 +1654,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     return Lvn_Result_Success;
 
 fail_cleanup:
+    vmaDestroyAllocator(vkBackends->vmaAllocator);
     vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
@@ -1593,6 +1672,8 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     vkBackends->deviceWaitIdle(vkBackends->device);
 
+    if (vkBackends->vmaAllocator)
+        vmaDestroyAllocator(vkBackends->vmaAllocator);
     if (vkBackends->commandPool)
         vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     if (vkBackends->device)

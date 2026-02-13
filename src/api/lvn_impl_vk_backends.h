@@ -5,7 +5,7 @@
 #include "lvn_graphics_internal.h"
 
 #include <vulkan/vulkan.h>
-
+#include <vk_mem_alloc.h>
 
 typedef struct LvnVkQueueFamilyIndices
 {
@@ -54,6 +54,7 @@ typedef struct LvnVulkanBackends
     PFN_vkGetPhysicalDeviceProperties                getPhysicalDeviceProperties;
     PFN_vkGetPhysicalDeviceFormatProperties          getPhysicalDeviceFormatProperties;
     PFN_vkGetPhysicalDeviceQueueFamilyProperties     getPhysicalDeviceQueueFamilyProperties;
+    PFN_vkGetPhysicalDeviceMemoryProperties          getPhysicalDeviceMemoryProperties;
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR         getPhysicalDeviceSurfaceSupportKHR;
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR    getPhysicalDeviceSurfaceCapabilitiesKHR;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR         getPhysicalDeviceSurfaceFormatsKHR;
@@ -106,6 +107,19 @@ typedef struct LvnVulkanBackends
     PFN_vkWaitForFences                              waitForFences;
     PFN_vkResetFences                                resetFences;
     PFN_vkDeviceWaitIdle                             deviceWaitIdle;
+    PFN_vkAllocateMemory                             allocateMemory;
+    PFN_vkFreeMemory                                 freeMemory;
+    PFN_vkMapMemory                                  mapMemory;
+    PFN_vkUnmapMemory                                unmapMemory;
+    PFN_vkFlushMappedMemoryRanges                    flushMappedMemoryRanges;
+    PFN_vkInvalidateMappedMemoryRanges               invalidateMappedMemoryRanges;
+    PFN_vkBindBufferMemory                           bindBufferMemory;
+    PFN_vkBindImageMemory                            bindImageMemory;
+    PFN_vkGetBufferMemoryRequirements                getBufferMemoryRequirements;
+    PFN_vkGetImageMemoryRequirements                 getImageMemoryRequirements;
+    PFN_vkCreateBuffer                               createBuffer;
+    PFN_vkDestroyBuffer                              destroyBuffer;
+    PFN_vkCmdCopyBuffer                              cmdCopyBuffer;
 
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;
@@ -119,6 +133,7 @@ typedef struct LvnVulkanBackends
     VkQueue                                          graphicsQueue;
     VkQueue                                          presentQueue;
     VkCommandPool                                    commandPool;
+    VmaAllocator                                     vmaAllocator;
 
     struct
     {
