@@ -15,8 +15,8 @@ struct LvnImageView
 
 struct LvnFramebuffer
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* framebufferData;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        framebufferData;
 };
 
 struct LvnSurface
@@ -32,41 +32,53 @@ struct LvnSurface
 
 struct LvnDescriptorLayout
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* descriptorLayout;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        descriptorLayout;
 };
 
 struct LvnShader
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* shader;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        shader;
 };
 
 struct LvnPipeline
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* pipelineHandle;
-    void* pipelineLayoutHandle;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        pipelineHandle;
+    void*                        pipelineLayoutHandle;
 };
 
 struct LvnCommandBuffer
 {
-    const LvnGraphicsContext*       graphicsctx;
-    void*                           commandbuffer;
-    LvnImageView**                  pColorAttachmentImages;       // use in vulkan to store swapchain color attachment images per rendering/renderpass
-    uint32_t                        colorAttachmentImageCount;    // vulkan color attachment image count
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        commandbuffer;
+    LvnImageView**               pColorAttachmentImages;       // use in vulkan to store swapchain color attachment images per rendering/renderpass
+    uint32_t                     colorAttachmentImageCount;    // vulkan color attachment image count
 };
 
 struct LvnFence
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* fenceHandle;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        fenceHandle;
 };
 
 struct LvnSemaphore
 {
-    const LvnGraphicsContext* graphicsctx;
-    void* semaphoreHandle;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        semaphoreHandle;
+};
+
+struct LvnBuffer
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        buffer;
+    void*                        bufferMemory;
+    void*                        bufferMap;
+    uint64_t                     size;
+    LvnBufferTypeFlagBits        type;
+    LvnBufferUsage               usage;
+    uint32_t                     id;
 };
 
 struct LvnGraphicsContext
@@ -92,6 +104,8 @@ struct LvnGraphicsContext
     void                        (*implDestroyFence)(LvnFence*);
     LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
     void                        (*implDestroySemaphore)(LvnSemaphore*);
+    LvnResult                   (*implCreateBuffer)(const LvnGraphicsContext*, LvnBuffer*, const LvnBufferCreateInfo*);
+    void                        (*implDestroyBuffer)(LvnBuffer*);
     LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
 
     LvnResult                   (*implSurfaceResize)(LvnSurface*, uint32_t, uint32_t);

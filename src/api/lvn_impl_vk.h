@@ -17,6 +17,8 @@ LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* 
 void      lvnImplVkDestroyFence(LvnFence* fence);
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
+LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
+void      lvnImplVksDestroyBuffer(LvnBuffer* buffer);
 LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
 LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height);

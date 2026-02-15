@@ -275,6 +275,36 @@ void lvnDestroySemaphore(LvnSemaphore* semaphore)
     lvn_free(semaphore);
 }
 
+LvnResult lvnCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer** buffer, const LvnBufferCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
+
+    *buffer = (LvnBuffer*) lvn_calloc(sizeof(LvnBuffer));
+
+    if (!*buffer)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for buffer at %p", buffer);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnBuffer* bufferPtr = *buffer;
+    bufferPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateBuffer(graphicsctx, *buffer, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*buffer);
+
+    return result;
+}
+
+void lvnDestroyBuffer(LvnBuffer* buffer)
+{
+    LVN_ASSERT(buffer, "buffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
+    graphicsctx->implDestroyBuffer(buffer);
+    lvn_free(buffer);
+}
+
 LvnResult lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
 {
     LVN_ASSERT(graphicsctx && allocInfo && pCommandBuffers, "graphicsctx, allocInfo, and pCommandBuffers cannot be null");

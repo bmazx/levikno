@@ -63,6 +63,8 @@ static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBacken
 static VkFormat                    lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice);
 static VkPipelineStageFlags        lvn_getPipelineStageFlags(VkImageLayout layout);
 static void                        lvn_transitionImageLayout( const LvnVulkanBackends* vkBackends, VkCommandBuffer commandBuffer, VkImage image, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImageLayout oldLayout, VkImageLayout newLayout, const VkImageSubresourceRange subresourceRange);
+static LvnResult                   lvn_createBuffer(const LvnVulkanBackends* vkBackends, VkBuffer* buffer, VmaAllocation* bufferMemory, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
+static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBackends, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset);
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -950,6 +952,83 @@ static void lvn_transitionImageLayout(
     vkBackends->cmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, NULL, 0, NULL, 1, &imageMemoryBarrier);
 }
 
+static LvnResult lvn_createBuffer(
+    const LvnVulkanBackends* vkBackends,
+    VkBuffer* buffer,
+    VmaAllocation* bufferMemory,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VmaMemoryUsage memUsage)
+{
+    VkBufferCreateInfo bufferInfo = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = size,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    VmaAllocationCreateInfo allocInfo = {
+        .usage = memUsage,
+    };
+
+    if (vmaCreateBuffer(vkBackends->vmaAllocator, &bufferInfo, &allocInfo, buffer, bufferMemory, NULL) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to create buffer <VkBuffer> (%p), buffer memory: (%p), buffer size: %zu bytes",
+                      *buffer, *bufferMemory, size);
+        return Lvn_Result_Failure;
+    }
+
+    return Lvn_Result_Success;
+}
+
+static void lvn_copyBuffer(
+    const LvnVulkanBackends* vkBackends,
+    VkBuffer srcBuffer,
+    VkBuffer dstBuffer,
+    VkDeviceSize size,
+    VkDeviceSize srcOffset,
+    VkDeviceSize dstOffset)
+{
+    VkCommandBufferAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandPool = vkBackends->commandPool,
+        .commandBufferCount = 1,
+    };
+
+    VkCommandBuffer commandBuffer;
+    vkBackends->allocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+
+    vkBackends->beginCommandBuffer(commandBuffer, &beginInfo);
+
+    VkBufferCopy copyRegion = {
+        .size = size,
+        .srcOffset = srcOffset,
+        .dstOffset = dstOffset,
+    };
+
+    vkBackends->cmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    vkBackends->endCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &commandBuffer,
+    };
+
+    vkBackends->queueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkBackends->queueWaitIdle(vkBackends->graphicsQueue);
+
+    vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
+}
+
 // TODO: remove this function in the future
 static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
 {
@@ -1424,6 +1503,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
     vkBackends->allocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
+    vkBackends->freeCommandBuffers = (PFN_vkFreeCommandBuffers)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFreeCommandBuffers");
     vkBackends->beginCommandBuffer = (PFN_vkBeginCommandBuffer)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkBeginCommandBuffer");
     vkBackends->endCommandBuffer = (PFN_vkEndCommandBuffer)
@@ -1456,6 +1537,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkResetFences");
     vkBackends->deviceWaitIdle = (PFN_vkDeviceWaitIdle)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkDeviceWaitIdle");
+    vkBackends->queueWaitIdle = (PFN_vkQueueWaitIdle)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueWaitIdle");
     vkBackends->allocateMemory = (PFN_vkAllocateMemory)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateMemory");
     vkBackends->freeMemory = (PFN_vkFreeMemory)
@@ -1630,6 +1713,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
     graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
+    graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
+    graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
     graphicsctx->implFenceReset = lvnImplVkFenceReset;
     graphicsctx->implBeginCommandBuffer = lvnImplVkBeginCommandBuffer;
@@ -2226,6 +2311,91 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     vkBackends->deviceWaitIdle(vkBackends->device);
     VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
     vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
+}
+
+LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkDeviceSize bufferSize = createInfo->size;
+
+    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    if (createInfo->type & Lvn_BufferTypeFlag_Vertex)
+        usageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    if (createInfo->type & Lvn_BufferTypeFlag_Index)
+        usageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (createInfo->type & Lvn_BufferTypeFlag_Uniform)
+        usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    if (createInfo->type & Lvn_BufferTypeFlag_Storage)
+        usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+    // if buffer is static, transfer and store memory on gpu
+    if (createInfo->usage == Lvn_BufferUsage_Static)
+    {
+        VkBuffer stagingBuffer;
+        VmaAllocation stagingMemory;
+
+        VkBuffer vkBuffer;
+        VmaAllocation bufferMemory;
+
+        // create staging buffer to pass vertex data into
+        lvn_createBuffer(vkBackends, &stagingBuffer, &stagingMemory, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+        if (createInfo->data)
+        {
+            void* data;
+            vmaMapMemory(vkBackends->vmaAllocator, stagingMemory, &data);
+            memcpy(data, createInfo->data, bufferSize);
+            vmaUnmapMemory(vkBackends->vmaAllocator, stagingMemory);
+        }
+
+        // create the main buffer to be used
+        lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, bufferSize, usageFlags, VMA_MEMORY_USAGE_GPU_ONLY);
+        lvn_copyBuffer(vkBackends, stagingBuffer, vkBuffer, bufferSize, 0, 0);
+
+        vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
+        vmaFreeMemory(vkBackends->vmaAllocator, stagingMemory);
+
+        buffer->buffer = vkBuffer;
+        buffer->bufferMemory = bufferMemory;
+    }
+    else // dynamic buffers will store memory on cpu
+    {
+        VkBuffer vkBuffer;
+        VmaAllocation bufferMemory;
+
+        lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, bufferSize, usageFlags, VMA_MEMORY_USAGE_CPU_ONLY);
+
+        vmaMapMemory(vkBackends->vmaAllocator, bufferMemory, &buffer->bufferMap);
+        if (createInfo->data)
+            memcpy(buffer->bufferMap, createInfo->data, bufferSize);
+
+        buffer->buffer = vkBuffer;
+        buffer->bufferMemory = bufferMemory;
+    }
+
+    buffer->type = createInfo->type;
+    buffer->usage = createInfo->usage;
+    buffer->size = createInfo->size;
+
+    return Lvn_Result_Success;
+}
+
+void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
+{
+    LVN_ASSERT(buffer, "buffer cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) buffer->graphicsctx->implData;
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
+    VkBuffer vkBuffer = (VkBuffer) buffer->buffer;
+    VmaAllocation bufferMemory = (VmaAllocation) buffer->bufferMemory;
+
+    if (buffer->usage != Lvn_BufferUsage_Static)
+        vmaUnmapMemory(vkBackends->vmaAllocator, bufferMemory);
+
+    vkBackends->destroyBuffer(vkBackends->device, vkBuffer, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, bufferMemory);
 }
 
 LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)

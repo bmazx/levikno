@@ -89,6 +89,7 @@ typedef struct LvnVulkanBackends
     PFN_vkCreateCommandPool                          createCommandPool;
     PFN_vkDestroyCommandPool                         destroyCommandPool;
     PFN_vkAllocateCommandBuffers                     allocateCommandBuffers;
+    PFN_vkFreeCommandBuffers                         freeCommandBuffers;
     PFN_vkBeginCommandBuffer                         beginCommandBuffer;
     PFN_vkEndCommandBuffer                           endCommandBuffer;
     PFN_vkCmdBeginRendering                          cmdBeginRendering;
@@ -107,6 +108,7 @@ typedef struct LvnVulkanBackends
     PFN_vkWaitForFences                              waitForFences;
     PFN_vkResetFences                                resetFences;
     PFN_vkDeviceWaitIdle                             deviceWaitIdle;
+    PFN_vkQueueWaitIdle                              queueWaitIdle;
     PFN_vkAllocateMemory                             allocateMemory;
     PFN_vkFreeMemory                                 freeMemory;
     PFN_vkMapMemory                                  mapMemory;

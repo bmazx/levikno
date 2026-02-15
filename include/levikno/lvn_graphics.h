@@ -204,6 +204,23 @@ typedef enum LvnCommandBufferLevel
     Lvn_CommandBufferLevel_Secondary,
 } LvnCommandBufferLevel;
 
+typedef enum LvnBufferTypeFlagBits
+{
+    Lvn_BufferTypeFlag_Unknown = 0x00000000,
+    Lvn_BufferTypeFlag_Vertex  = 0x00000001,
+    Lvn_BufferTypeFlag_Index   = 0x00000002,
+    Lvn_BufferTypeFlag_Uniform = 0x00000004,
+    Lvn_BufferTypeFlag_Storage = 0x00000008,
+} LvnBufferTypeFlagBits;
+typedef uint32_t LvnBufferTypeFlags;
+
+typedef enum LvnBufferUsage
+{
+    Lvn_BufferUsage_Static,
+    Lvn_BufferUsage_Dynamic,
+    Lvn_BufferUsage_Resize,
+} LvnBufferUsage;
+
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnSurface LvnSurface;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
@@ -213,6 +230,7 @@ typedef struct LvnImageView LvnImageView;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
 typedef struct LvnFence LvnFence;
 typedef struct LvnSemaphore LvnSemaphore;
+typedef struct LvnBuffer LvnBuffer;
 
 struct LvnContext;
 
@@ -368,10 +386,18 @@ typedef struct LvnPipelineCreateInfo
     LvnFormat                                  stencilAttachmentFormat;
 } LvnPipelineCreateInfo;
 
+typedef struct LvnBufferCreateInfo
+{
+    LvnBufferTypeFlagBits    type;
+    LvnBufferUsage           usage;
+    uint64_t                 size;
+    const void*              data;
+} LvnBufferCreateInfo;
+
 typedef struct LvnCommandBufferAllocInfo
 {
-    LvnCommandBufferLevel level;
-    uint32_t count;
+    LvnCommandBufferLevel    level;
+    uint32_t                 count;
 } LvnCommandBufferAllocInfo;
 
 typedef union LvnClearColorValue
@@ -480,6 +506,8 @@ LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* gra
 LVN_API void                        lvnDestroyFence(LvnFence* fence);
 LVN_API LvnResult                   lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore** semaphore);
 LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore);
+LVN_API LvnResult                   lvnCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer** buffer, const LvnBufferCreateInfo* createInfo);
+LVN_API void                        lvnDestroyBuffer(LvnBuffer* buffer);
 LVN_API LvnResult                   lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
 LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
