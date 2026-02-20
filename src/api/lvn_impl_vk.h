@@ -25,6 +25,10 @@ LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t h
 LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);
 LvnResult lvnImplVkFenceReset(LvnFence* fence);
 
+void      lvnImplVkBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
+void      lvnImplVkBufferResize(LvnBuffer* buffer, uint64_t size);
+
+
 void      lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);

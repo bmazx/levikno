@@ -1,3 +1,4 @@
+
 #include <levikno/levikno.h>
 #include <levikno/lvn_graphics.h>
 #include <stdio.h>
@@ -262,7 +263,7 @@ int main(int argc, char** argv)
     // vertex buffer create info struct
     LvnBufferCreateInfo bufferCreateInfo = {
         .type = Lvn_BufferTypeFlag_Vertex,
-        .usage = Lvn_BufferUsage_Static,
+        .usage = Lvn_BufferUsage_Dynamic,
         .data = s_Vertices,
         .size = sizeof(s_Vertices),
     };

@@ -1723,6 +1723,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
     graphicsctx->implFenceReset = lvnImplVkFenceReset;
+    graphicsctx->implBufferUpdateData = lvnImplVkBufferUpdateData;
+    graphicsctx->implBufferResize = lvnImplVkBufferResize;
     graphicsctx->implBeginCommandBuffer = lvnImplVkBeginCommandBuffer;
     graphicsctx->implEndCommandBuffer = lvnImplVkEndCommandBuffer;
     graphicsctx->implCmdBeginRendering = lvnImplVkCmdBeginRendering;
@@ -2518,6 +2520,17 @@ LvnResult lvnImplVkFenceReset(LvnFence* fence)
     return (vkBackends->resetFences(vkBackends->device, 1, &vkFence) == VK_SUCCESS)
         ? Lvn_Result_Success
         : Lvn_Result_Failure;
+}
+
+void lvnImplVkBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset)
+{
+    LVN_ASSERT(buffer, "buffer cannot be null");
+    memcpy((uint8_t*)buffer->bufferMap + offset, data, size);
+}
+
+void lvnImplVkBufferResize(LvnBuffer* buffer, uint64_t size)
+{
+
 }
 
 void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)

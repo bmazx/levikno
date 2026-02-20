@@ -112,6 +112,10 @@ struct LvnGraphicsContext
     LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
     LvnResult                   (*implFenceReset)(LvnFence*);
 
+    void                        (*implBufferUpdateData)(LvnBuffer*, void*, uint64_t, uint64_t);
+    void                        (*implBufferResize)(LvnBuffer*, uint64_t);
+
+
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
     void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
