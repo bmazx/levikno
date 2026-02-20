@@ -98,6 +98,8 @@ typedef struct LvnVulkanBackends
     PFN_vkCmdEndRenderPass                           cmdEndRenderPass;
     PFN_vkCmdPipelineBarrier                         cmdPipelineBarrier;
     PFN_vkCmdBindPipeline                            cmdBindPipeline;
+    PFN_vkCmdBindVertexBuffers                       cmdBindVertexBuffers;
+    PFN_vkCmdBindIndexBuffer                         cmdBindIndexBuffer;
     PFN_vkCmdSetViewport                             cmdSetViewport;
     PFN_vkCmdSetScissor                              cmdSetScissor;
     PFN_vkCmdDraw                                    cmdDraw;

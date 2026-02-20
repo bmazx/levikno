@@ -487,6 +487,20 @@ void lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)
     graphicsctx->implCmdBindPipeline(commandBuffer, pipeline);
 }
 
+void lvnCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdBindVertexBuffer(commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets);
+}
+
+void lvnCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdBindIndexBuffer(commandBuffer, buffer, offset);
+}
+
 void lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
 {
     LVN_ASSERT(commandBuffer && viewport, "commandBuffer and viewport cannot be null");

@@ -1521,6 +1521,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdPipelineBarrier");
     vkBackends->cmdBindPipeline = (PFN_vkCmdBindPipeline)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindPipeline");
+    vkBackends->cmdBindVertexBuffers = (PFN_vkCmdBindVertexBuffers)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindVertexBuffers");
+    vkBackends->cmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)
+        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindIndexBuffer");
     vkBackends->cmdSetViewport = (PFN_vkCmdSetViewport)
         vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdSetViewport");
     vkBackends->cmdSetScissor = (PFN_vkCmdSetScissor)
@@ -1597,6 +1601,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->cmdEndRenderPass ||
         !vkBackends->cmdPipelineBarrier ||
         !vkBackends->cmdBindPipeline ||
+        !vkBackends->cmdBindVertexBuffers ||
+        !vkBackends->cmdBindIndexBuffer ||
         !vkBackends->cmdSetViewport ||
         !vkBackends->cmdSetScissor ||
         !vkBackends->cmdDraw ||
@@ -1722,6 +1728,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCmdBeginRendering = lvnImplVkCmdBeginRendering;
     graphicsctx->implCmdEndRendering = lvnImplVkCmdEndRendering;
     graphicsctx->implCmdBindPipeline = lvnImplVkCmdBindPipeline;
+    graphicsctx->implCmdBindVertexBuffer = lvnImplVkCmdBindVertexBuffer;
+    graphicsctx->implCmdBindIndexBuffer = lvnImplVkCmdBindIndexBuffer;
     graphicsctx->implCmdSetViewport = lvnImplVkCmdSetViewport;
     graphicsctx->implCmdSetScissor = lvnImplVkCmdSetScissor;
     graphicsctx->implCmdDraw = lvnImplVkCmdDraw;
@@ -2661,6 +2669,31 @@ void lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipe
     VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
 
     vkBackends->cmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+}
+
+void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkBuffer* buffers = lvn_memArenaAlloc(graphicsctx->frameArena, bindingCount * sizeof(VkBuffer));
+    for (uint32_t i = 0; i < bindingCount; i++)
+        buffers[i] = (VkBuffer) pBuffers[i]->buffer;
+
+    vkBackends->cmdBindVertexBuffers(cmdBuff, firstBinding, bindingCount, buffers, pOffsets);
+}
+
+void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+
+    VkBuffer indexBuffer = (VkBuffer) buffer->buffer;
+
+   vkBackends->cmdBindIndexBuffer(cmdBuff, indexBuffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
 void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)

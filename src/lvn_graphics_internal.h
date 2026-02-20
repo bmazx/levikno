@@ -117,6 +117,8 @@ struct LvnGraphicsContext
     void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
     void                        (*implCmdEndRendering)(LvnCommandBuffer*);
     void                        (*implCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
+    void                        (*implCmdBindVertexBuffer)(LvnCommandBuffer*, uint32_t, uint32_t, LvnBuffer**, uint64_t*);
+    void                        (*implCmdBindIndexBuffer)(LvnCommandBuffer*, LvnBuffer*, uint64_t);
     void                        (*implCmdSetViewport)(LvnCommandBuffer*, const LvnViewport*);
     void                        (*implCmdSetScissor)(LvnCommandBuffer*, const LvnRenderArea*);
     void                        (*implCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);

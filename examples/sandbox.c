@@ -9,6 +9,16 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
+static float s_Vertices[] = {
+    0.0f,-0.5f, 1.0f, 0.0f, 0.0f,
+    0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+};
+
+static uint32_t s_Indices[] = {
+    0, 1, 2,
+};
+
 void myPrint(const char* msg)
 {
     printf("%s", msg);
@@ -197,12 +207,23 @@ int main(int argc, char** argv)
 
     LvnFormat colorFormat = lvnSurfaceGetSwapchainFormat(surface);
 
+    LvnVertexAttribute attributes[2] =
+    {
+        { 0, 0, Lvn_AttributeFormat_Vec2_f32, 0 },
+        { 0, 1, Lvn_AttributeFormat_Vec3_f32, (2 * sizeof(float)) },
+    };
+
+    LvnVertexBindingDescription vertexBindingDescription = {
+        .binding = 0,
+        .stride = 5 * sizeof(float),
+    };
+
     LvnPipelineCreateInfo pipelineCreateInfo = {0};
     pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
-    pipelineCreateInfo.pVertexAttributes = NULL;
-    pipelineCreateInfo.vertexAttributeCount = 0;
-    pipelineCreateInfo.pVertexBindingDescriptions = NULL;
-    pipelineCreateInfo.vertexBindingDescriptionCount = 0;
+    pipelineCreateInfo.pVertexAttributes = attributes;
+    pipelineCreateInfo.vertexAttributeCount = LVN_ARRAY_LEN(attributes);
+    pipelineCreateInfo.pVertexBindingDescriptions = &vertexBindingDescription;
+    pipelineCreateInfo.vertexBindingDescriptionCount = 1;
     pipelineCreateInfo.pDescriptorLayouts = NULL;
     pipelineCreateInfo.descriptorLayoutCount = 0;
     pipelineCreateInfo.pStages = stages;
@@ -236,6 +257,29 @@ int main(int argc, char** argv)
     LvnSemaphore* renderFinishedSemaphores[12];
     for (uint32_t i = 0; i < 12; i++)
         lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphores[i]);
+
+
+    // vertex buffer create info struct
+    LvnBufferCreateInfo bufferCreateInfo = {
+        .type = Lvn_BufferTypeFlag_Vertex,
+        .usage = Lvn_BufferUsage_Static,
+        .data = s_Vertices,
+        .size = sizeof(s_Vertices),
+    };
+
+    // create buffer
+    LvnBuffer* vertexBuffer;
+    lvnCreateBuffer(graphicsctx, &vertexBuffer, &bufferCreateInfo);
+
+    // index buffer create info struct
+    bufferCreateInfo.type = Lvn_BufferTypeFlag_Index;
+    bufferCreateInfo.usage = Lvn_BufferUsage_Static;
+    bufferCreateInfo.data = s_Indices;
+    bufferCreateInfo.size = sizeof(s_Indices);
+
+    // create buffer
+    LvnBuffer* indexBuffer;
+    lvnCreateBuffer(graphicsctx, &indexBuffer, &bufferCreateInfo);
 
     uint32_t imageIndex = 0;
     int width = 0, height = 0, oldWidth = 0, oldHeight = 0;
@@ -302,7 +346,11 @@ int main(int argc, char** argv)
 
         lvnCmdSetScissor(cmdBuff, &renderArea);
 
-        lvnCmdDraw(cmdBuff, 3, 1, 0, 0);
+        uint64_t offsets[] = {0};
+        lvnCmdBindVertexBuffer(cmdBuff, 0, 1, &vertexBuffer, offsets);
+        lvnCmdBindIndexBuffer(cmdBuff, indexBuffer, 0);
+
+        lvnCmdDrawIndexed(cmdBuff, LVN_ARRAY_LEN(s_Indices), 1, 0, 0, 0);
 
         lvnCmdEndRendering(cmdBuff);
 
@@ -339,6 +387,8 @@ int main(int argc, char** argv)
         glfwPollEvents();
     }
 
+    lvnDestroyBuffer(vertexBuffer);
+    lvnDestroyBuffer(indexBuffer);
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
     for (uint32_t i = 0; i < 12; i++)

@@ -519,11 +519,15 @@ LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 LVN_API LvnResult                   lvnFenceWait(LvnFence* fence, uint64_t timeout);
 LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
 
+
+
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo);
 LVN_API void                        lvnCmdEndRendering(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
+LVN_API void                        lvnCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
+LVN_API void                        lvnCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
 LVN_API void                        lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
 LVN_API void                        lvnCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
 LVN_API void                        lvnCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
