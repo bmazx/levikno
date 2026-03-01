@@ -155,6 +155,36 @@ void lvnDestroySurface(LvnSurface* surface)
     lvn_free(surface);
 }
 
+LvnResult lvnCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain** swapchain, const LvnSwapchainCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && swapchain && createInfo, "graphicsctx, swapchain, and createInfo cannot be null");
+
+    *swapchain = (LvnSwapchain*) lvn_calloc(sizeof(LvnSwapchain));
+
+    if (!*swapchain)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for swapchain at %p", swapchain);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnSwapchain* swapchainPtr = *swapchain;
+    swapchainPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateSwapchain(graphicsctx, *swapchain, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*swapchain);
+
+    return result;
+}
+
+void lvnDestroySwapchain(LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    graphicsctx->implDestroySwapchain(swapchain);
+    lvn_free(swapchain);
+}
+
 LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
@@ -339,36 +369,43 @@ fail_cleanup:
     return Lvn_Result_Failure;
 }
 
-LvnFormat lvnSurfaceGetSwapchainFormat(const LvnSurface* surface)
+LvnFormat lvnSwapchainGetFormat(const LvnSwapchain* swapchain)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
-    return surface->swapchainColorFormat;
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    return swapchain->swapchainColorFormat;
 }
 
-LvnImageView* lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex)
+LvnImageView* lvnSwapchainGetImageView(LvnSwapchain* swapchain, uint32_t imageIndex)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
-    LVN_ASSERT(imageIndex < surface->swapchainImageViewCount, "imageIndex out of index bounds");
-    return &surface->pSwapchainImageViews[imageIndex];
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LVN_ASSERT(imageIndex < swapchain->swapchainImageViewCount, "imageIndex out of index bounds");
+    return &swapchain->pSwapchainImageViews[imageIndex];
 }
 
-uint32_t lvnSurfaceGetSwapchainImageCount(const LvnSurface* surface)
+uint32_t lvnSwapchainGetImageCount(const LvnSwapchain* swapchain)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
-    return surface->swapchainImageViewCount;
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    return swapchain->swapchainImageViewCount;
 }
 
-LvnExtent2D lvnSurfaceGetSwapchainExtent(const LvnSurface* surface)
+LvnExtent2D lvnSwapchainGetExtent(const LvnSwapchain* swapchain)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
-    return surface->extent;
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    return swapchain->extent;
 }
 
-LvnResult lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
+LvnResult lvnSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
-    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
-    return graphicsctx->implSurfaceResize(surface, width, height);
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    return graphicsctx->implSwapchainResize(swapchain, width, height);
+}
+
+LvnResult lvnSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
+{
+    LVN_ASSERT(swapchain && imageIndex, "swapchain and imageIndex cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    return graphicsctx->implSwapchainAcquireNextImage(swapchain, semaphore, fence, imageIndex);
 }
 
 LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
@@ -557,13 +594,6 @@ void lvnCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uin
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-}
-
-LvnResult lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
-{
-    LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
-    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
-    return graphicsctx->implSurfaceAcquireNextImage(surface, semaphore, fence, imageIndex);
 }
 
 LvnResult lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)

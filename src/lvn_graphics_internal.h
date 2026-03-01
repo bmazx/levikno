@@ -23,6 +23,11 @@ struct LvnSurface
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        surface;
+};
+
+struct LvnSwapchain
+{
+    const LvnGraphicsContext*    graphicsctx;
     void*                        swapchainData;
     LvnImageView*                pSwapchainImageViews;
     uint32_t                     swapchainImageViewCount;
@@ -96,6 +101,8 @@ struct LvnGraphicsContext
     void*                       implData;
     LvnResult                   (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
     void                        (*implDestroySurface)(LvnSurface*);
+    LvnResult                   (*implCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
+    void                        (*implDestroySwapchain)(LvnSwapchain*);
     LvnResult                   (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
     void                        (*implDestroyShader)(LvnShader*);
     LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
@@ -108,13 +115,14 @@ struct LvnGraphicsContext
     void                        (*implDestroyBuffer)(LvnBuffer*);
     LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
 
-    LvnResult                   (*implSurfaceResize)(LvnSurface*, uint32_t, uint32_t);
+    LvnResult                   (*implSwapchainResize)(LvnSwapchain*, uint32_t, uint32_t);
+    LvnResult                   (*implSwapchainAcquireNextImage)(LvnSwapchain*, LvnSemaphore*, LvnFence*, uint32_t*);
+
     LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
     LvnResult                   (*implFenceReset)(LvnFence*);
 
     void                        (*implBufferUpdateData)(LvnBuffer*, void*, uint64_t, uint64_t);
     void                        (*implBufferResize)(LvnBuffer*, uint64_t);
-
 
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
@@ -127,7 +135,6 @@ struct LvnGraphicsContext
     void                        (*implCmdSetScissor)(LvnCommandBuffer*, const LvnRenderArea*);
     void                        (*implCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);
     void                        (*implCmdDrawIndexed)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, int32_t, uint32_t);
-    LvnResult                   (*implSurfaceAcquireNextImage)(LvnSurface*, LvnSemaphore*, LvnFence*, uint32_t*);
     LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
     LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
 };

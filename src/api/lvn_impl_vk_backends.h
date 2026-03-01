@@ -29,6 +29,7 @@ typedef struct LvnVkSwapChainCreateInfo
 
 typedef struct LvnVkSwapchainData
 {
+    VkSurfaceKHR        surface;
     VkSwapchainKHR      swapchain, oldSwapchain;
     VkExtent2D          swapchainExtent;
     VkFormat            swapchainFormat;

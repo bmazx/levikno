@@ -168,14 +168,20 @@ int main(int argc, char** argv)
     LvnSurfaceCreateInfo sci = {0};
     sci.nativeDisplayHandle = nativeDisplay;
     sci.nativeWindowHandle = &nativeWindow;
-    sci.width = 600;
-    sci.height = 800;
-    sci.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
-    sci.presentMode = Lvn_PresentMode_Mailbox;
-    sci.minImageCount = 3;
 
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);
+
+    LvnSwapchainCreateInfo swapchainCreateInfo = {0};
+    swapchainCreateInfo.surface = surface;
+    swapchainCreateInfo.width = 600;
+    swapchainCreateInfo.height = 800;
+    swapchainCreateInfo.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
+    swapchainCreateInfo.presentMode = Lvn_PresentMode_Mailbox;
+    swapchainCreateInfo.minImageCount = 3;
+
+    LvnSwapchain* swapchain;
+    lvnCreateSwapchain(graphicsctx, &swapchain, &swapchainCreateInfo);
 
     LvnFile vertfile = lvnLoadFileBin("res/shaders/vert.spv");
     LvnFile fragfile = lvnLoadFileBin("res/shaders/frag.spv");
@@ -206,7 +212,7 @@ int main(int argc, char** argv)
     pipelineFixedFuncs.scissor.extent.width = 800;
     pipelineFixedFuncs.scissor.extent.height = 600;
 
-    LvnFormat colorFormat = lvnSurfaceGetSwapchainFormat(surface);
+    LvnFormat colorFormat = lvnSwapchainGetFormat(swapchain);
 
     LvnVertexAttribute attributes[2] =
     {
@@ -293,11 +299,11 @@ int main(int argc, char** argv)
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
 
-        result = lvnSurfaceAcquireNextImage(surface, imageWaitSemaphore, NULL, &imageIndex);
+        result = lvnSwapchainAcquireNextImage(swapchain, imageWaitSemaphore, NULL, &imageIndex);
 
         if (result == Lvn_Result_OutOfDate)
         {
-            lvnSurfaceResize(surface, width, height);
+            lvnSwapchainResize(swapchain, width, height);
             oldWidth = width;
             oldHeight = height;
             continue;
@@ -308,7 +314,7 @@ int main(int argc, char** argv)
             continue;
         }
 
-        LvnExtent2D extent = lvnSurfaceGetSwapchainExtent(surface);
+        LvnExtent2D extent = lvnSwapchainGetExtent(swapchain);
 
         lvnBeginCommandBuffer(cmdBuff);
 
@@ -317,7 +323,7 @@ int main(int argc, char** argv)
             .loadOp = Lvn_AttachmentLoadOp_Clear,
             .storeOp = Lvn_AttachmentStoreOp_Store,
             .clearValue.color = {{ 0.0f, 0.0f, 0.0f, 0.0f }},
-            .imageView = lvnSurfaceGetSwapchainImageView(surface, imageIndex),
+            .imageView = lvnSwapchainGetImageView(swapchain, imageIndex),
         };
 
         LvnRenderingInfo renderInfo = {0};
@@ -370,8 +376,8 @@ int main(int argc, char** argv)
         LvnPresentInfo presentInfo = {
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &renderFinishedSemaphores[imageIndex],
-            .surfaceCount = 1,
-            .pSurfaces = &surface,
+            .swapchainCount = 1,
+            .pSwapchains = &swapchain,
             .pImageIndices = &imageIndex,
         };
         result = lvnRenderPresent(graphicsctx, &presentInfo);
@@ -379,7 +385,7 @@ int main(int argc, char** argv)
         if (result == Lvn_Result_OutOfDate || width != oldWidth || height != oldHeight)
         {
             glfwGetWindowSize(window, &width, &height);
-            lvnSurfaceResize(surface, width, height);
+            lvnSwapchainResize(swapchain, width, height);
         }
 
         oldWidth = width;
@@ -395,6 +401,7 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < 12; i++)
         lvnDestroySemaphore(renderFinishedSemaphores[i]);
     lvnDestroyPipeline(pipeline);
+    lvnDestroySwapchain(swapchain);
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 

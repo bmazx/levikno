@@ -223,6 +223,7 @@ typedef enum LvnBufferUsage
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnSurface LvnSurface;
+typedef struct LvnSwapchain LvnSwapchain;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
 typedef struct LvnShader LvnShader;
 typedef struct LvnPipeline LvnPipeline;
@@ -245,12 +246,17 @@ typedef struct LvnSurfaceCreateInfo
 {
     void*             nativeDisplayHandle;
     void*             nativeWindowHandle;
-    uint32_t          width;
-    uint32_t          height;
-    uint32_t          minImageCount;
+} LvnSurfaceCreateInfo;
+
+typedef struct LvnSwapchainCreateInfo
+{
+    LvnSurface*       surface;
     LvnFormat         surfaceFormat;
     LvnPresentMode    presentMode;
-} LvnSurfaceCreateInfo;
+    uint32_t          minImageCount;
+    uint32_t          width;
+    uint32_t          height;
+} LvnSwapchainCreateInfo;
 
 typedef struct LvnShaderCreateInfo
 {
@@ -470,8 +476,8 @@ typedef struct LvnPresentInfo
 {
     uint32_t                waitSemaphoreCount;
     LvnSemaphore* const*    pWaitSemaphores;
-    uint32_t                surfaceCount;
-    LvnSurface* const*      pSurfaces;
+    uint32_t                swapchainCount;
+    LvnSwapchain* const*    pSwapchains;
     const uint32_t*         pImageIndices;
 } LvnPresentInfo;
 
@@ -498,6 +504,8 @@ LVN_API void                        lvnDestroyGraphicsContext(LvnGraphicsContext
 
 LVN_API LvnResult                   lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
 LVN_API void                        lvnDestroySurface(LvnSurface* surface);
+LVN_API LvnResult                   lvnCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain** swapchain, const LvnSwapchainCreateInfo* createInfo);
+LVN_API void                        lvnDestroySwapchain(LvnSwapchain* swapchain);
 LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo);
 LVN_API void                        lvnDestroyShader(LvnShader* shader);
 LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
@@ -510,11 +518,12 @@ LVN_API LvnResult                   lvnCreateBuffer(const LvnGraphicsContext* gr
 LVN_API void                        lvnDestroyBuffer(LvnBuffer* buffer);
 LVN_API LvnResult                   lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
-LVN_API LvnFormat                   lvnSurfaceGetSwapchainFormat(const LvnSurface* surface);
-LVN_API LvnImageView*               lvnSurfaceGetSwapchainImageView(LvnSurface* surface, uint32_t imageIndex);
-LVN_API uint32_t                    lvnSurfaceGetSwapchainImageCount(const LvnSurface* surface);
-LVN_API LvnExtent2D                 lvnSurfaceGetSwapchainExtent(const LvnSurface* surface);
-LVN_API LvnResult                   lvnSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height);
+LVN_API LvnFormat                   lvnSwapchainGetFormat(const LvnSwapchain* swapchain);
+LVN_API LvnImageView*               lvnSwapchainGetImageView(LvnSwapchain* swapchain, uint32_t imageIndex);
+LVN_API uint32_t                    lvnSwapchainGetImageCount(const LvnSwapchain* swapchain);
+LVN_API LvnExtent2D                 lvnSwapchainGetExtent(const LvnSwapchain* swapchain);
+LVN_API LvnResult                   lvnSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
+LVN_API LvnResult                   lvnSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 LVN_API LvnResult                   lvnFenceWait(LvnFence* fence, uint64_t timeout);
 LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
@@ -533,7 +542,6 @@ LVN_API void                        lvnCmdSetViewport(LvnCommandBuffer* commandB
 LVN_API void                        lvnCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
 LVN_API void                        lvnCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 LVN_API void                        lvnCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-LVN_API LvnResult                   lvnSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 LVN_API LvnResult                   lvnRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
 LVN_API LvnResult                   lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 

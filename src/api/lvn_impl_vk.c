@@ -537,6 +537,7 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         }
     }
 
+    swapchainData->surface = createInfo->surface;
     swapchainData->swapchain = swapchain;
     swapchainData->swapchainFormat = swapchainFormat.format;
     swapchainData->presentMode = presentMode;
@@ -1710,17 +1711,21 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // set vulkan implementation function pointers
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
     graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
+    graphicsctx->implCreateSwapchain = lvnImplVkCreateSwapchain;
+    graphicsctx->implDestroySwapchain = lvnImplVkDestroySwapchain;
     graphicsctx->implCreateShader = lvnImplVkCreateShader;
     graphicsctx->implDestroyShader = lvnImplVkDestroyShader;
     graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
-    graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
     graphicsctx->implCreateFence = lvnImplVkCreateFence;
     graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
     graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
     graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
     graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
+    graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
+    graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
+    graphicsctx->implSwapchainAcquireNextImage = lvnImplVkSwapchainAcquireNextImage;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
     graphicsctx->implFenceReset = lvnImplVkFenceReset;
     graphicsctx->implBufferUpdateData = lvnImplVkBufferUpdateData;
@@ -1736,8 +1741,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCmdSetScissor = lvnImplVkCmdSetScissor;
     graphicsctx->implCmdDraw = lvnImplVkCmdDraw;
     graphicsctx->implCmdDrawIndexed = lvnImplVkCmdDrawIndexed;
-    graphicsctx->implSurfaceAcquireNextImage = lvnImplVkSurfaceAcquireNextImage;
-    graphicsctx->implSurfaceResize = lvnImplVkSurfaceResize;
     graphicsctx->implRenderSubmit = lvnImplVkRenderSubmit;
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
 
@@ -1791,22 +1794,45 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
-    VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-    LvnVkSwapchainData* swapchainData = NULL;
-    LvnImageView* swapchainImageViews = NULL;
-
-    // surface
     LvnPlatformData platformData = {0};
     platformData.ndh = createInfo->nativeDisplayHandle;
     platformData.nwh = createInfo->nativeWindowHandle;
 
+    VkSurfaceKHR vkSurface;
     if (lvn_createPlatformSurface(vkBackends, &vkSurface, &platformData) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkSurfaceKHR for surface %p", surface);
-        goto fail_cleanup;
+        return Lvn_Result_Failure;
     }
 
-    // swap chain
+    surface->surface = vkSurface;
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkDestroySurface(LvnSurface* surface)
+{
+    LVN_ASSERT(surface, "surface cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+
+    vkBackends->deviceWaitIdle(vkBackends->device);
+
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    surface->surface = NULL;
+}
+
+LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && swapchain && createInfo, "graphicsctx, surface, and createInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) createInfo->surface->surface;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnVkSwapchainData* swapchainData = NULL;
+    LvnImageView* swapchainImageViews = NULL;
+
     LvnVkSwapChainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.physicalDevice = vkBackends->physicalDevice;
     swapchainCreateInfo.surface = vkSurface;
@@ -1818,49 +1844,63 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     swapchainCreateInfo.minImageCount = createInfo->minImageCount;
 
     swapchainData = lvn_calloc(sizeof(LvnVkSwapchainData));
+    if (!swapchainData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for swapchain data in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup_swapchaindata;
+    }
+
     if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for surface %p", surface);
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for swapchain %p", swapchain);
+        errResult = Lvn_Result_Failure;
         goto fail_cleanup;
     }
 
     swapchainImageViews = lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnImageView));
+    if (!swapchainImageViews)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for swapchain image views in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
         swapchainImageViews[i].imageHandle = swapchainData->swapchainImages[i];
         swapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
-        swapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
+        swapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         swapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
     }
 
-    surface->surface = vkSurface;
-    surface->swapchainData = swapchainData;
-    surface->pSwapchainImageViews = swapchainImageViews;
-    surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
-    surface->swapchainColorFormat = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
-    surface->extent.width = swapchainData->swapchainExtent.width;
-    surface->extent.height = swapchainData->swapchainExtent.height;
+    swapchain->swapchainData = swapchainData;
+    swapchain->pSwapchainImageViews = swapchainImageViews;
+    swapchain->swapchainImageViewCount = swapchainData->swapchainImageCount;
+    swapchain->swapchainColorFormat = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
+    swapchain->extent.width = swapchainData->swapchainExtent.width;
+    swapchain->extent.height = swapchainData->swapchainExtent.height;
 
     return Lvn_Result_Success;
 
 fail_cleanup:
     lvn_free(swapchainImageViews);
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImageViews);
     lvn_free(swapchainData->swapchainImages);
+fail_cleanup_swapchaindata:
     lvn_free(swapchainData);
-    return Lvn_Result_Failure;
+    return errResult;
 }
 
-void lvnImplVkDestroySurface(LvnSurface* surface)
+void lvnImplVkDestroySwapchain(LvnSwapchain* swapchain)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
 
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
-    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
 
     vkBackends->deviceWaitIdle(vkBackends->device);
 
@@ -1876,15 +1916,10 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
 
     // swapchain data struct
-    lvn_free(surface->swapchainData);
-    lvn_free(surface->pSwapchainImageViews);
-    surface->swapchainData = NULL;
-    surface->pSwapchainImageViews = NULL;
-
-    // surface
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
-    surface->surface = NULL;
+    lvn_free(swapchain->swapchainData);
+    lvn_free(swapchain->pSwapchainImageViews);
+    swapchain->swapchainData = NULL;
+    swapchain->pSwapchainImageViews = NULL;
 }
 
 LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
@@ -2435,22 +2470,24 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
     return Lvn_Result_Success;
 }
 
-LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t height)
+LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
 
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
 
     vkBackends->deviceWaitIdle(vkBackends->device);
 
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) surface->swapchainData;
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
+    VkSurfaceKHR surface = (VkSurfaceKHR) swapchainData->surface;
 
     // destroy swapchain resources
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
         vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImages);
     lvn_free(swapchainData->swapchainImageViews);
+    swapchainData->swapchainImages = NULL;
+    swapchainData->swapchainImageViews = NULL;
 
     // set current swapchain to old swapchain
     swapchainData->oldSwapchain = swapchainData->swapchain;
@@ -2458,7 +2495,7 @@ LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t h
 
     LvnVkSwapChainCreateInfo swapchainCreateInfo = {
         .physicalDevice = vkBackends->physicalDevice,
-        .surface = vkSurface,
+        .surface = surface,
         .surfaceFormat = swapchainData->swapchainFormat,
         .presentMode = swapchainData->presentMode,
         .queueFamilyIndices = &vkBackends->queueFamilyIndices,
@@ -2480,26 +2517,43 @@ LvnResult lvnImplVkSurfaceResize(LvnSurface* surface, uint32_t width, uint32_t h
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
     swapchainData->oldSwapchain = VK_NULL_HANDLE;
 
-    if (surface->swapchainImageViewCount != swapchainData->swapchainImageCount)
+    if (swapchain->swapchainImageViewCount != swapchainData->swapchainImageCount)
     {
-        surface->swapchainImageViewCount = swapchainData->swapchainImageCount;
-        surface->pSwapchainImageViews = lvn_realloc(surface->pSwapchainImageViews, swapchainData->swapchainImageCount * sizeof(LvnImageView));
+        swapchain->swapchainImageViewCount = swapchainData->swapchainImageCount;
+        swapchain->pSwapchainImageViews = lvn_realloc(swapchain->pSwapchainImageViews, swapchainData->swapchainImageCount * sizeof(LvnImageView));
     }
 
     // update image views in LvnSurface struct
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
-        surface->pSwapchainImageViews[i].imageHandle = swapchainData->swapchainImages[i];
-        surface->pSwapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
-        surface->pSwapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
-        surface->pSwapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
+        swapchain->pSwapchainImageViews[i].imageHandle = swapchainData->swapchainImages[i];
+        swapchain->pSwapchainImageViews[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        swapchain->pSwapchainImageViews[i].imageLayoutEnum = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // swapchain images use color attachment format
+        swapchain->pSwapchainImageViews[i].formatEnum = swapchainData->swapchainFormat;
     }
 
     // update extent
-    surface->extent.width = swapchainData->swapchainExtent.width;
-    surface->extent.height = swapchainData->swapchainExtent.height;
+    swapchain->extent.width = swapchainData->swapchainExtent.width;
+    swapchain->extent.height = swapchainData->swapchainExtent.height;
 
     return Lvn_Result_Success;
+}
+
+LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
+{
+    LVN_ASSERT(swapchain && imageIndex, "swapchain and imageIndex cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
+    VkSwapchainKHR vkSwapchain = ((LvnVkSwapchainData*)swapchain->swapchainData)->swapchain;
+    VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreHandle : VK_NULL_HANDLE;
+    VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceHandle : VK_NULL_HANDLE;
+
+    VkResult result = vkBackends->acquireNextImageKHR(vkBackends->device, vkSwapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        return Lvn_Result_OutOfDate;
+
+    return (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ? Lvn_Result_Success : Lvn_Result_Failure;
 }
 
 LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
@@ -2757,23 +2811,6 @@ void lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCoun
     vkBackends->cmdDrawIndexed(cmdBuff, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-LvnResult lvnImplVkSurfaceAcquireNextImage(LvnSurface* surface, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
-{
-    LVN_ASSERT(surface && imageIndex, "surface and imageIndex cannot be null");
-
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
-    VkSwapchainKHR swapchain = ((LvnVkSwapchainData*)surface->swapchainData)->swapchain;
-    VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreHandle : VK_NULL_HANDLE;
-    VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceHandle : VK_NULL_HANDLE;
-
-    VkResult result = vkBackends->acquireNextImageKHR(vkBackends->device, swapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
-        return Lvn_Result_OutOfDate;
-
-    return (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ? Lvn_Result_Success : Lvn_Result_Failure;
-}
-
 LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
@@ -2852,15 +2889,15 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
         waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreHandle;
 
     VkSwapchainKHR* swapchains = lvn_memArenaAlloc(graphicsctx->frameArena,
-                                                   presentInfo->surfaceCount * sizeof(VkSwapchainKHR));
-    for (uint32_t i = 0; i < presentInfo->surfaceCount; i++)
-        swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSurfaces[i]->swapchainData)->swapchain;
+                                                   presentInfo->swapchainCount * sizeof(VkSwapchainKHR));
+    for (uint32_t i = 0; i < presentInfo->swapchainCount; i++)
+        swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSwapchains[i]->swapchainData)->swapchain;
 
     VkPresentInfoKHR vkPresentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = presentInfo->waitSemaphoreCount,
         .pWaitSemaphores = waitSemaphores,
-        .swapchainCount = presentInfo->surfaceCount,
+        .swapchainCount = presentInfo->swapchainCount,
         .pSwapchains = swapchains,
         .pImageIndices = presentInfo->pImageIndices,
         .pResults = NULL,
