@@ -77,6 +77,8 @@ set(LVN_SRC
     src/levikno.c
     src/levikno_internal.h
     src/lvn_platform.c
+    src/external/stb_image.c
+    src/external/stb_image.h
 )
 
 add_library(levikno ${LVN_LIB_TYPE} ${LVN_SRC})
@@ -84,6 +86,7 @@ add_library(levikno ${LVN_LIB_TYPE} ${LVN_SRC})
 target_include_directories(levikno
     PRIVATE
         include/levikno
+        src
 )
 
 # graphics
