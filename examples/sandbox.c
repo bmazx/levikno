@@ -403,7 +403,7 @@ int main(int argc, char** argv)
         LvnRenderPassBeginInfo beginInfo = {
             .renderPass = renderPass,
             .framebuffer = swapchainFramebuffers[imageIndex],
-            .renderArea = {{winData.width, winData.height}, {0, 0}},
+            .renderArea = {{extent.width, extent.height}, {0, 0}},
             .pClearValues = clearValues,
             .clearValueCount = 1,
         };
