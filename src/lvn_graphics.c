@@ -6,6 +6,8 @@
 #include "lvn_impl_vk.h"
 #endif
 
+#include "stb_image.h"
+
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api);
 
@@ -185,6 +187,118 @@ void lvnDestroySwapchain(LvnSwapchain* swapchain)
     lvn_free(swapchain);
 }
 
+LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass** renderpass, const LvnRenderPassCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && renderpass && createInfo, "graphicsctx, renderpass, and createInfo cannot be null");
+
+    if (createInfo->colorAttachmentCount > 0 && !createInfo->pColorAttachments)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create renderpass at (%p), createInfo->colorAttachmentCount is greater than zero (%u) but createInfo->pColorAttachments is null",
+                      renderpass, createInfo->colorAttachmentCount);
+        return Lvn_Result_Failure;
+    }
+    if (createInfo->colorAttachmentCount == 0 && !createInfo->depthStencilAttachment)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create renderpass at (%p), createInfo->colorAttachmentCount is zero and createInfo->depthStencilAttachment is null; cannot create renderpass with no attachments",
+                      renderpass);
+        return Lvn_Result_Failure;
+    }
+
+    for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
+    {
+        if (createInfo->pColorAttachments[i].samples != Lvn_SampleCountFlag_1_Bit && !createInfo->pColorAttachments[i].resolveAttachment)
+        {
+            LVN_LOG_WARN(graphicsctx->coreLogger,
+                          "when creating renderpass at (%p), createInfo->pColorAttachments[%u] has multisampled count but does not have a resolve attachment",
+                          renderpass, i);
+        }
+        if (createInfo->pColorAttachments[i].resolveAttachment)
+        {
+            if (createInfo->pColorAttachments[i].format != createInfo->pColorAttachments[i].resolveAttachment->format)
+            {
+                LVN_LOG_ERROR(graphicsctx->coreLogger,
+                              "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].format does not have the same format to createInfo->pColorAttachments.resolveAttachment->format; the formats of the color attachment and resolve attachment must be the same",
+                              renderpass, i);
+                return Lvn_Result_Failure;
+            }
+        }
+        if (createInfo->pColorAttachments[i].samples != createInfo->pColorAttachments[(i + 1) % createInfo->colorAttachmentCount].samples)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "failed to create renderpass at (%p), misaligned sample count, all color attachments must have the same sample count, createInfo->pColorAttachments[%u] and createInfo->pColorAttachments[%u]",
+                          renderpass, i, (i + 1) % createInfo->colorAttachmentCount);
+            return Lvn_Result_Failure;
+        }
+        if (createInfo->depthStencilAttachment)
+        {
+            if (createInfo->pColorAttachments[i].samples != createInfo->depthStencilAttachment->samples)
+            {
+                LVN_LOG_ERROR(graphicsctx->coreLogger,
+                              "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].samples does not have the same sample count to createInfo->depthStencilAttachment->samples; the depthStencilAttachment must have the same sample count to the color attachments",
+                              renderpass, i);
+                return Lvn_Result_Failure;
+            }
+        }
+    }
+
+    *renderpass = (LvnRenderPass*) lvn_calloc(sizeof(LvnRenderPass));
+
+    if (!*renderpass)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for renderpass at %p", renderpass);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnRenderPass* renderpassPtr = *renderpass;
+    renderpassPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateRenderPass(graphicsctx, *renderpass, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*renderpass);
+
+    return result;
+}
+
+void lvnDestroyRenderPass(LvnRenderPass* renderpass)
+{
+    LVN_ASSERT(renderpass, "renderpass cannot be null");
+    const LvnGraphicsContext* graphicsctx = renderpass->graphicsctx;
+    graphicsctx->implDestroyRenderPass(renderpass);
+    lvn_free(renderpass);
+}
+
+LvnResult lvnCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer** framebuffer, const LvnFramebufferCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
+
+    *framebuffer = (LvnFramebuffer*) lvn_calloc(sizeof(LvnFramebuffer));
+
+    if (!*framebuffer)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for framebuffer at %p", framebuffer);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnFramebuffer* framebufferPtr = *framebuffer;
+    framebufferPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateFramebuffer(graphicsctx, *framebuffer, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*framebuffer);
+
+    return result;
+}
+
+void lvnDestroyFramebuffer(LvnFramebuffer* framebuffer)
+{
+    LVN_ASSERT(framebuffer, "framebuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = framebuffer->graphicsctx;
+    graphicsctx->implDestroyFramebuffer(framebuffer);
+    lvn_free(framebuffer);
+}
+
 LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
@@ -335,6 +449,66 @@ void lvnDestroyBuffer(LvnBuffer* buffer)
     lvn_free(buffer);
 }
 
+LvnResult lvnCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler** sampler, const LvnSamplerCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && sampler && createInfo, "graphicsctx, sampler, and createInfo cannot be null");
+
+    *sampler = (LvnSampler*) lvn_calloc(sizeof(LvnSampler));
+
+    if (!*sampler)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for sampler at %p", sampler);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnSampler* samplerPtr = *sampler;
+    samplerPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateSampler(graphicsctx, *sampler, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*sampler);
+
+    return result;
+}
+
+void lvnDestroySampler(LvnSampler* sampler)
+{
+    LVN_ASSERT(sampler, "sampler cannot be null");
+    const LvnGraphicsContext* graphicsctx = sampler->graphicsctx;
+    graphicsctx->implDestroySampler(sampler);
+    lvn_free(sampler);
+}
+
+LvnResult lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** texture, const LvnTextureCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
+
+    *texture = (LvnTexture*) lvn_calloc(sizeof(LvnTexture));
+
+    if (!*texture)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for sampler at %p", texture);
+        return Lvn_Result_OutOfMemory;
+    }
+
+    LvnTexture* texturePtr = *texture;
+    texturePtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateTexture(graphicsctx, *texture, createInfo);
+    if (result != Lvn_Result_Success)
+        lvn_free(*texture);
+
+    return result;
+}
+
+void lvnDestroyTexture(LvnTexture* texture)
+{
+    LVN_ASSERT(texture, "texture cannot be null");
+    const LvnGraphicsContext* graphicsctx = texture->graphicsctx;
+    graphicsctx->implDestroyTexture(texture);
+    lvn_free(texture);
+}
+
 LvnResult lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
 {
     LVN_ASSERT(graphicsctx && allocInfo && pCommandBuffers, "graphicsctx, allocInfo, and pCommandBuffers cannot be null");
@@ -375,17 +549,17 @@ LvnFormat lvnSwapchainGetFormat(const LvnSwapchain* swapchain)
     return swapchain->swapchainColorFormat;
 }
 
-LvnImageView* lvnSwapchainGetImageView(LvnSwapchain* swapchain, uint32_t imageIndex)
+LvnTexture* lvnSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
-    LVN_ASSERT(imageIndex < swapchain->swapchainImageViewCount, "imageIndex out of index bounds");
-    return &swapchain->pSwapchainImageViews[imageIndex];
+    LVN_ASSERT(imageIndex < swapchain->swapchainImageCount, "imageIndex out of index bounds");
+    return &swapchain->pSwapchainImages[imageIndex];
 }
 
 uint32_t lvnSwapchainGetImageCount(const LvnSwapchain* swapchain)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
-    return swapchain->swapchainImageViewCount;
+    return swapchain->swapchainImageCount;
 }
 
 LvnExtent2D lvnSwapchainGetExtent(const LvnSwapchain* swapchain)
@@ -519,6 +693,45 @@ void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
     graphicsctx->implBufferResize(buffer, size);
 }
 
+LvnImage lvnLoadImage(const char* filepath, int forceChannels, bool flipVertically)
+{
+    LVN_ASSERT(filepath, "filepath cannot not be null");
+    LVN_ASSERT(forceChannels >= 0 && forceChannels <= 4, "forceChannels must be between 0 and 4");
+
+    LvnImage image = {0};
+
+    stbi_set_flip_vertically_on_load(flipVertically);
+    int imageWidth, imageHeight, imageChannels;
+    stbi_uc* pixels = stbi_load(filepath, &imageWidth, &imageHeight, &imageChannels, forceChannels);
+    if (!pixels)
+        return image;
+
+    void* data = lvn_calloc(imageWidth * imageHeight * (forceChannels ? forceChannels : imageChannels));
+    if (!data) {
+        stbi_image_free(pixels);
+        return image;
+    }
+
+    image.width = imageWidth;
+    image.height = imageHeight;
+    image.channels = forceChannels ? forceChannels : imageChannels;
+    image.data = data;
+
+    stbi_image_free(pixels);
+
+    return image;
+}
+
+void lvnUnloadImage(LvnImage* image)
+{
+    if (!image) return;
+    lvn_free(image->data);
+    image->data = NULL;
+    image->width = 0;
+    image->height = 0;
+    image->channels = 0;
+}
+
 void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
@@ -533,18 +746,18 @@ void lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer)
     graphicsctx->implEndCommandBuffer(commandBuffer);
 }
 
-void lvnCmdBeginRendering(LvnCommandBuffer* commandBuffer, const LvnRenderingInfo* renderInfo)
+void lvnCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
-    graphicsctx->implCmdBeginRendering(commandBuffer, renderInfo);
+    graphicsctx->implCmdBeginRenderPass(commandBuffer, beginInfo);
 }
 
-void lvnCmdEndRendering(LvnCommandBuffer* commandBuffer)
+void lvnCmdEndRenderPass(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
-    graphicsctx->implCmdEndRendering(commandBuffer);
+    graphicsctx->implCmdEndRenderPass(commandBuffer);
 }
 
 void lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)

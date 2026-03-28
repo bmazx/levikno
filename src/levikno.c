@@ -282,6 +282,8 @@ LvnFile lvnLoadFileBin(const char* filepath)
 
 LvnFile lvnLoadFile(const char* filepath, LvnFileType type)
 {
+    LVN_ASSERT(filepath, "filepath cannot be null");
+
     LvnFile file = {0};
 
     const char* mode = "r";

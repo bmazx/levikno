@@ -60,6 +60,7 @@ typedef struct LvnVulkanBackends
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR    getPhysicalDeviceSurfaceCapabilitiesKHR;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR         getPhysicalDeviceSurfaceFormatsKHR;
     PFN_vkGetPhysicalDeviceSurfacePresentModesKHR    getPhysicalDeviceSurfacePresentModesKHR;
+    PFN_vkGetPhysicalDeviceFeatures                  getPhysicalDeviceFeatures;
     PFN_vkVoidFunction                               createSurfaceProc;
     PFN_vkDestroySurfaceKHR                          destroySurfaceKHR;
     PFN_vkGetDeviceProcAddr                          getDeviceProcAddr;
@@ -73,6 +74,8 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyImage                               destroyImage;
     PFN_vkCreateImageView                            createImageView;
     PFN_vkDestroyImageView                           destroyImageView;
+    PFN_vkCreateSampler                              createSampler;
+    PFN_vkDestroySampler                             destroySampler;
     PFN_vkCreateShaderModule                         createShaderModule;
     PFN_vkDestroyShaderModule                        destroyShaderModule;
     PFN_vkCreateRenderPass                           createRenderPass;
@@ -83,6 +86,8 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyPipeline                            destroyPipeline;
     PFN_vkCreateFramebuffer                          createFramebuffer;
     PFN_vkDestroyFramebuffer                         destroyFramebuffer;
+    PFN_vkCreateBuffer                               createBuffer;
+    PFN_vkDestroyBuffer                              destroyBuffer;
     PFN_vkCreateFence                                createFence;
     PFN_vkDestroyFence                               destroyFence;
     PFN_vkCreateSemaphore                            createSemaphore;
@@ -93,8 +98,6 @@ typedef struct LvnVulkanBackends
     PFN_vkFreeCommandBuffers                         freeCommandBuffers;
     PFN_vkBeginCommandBuffer                         beginCommandBuffer;
     PFN_vkEndCommandBuffer                           endCommandBuffer;
-    PFN_vkCmdBeginRendering                          cmdBeginRendering;
-    PFN_vkCmdEndRendering                            cmdEndRendering;
     PFN_vkCmdBeginRenderPass                         cmdBeginRenderPass;
     PFN_vkCmdEndRenderPass                           cmdEndRenderPass;
     PFN_vkCmdPipelineBarrier                         cmdPipelineBarrier;
@@ -105,6 +108,8 @@ typedef struct LvnVulkanBackends
     PFN_vkCmdSetScissor                              cmdSetScissor;
     PFN_vkCmdDraw                                    cmdDraw;
     PFN_vkCmdDrawIndexed                             cmdDrawIndexed;
+    PFN_vkCmdCopyBuffer                              cmdCopyBuffer;
+    PFN_vkCmdCopyBufferToImage                       cmdCopyBufferToImage;
     PFN_vkAcquireNextImageKHR                        acquireNextImageKHR;
     PFN_vkQueueSubmit                                queueSubmit;
     PFN_vkQueuePresentKHR                            queuePresentKHR;
@@ -122,9 +127,6 @@ typedef struct LvnVulkanBackends
     PFN_vkBindImageMemory                            bindImageMemory;
     PFN_vkGetBufferMemoryRequirements                getBufferMemoryRequirements;
     PFN_vkGetImageMemoryRequirements                 getImageMemoryRequirements;
-    PFN_vkCreateBuffer                               createBuffer;
-    PFN_vkDestroyBuffer                              destroyBuffer;
-    PFN_vkCmdCopyBuffer                              cmdCopyBuffer;
 
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;

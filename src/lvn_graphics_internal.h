@@ -5,18 +5,43 @@
 #include "levikno_internal.h"
 
 
-struct LvnImageView
+struct LvnBuffer
 {
-    void*      imageHandle;
-    void*      imageViewHandle;
-    int32_t    imageLayoutEnum;
-    int32_t    formatEnum;
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        buffer;
+    void*                        bufferMemory;
+    void*                        bufferMap;
+    uint64_t                     size;
+    LvnBufferTypeFlagBits        type;
+    LvnBufferUsage               usage;
+};
+
+struct LvnSampler
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        samplerHandle;
+};
+
+struct LvnTexture
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        imageHandle;
+    void*                        imageViewHandle;
+    void*                        imageMemoryHandle;
+    uint32_t                     width;
+    uint32_t                     height;
+};
+
+struct LvnRenderPass
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        renderpass;
 };
 
 struct LvnFramebuffer
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        framebufferData;
+    void*                        framebufferHandle;
 };
 
 struct LvnSurface
@@ -29,8 +54,8 @@ struct LvnSwapchain
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        swapchainData;
-    LvnImageView*                pSwapchainImageViews;
-    uint32_t                     swapchainImageViewCount;
+    LvnTexture*                  pSwapchainImages;
+    uint32_t                     swapchainImageCount;
     LvnFormat                    swapchainColorFormat;
     LvnExtent2D                  extent;
 };
@@ -58,8 +83,6 @@ struct LvnCommandBuffer
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        commandbuffer;
-    LvnImageView**               pColorAttachmentImages;       // use in vulkan to store swapchain color attachment images per rendering/renderpass
-    uint32_t                     colorAttachmentImageCount;    // vulkan color attachment image count
 };
 
 struct LvnFence
@@ -72,18 +95,6 @@ struct LvnSemaphore
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        semaphoreHandle;
-};
-
-struct LvnBuffer
-{
-    const LvnGraphicsContext*    graphicsctx;
-    void*                        buffer;
-    void*                        bufferMemory;
-    void*                        bufferMap;
-    uint64_t                     size;
-    LvnBufferTypeFlagBits        type;
-    LvnBufferUsage               usage;
-    uint32_t                     id;
 };
 
 struct LvnGraphicsContext
@@ -103,6 +114,10 @@ struct LvnGraphicsContext
     void                        (*implDestroySurface)(LvnSurface*);
     LvnResult                   (*implCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
     void                        (*implDestroySwapchain)(LvnSwapchain*);
+    LvnResult                   (*implCreateRenderPass)(const LvnGraphicsContext*, LvnRenderPass*, const LvnRenderPassCreateInfo*);
+    void                        (*implDestroyRenderPass)(LvnRenderPass*);
+    LvnResult                   (*implCreateFramebuffer)(const LvnGraphicsContext*, LvnFramebuffer*, const LvnFramebufferCreateInfo*);
+    void                        (*implDestroyFramebuffer)(LvnFramebuffer*);
     LvnResult                   (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
     void                        (*implDestroyShader)(LvnShader*);
     LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
@@ -113,6 +128,10 @@ struct LvnGraphicsContext
     void                        (*implDestroySemaphore)(LvnSemaphore*);
     LvnResult                   (*implCreateBuffer)(const LvnGraphicsContext*, LvnBuffer*, const LvnBufferCreateInfo*);
     void                        (*implDestroyBuffer)(LvnBuffer*);
+    LvnResult                   (*implCreateSampler)(const LvnGraphicsContext*, LvnSampler*, const LvnSamplerCreateInfo*);
+    void                        (*implDestroySampler)(LvnSampler*);
+    LvnResult                   (*implCreateTexture)(const LvnGraphicsContext*, LvnTexture*, const LvnTextureCreateInfo*);
+    void                        (*implDestroyTexture)(LvnTexture*);
     LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
 
     LvnResult                   (*implSwapchainResize)(LvnSwapchain*, uint32_t, uint32_t);
@@ -126,8 +145,8 @@ struct LvnGraphicsContext
 
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
-    void                        (*implCmdBeginRendering)(LvnCommandBuffer*, const LvnRenderingInfo*);
-    void                        (*implCmdEndRendering)(LvnCommandBuffer*);
+    void                        (*implCmdBeginRenderPass)(LvnCommandBuffer*, LvnRenderPassBeginInfo* beginInfo);
+    void                        (*implCmdEndRenderPass)(LvnCommandBuffer*);
     void                        (*implCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
     void                        (*implCmdBindVertexBuffer)(LvnCommandBuffer*, uint32_t, uint32_t, LvnBuffer**, uint64_t*);
     void                        (*implCmdBindIndexBuffer)(LvnCommandBuffer*, LvnBuffer*, uint64_t);

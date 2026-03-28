@@ -10,6 +10,12 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
+typedef struct WindowData
+{
+    bool framebufferResized;
+    int width, height;
+} WindowData;
+
 static float s_Vertices[] = {
     0.0f,-0.5f, 1.0f, 0.0f, 0.0f,
     0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
@@ -59,6 +65,41 @@ void* customRealloc(void* ptr, size_t size, void* userData)
     void* newptr = realloc(ptr, size);
     if (!newptr) { printf("realloc fail\n"); exit(-1); }
     return newptr;
+}
+
+void resizeFramebuffers(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, LvnRenderPass* renderPass, LvnFramebuffer*** swapchainFramebuffers, uint32_t frameBufferCount, uint32_t width, uint32_t height)
+{
+    for (uint32_t i = 0; i < frameBufferCount; i++)
+    {
+        lvnDestroyFramebuffer((*swapchainFramebuffers)[i]);
+    }
+    free(*swapchainFramebuffers);
+
+    uint32_t imageCount = lvnSwapchainGetImageCount(swapchain);
+
+    *swapchainFramebuffers = (LvnFramebuffer**) malloc(imageCount * sizeof(LvnFramebuffer*));
+
+    for (uint32_t i = 0; i < imageCount; i++)
+    {
+        LvnTexture* swapchainImage = lvnSwapchainGetImage(swapchain, i);
+        LvnFramebufferCreateInfo framebufferCreateInfo = {
+            .renderPass = renderPass,
+            .pColorAttachments = &swapchainImage,
+            .colorAttachmentCount = 1,
+            .width = width,
+            .height = height,
+        };
+
+        lvnCreateFramebuffer(graphicsctx, &(*swapchainFramebuffers)[i], &framebufferCreateInfo);
+    }
+}
+
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    WindowData* winData = (WindowData*) glfwGetWindowUserPointer(window);
+    winData->framebufferResized = true;
+    winData->width = width;
+    winData->height = height;
 }
 
 int main(int argc, char** argv)
@@ -146,6 +187,11 @@ int main(int argc, char** argv)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
+    WindowData winData = {0};
+    glfwSetWindowUserPointer(window, &winData);
+
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
     // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
     // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
@@ -174,8 +220,8 @@ int main(int argc, char** argv)
 
     LvnSwapchainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.surface = surface;
-    swapchainCreateInfo.width = 600;
-    swapchainCreateInfo.height = 800;
+    swapchainCreateInfo.width = 800;
+    swapchainCreateInfo.height = 600;
     swapchainCreateInfo.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
     swapchainCreateInfo.presentMode = Lvn_PresentMode_Mailbox;
     swapchainCreateInfo.minImageCount = 3;
@@ -183,8 +229,44 @@ int main(int argc, char** argv)
     LvnSwapchain* swapchain;
     lvnCreateSwapchain(graphicsctx, &swapchain, &swapchainCreateInfo);
 
-    LvnFile vertfile = lvnLoadFileBin("res/shaders/vert.spv");
-    LvnFile fragfile = lvnLoadFileBin("res/shaders/frag.spv");
+    LvnColorAttachment colorAttachment = {
+        .usage = Lvn_AttachmentUsage_PresentSrc,
+        .format = Lvn_Format_B8G8R8A8_SRGB,
+        .samples = Lvn_SampleCountFlag_1_Bit,
+        .loadOp = Lvn_AttachmentLoadOp_Clear,
+        .storeOp = Lvn_AttachmentStoreOp_Store,
+    };
+
+    LvnRenderPassCreateInfo renderPassCreateInfo = {
+        .pColorAttachments = &colorAttachment,
+        .colorAttachmentCount = 1,
+        .depthStencilAttachment = NULL,
+    };
+
+    LvnRenderPass* renderPass;
+    lvnCreateRenderPass(graphicsctx, &renderPass, &renderPassCreateInfo);
+
+    uint32_t imageCount = lvnSwapchainGetImageCount(swapchain);
+    LvnExtent2D extent = lvnSwapchainGetExtent(swapchain);
+
+    LvnFramebuffer** swapchainFramebuffers = (LvnFramebuffer**) malloc(imageCount * sizeof(LvnFramebuffer*));
+
+    for (uint32_t i = 0; i < imageCount; i++)
+    {
+        LvnTexture* swapchainImage = lvnSwapchainGetImage(swapchain, i);
+        LvnFramebufferCreateInfo framebufferCreateInfo = {
+            .renderPass = renderPass,
+            .pColorAttachments = &swapchainImage,
+            .colorAttachmentCount = 1,
+            .width = extent.width,
+            .height = extent.height,
+        };
+
+        lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
+    }
+
+    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
@@ -212,8 +294,6 @@ int main(int argc, char** argv)
     pipelineFixedFuncs.scissor.extent.width = 800;
     pipelineFixedFuncs.scissor.extent.height = 600;
 
-    LvnFormat colorFormat = lvnSwapchainGetFormat(swapchain);
-
     LvnVertexAttribute attributes[2] =
     {
         { 0, 0, Lvn_AttributeFormat_Vec2_f32, 0 },
@@ -235,8 +315,7 @@ int main(int argc, char** argv)
     pipelineCreateInfo.descriptorLayoutCount = 0;
     pipelineCreateInfo.pStages = stages;
     pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(stages);
-    pipelineCreateInfo.pColorAttachmentFormats = &colorFormat;
-    pipelineCreateInfo.colorAttachmentCount = 1;
+    pipelineCreateInfo.renderPass = renderPass;
 
     LvnPipeline* pipeline;
     lvnCreatePipeline(graphicsctx, &pipeline, &pipelineCreateInfo);
@@ -289,13 +368,10 @@ int main(int argc, char** argv)
     lvnCreateBuffer(graphicsctx, &indexBuffer, &bufferCreateInfo);
 
     uint32_t imageIndex = 0;
-    int width = 0, height = 0, oldWidth = 0, oldHeight = 0;
     LvnResult result;
 
     while (!glfwWindowShouldClose(window))
     {
-        glfwGetWindowSize(window, &width, &height);
-
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
 
@@ -303,9 +379,12 @@ int main(int argc, char** argv)
 
         if (result == Lvn_Result_OutOfDate)
         {
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
             lvnSwapchainResize(swapchain, width, height);
-            oldWidth = width;
-            oldHeight = height;
+            extent = lvnSwapchainGetExtent(swapchain);
+            resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            imageCount = lvnSwapchainGetImageCount(swapchain);
             continue;
         }
         else if (result != Lvn_Result_Success)
@@ -314,27 +393,22 @@ int main(int argc, char** argv)
             continue;
         }
 
-        LvnExtent2D extent = lvnSwapchainGetExtent(swapchain);
 
         lvnBeginCommandBuffer(cmdBuff);
 
-        LvnRenderingAttachmentInfo colorAttachment =
-        {
-            .loadOp = Lvn_AttachmentLoadOp_Clear,
-            .storeOp = Lvn_AttachmentStoreOp_Store,
-            .clearValue.color = {{ 0.0f, 0.0f, 0.0f, 0.0f }},
-            .imageView = lvnSwapchainGetImageView(swapchain, imageIndex),
+        LvnClearValue clearValues[] = {
+            {{{0.0f, 0.0f, 0.0f}}},
         };
 
-        LvnRenderingInfo renderInfo = {0};
-        renderInfo.renderArea.extent.width = extent.width;
-        renderInfo.renderArea.extent.height = extent.height;
-        renderInfo.renderArea.offset.x = 0;
-        renderInfo.renderArea.offset.y = 0;
-        renderInfo.pColorAttachments = &colorAttachment;
-        renderInfo.colorAttachmentCount = 1;
+        LvnRenderPassBeginInfo beginInfo = {
+            .renderPass = renderPass,
+            .framebuffer = swapchainFramebuffers[imageIndex],
+            .renderArea = {{winData.width, winData.height}, {0, 0}},
+            .pClearValues = clearValues,
+            .clearValueCount = 1,
+        };
 
-        lvnCmdBeginRendering(cmdBuff, &renderInfo);
+        lvnCmdBeginRenderPass(cmdBuff, &beginInfo);
 
         lvnCmdBindPipeline(cmdBuff, pipeline);
 
@@ -359,8 +433,7 @@ int main(int argc, char** argv)
 
         lvnCmdDrawIndexed(cmdBuff, LVN_ARRAY_LEN(s_Indices), 1, 0, 0, 0);
 
-        lvnCmdEndRendering(cmdBuff);
-
+        lvnCmdEndRenderPass(cmdBuff);
         lvnEndCommandBuffer(cmdBuff);
 
         LvnSubmitInfo submitInfo = {
@@ -382,14 +455,16 @@ int main(int argc, char** argv)
         };
         result = lvnRenderPresent(graphicsctx, &presentInfo);
 
-        if (result == Lvn_Result_OutOfDate || width != oldWidth || height != oldHeight)
+        if (result == Lvn_Result_OutOfDate || winData.framebufferResized)
         {
-            glfwGetWindowSize(window, &width, &height);
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
             lvnSwapchainResize(swapchain, width, height);
+            extent = lvnSwapchainGetExtent(swapchain);
+            resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            imageCount = lvnSwapchainGetImageCount(swapchain);
+            winData.framebufferResized = false;
         }
-
-        oldWidth = width;
-        oldHeight = height;
 
         glfwPollEvents();
     }
@@ -401,6 +476,9 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < 12; i++)
         lvnDestroySemaphore(renderFinishedSemaphores[i]);
     lvnDestroyPipeline(pipeline);
+    for (uint32_t i = 0; i < imageCount; i++)
+        lvnDestroyFramebuffer(swapchainFramebuffers[i]);
+    lvnDestroyRenderPass(renderPass);
     lvnDestroySwapchain(swapchain);
     lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
