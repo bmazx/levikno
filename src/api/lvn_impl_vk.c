@@ -1573,17 +1573,11 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
 
-    // enable vulkan dynamic rendering features (1.3)
-    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {0};
-    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
-    dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
-
     VkDeviceCreateInfo deviceCreateInfo = {0};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.enabledExtensionCount = 0;
-    deviceCreateInfo.pNext = &dynamicRenderingFeatures;
 
     if (vkBackends->enableValidationLayers)
     {
