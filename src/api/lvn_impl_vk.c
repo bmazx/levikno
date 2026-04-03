@@ -1197,7 +1197,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
             goto fail_cleanup;
         }
 
-        extensionProps = lvn_calloc(extensionPropsCount * sizeof(VkExtensionProperties));
+        extensionProps = (VkExtensionProperties*) lvn_calloc(extensionPropsCount * sizeof(VkExtensionProperties));
         result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, extensionProps);
         if (result != VK_SUCCESS)
         {
