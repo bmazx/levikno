@@ -31,6 +31,8 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
 void      lvnImplVksDestroyTexture(LvnTexture* texture);
 LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
+void      lvnImplVkGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
+
 LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
 LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 

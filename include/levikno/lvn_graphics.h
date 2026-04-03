@@ -616,6 +616,8 @@ LVN_API LvnResult                   lvnCreateTexture(const LvnGraphicsContext* g
 LVN_API void                        lvnDestroyTexture(LvnTexture* texture);
 LVN_API LvnResult                   lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
 
+LVN_API void                        lvnGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
+
 LVN_API LvnFormat                   lvnSwapchainGetFormat(const LvnSwapchain* swapchain);
 LVN_API LvnTexture*                 lvnSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex);
 LVN_API uint32_t                    lvnSwapchainGetImageCount(const LvnSwapchain* swapchain);

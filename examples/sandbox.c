@@ -218,12 +218,28 @@ int main(int argc, char** argv)
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);
 
+    uint32_t formatCount;
+    lvnGetSupportedSurfaceFormats(surface, &formatCount, NULL);
+
+    LvnFormat* formats = (LvnFormat*) malloc(formatCount * sizeof(LvnFormat));
+    lvnGetSupportedSurfaceFormats(surface, &formatCount, formats);
+
+    LvnFormat selFormat = formats[0];
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        if (formats[i] == Lvn_Format_B8G8R8A8_SRGB)
+        {
+            selFormat = formats[i];
+            break;
+        }
+    }
+
     LvnSwapchainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.surface = surface;
     swapchainCreateInfo.width = 800;
     swapchainCreateInfo.height = 600;
-    swapchainCreateInfo.surfaceFormat = Lvn_Format_B8G8R8A8_SRGB;
-    swapchainCreateInfo.presentMode = Lvn_PresentMode_Mailbox;
+    swapchainCreateInfo.surfaceFormat = selFormat;
+    swapchainCreateInfo.presentMode = Lvn_PresentMode_FIFO;
     swapchainCreateInfo.minImageCount = 3;
 
     LvnSwapchain* swapchain;

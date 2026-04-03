@@ -61,8 +61,6 @@ static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFilter                    lvn_getVkTextureFilterEnum(LvnTextureFilter filter);
 static VkSamplerAddressMode        lvn_getVkTextureModeEnum(LvnTextureMode mode);
-static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
-static VkFormat                    lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice);
 static void                        lvn_transitionImageLayout(const LvnVulkanBackends* vkBackends, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
 static LvnResult                   lvn_createBuffer(const LvnVulkanBackends* vkBackends, VkBuffer* buffer, VmaAllocation* bufferMemory, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBackends, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset);
@@ -349,7 +347,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     LVN_ASSERT(vkBackends && swapchainData && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
     LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
 
-    VkSurfaceFormatKHR* swapchainFormats = NULL;
     VkPresentModeKHR* presentModes = NULL;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkImage* swapchainImages = NULL;
@@ -359,42 +356,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
     vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR(createInfo->physicalDevice, createInfo->surface, &capabilities);
-
-    // swapchain format
-    uint32_t formatCount;
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, createInfo->surface, &formatCount, NULL);
-
-    if (!formatCount)
-    {
-        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
-                      "[vulkan] failed to create swapchain, no supported surface formats found");
-        goto fail_cleanup;
-    }
-
-    swapchainFormats = lvn_calloc(formatCount * sizeof(VkSurfaceFormatKHR));
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, createInfo->surface, &formatCount, swapchainFormats);
-
-    // find desired format, default to first if not found
-    VkSurfaceFormatKHR swapchainFormat = swapchainFormats[0];
-    bool surfaceFormatDefault = true;
-    for (uint32_t i = 0; i < formatCount; i++)
-    {
-        if (swapchainFormats[i].format == createInfo->surfaceFormat &&
-            swapchainFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            swapchainFormat = swapchainFormats[i];
-            surfaceFormatDefault = false;
-            break;
-        }
-    }
-
-    if (surfaceFormatDefault)
-    {
-        LVN_LOG_WARN(vkBackends->graphicsctx->coreLogger,
-                     "[vulkan] unable to find desired surface format (VkSurfaceFormatKHR) %d, fallback to supported vulkan surface format %d",
-                     createInfo->surfaceFormat,
-                     swapchainFormat.format);
-    }
 
     // swapchain present modes
     uint32_t presentModeCount;
@@ -478,8 +439,8 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainCreateInfo.surface = createInfo->surface;
     swapchainCreateInfo.minImageCount = imageCount;
-    swapchainCreateInfo.imageFormat = swapchainFormat.format;
-    swapchainCreateInfo.imageColorSpace = swapchainFormat.colorSpace;
+    swapchainCreateInfo.imageFormat = createInfo->surfaceFormat;
+    swapchainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // NOTE: support other colorspace in future?
     swapchainCreateInfo.imageExtent = extent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -522,7 +483,7 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         imageViewCreateInfo.image = swapchainImages[i];
         imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCreateInfo.format = swapchainFormat.format;
+        imageViewCreateInfo.format = createInfo->surfaceFormat;
         imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -542,7 +503,7 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
 
     swapchainData->surface = createInfo->surface;
     swapchainData->swapchain = swapchain;
-    swapchainData->swapchainFormat = swapchainFormat.format;
+    swapchainData->swapchainFormat = createInfo->surfaceFormat;
     swapchainData->presentMode = presentMode;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImageCount = swapchainImageCount;
@@ -550,7 +511,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     swapchainData->swapchainImageViews = swapchainImageViews;
 
     lvn_free(presentModes);
-    lvn_free(swapchainFormats);
 
     return Lvn_Result_Success;
 
@@ -561,7 +521,6 @@ fail_cleanup:
     lvn_free(swapchainImageViews);
     lvn_free(swapchainImages);
     lvn_free(presentModes);
-    lvn_free(swapchainFormats);
     return Lvn_Result_Failure;
 }
 
@@ -878,36 +837,6 @@ static VkSamplerAddressMode lvn_getVkTextureModeEnum(LvnTextureMode mode)
     return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 }
 
-// TODO: might try a better way to find supported depth formats
-static VkFormat lvn_findSupportedFormat(
-    const LvnVulkanBackends* vkBackends,
-    VkPhysicalDevice physicalDevice,
-    const VkFormat* candidates,
-    uint32_t count,
-    VkImageTiling tiling,
-    VkFormatFeatureFlags features)
-{
-    for (uint32_t i = 0; i < count; i++)
-    {
-        VkFormatProperties props;
-        vkBackends->getPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-            return candidates[i];
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-            return candidates[i];
-    }
-
-    LVN_ASSERT(false, "[vulkan] failed to find supported format type for physical device!");
-    return VK_FORMAT_UNDEFINED;
-}
-
-static VkFormat lvn_findDepthFormat(const LvnVulkanBackends* vkBackends, VkPhysicalDevice physicalDevice)
-{
-    VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
-    return lvn_findSupportedFormat(vkBackends, physicalDevice, formats, LVN_ARRAY_LEN(formats), VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
 static void lvn_transitionImageLayout(
     const LvnVulkanBackends* vkBackends,
     VkImage image,
@@ -1178,7 +1107,6 @@ static void lvn_copyBufferToImage(
     vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
 }
 
-// TODO: remove this function in the future
 static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
 {
     switch (format)
@@ -1193,7 +1121,6 @@ static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
         default: { break; }
     }
 
-    LVN_ASSERT(false, "invalid format enum, VkFormat not supported");
     return Lvn_Format_None;
 }
 
@@ -1876,6 +1803,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
     graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
     graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
+    graphicsctx->implGetSupportedSurfaceFormats = lvnImplVkGetSupportedSurfaceFormats;
     graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
     graphicsctx->implSwapchainAcquireNextImage = lvnImplVkSwapchainAcquireNextImage;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
@@ -3026,6 +2954,51 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
 
     lvn_free(commandBuffers);
     return Lvn_Result_Success;
+}
+
+void lvnImplVkGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
+{
+    LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+
+    uint32_t vkFormatCount = 0;
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, NULL);
+
+    if (!vkFormatCount)
+    {
+        *formatCount = 0;
+        return;
+    }
+
+    VkSurfaceFormatKHR* formats = (VkSurfaceFormatKHR*) lvn_calloc(vkFormatCount * sizeof(VkSurfaceFormatKHR));
+    if (!formats)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate temporary format (VkFormat) array when querying surface formats");
+        return;
+    }
+
+    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, formats);
+
+    uint32_t supportedFormatCount = 0;
+    for (uint32_t i = 0; i < vkFormatCount; i++)
+    {
+        // NOTE: support other colorspace in future?
+        if (formats[i].colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            continue;
+
+        LvnFormat format = lvn_getLvnFormatEnum(formats[i].format);
+        if (format != Lvn_Format_None)
+            supportedFormatCount++;
+
+        if (pSurfaceFormats)
+            pSurfaceFormats[i] = format;
+    }
+
+    *formatCount = supportedFormatCount;
+
+    lvn_free(formats);
 }
 
 LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)

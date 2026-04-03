@@ -543,6 +543,13 @@ fail_cleanup:
     return Lvn_Result_Failure;
 }
 
+void lvnGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
+{
+    LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    graphicsctx->implGetSupportedSurfaceFormats(surface, formatCount, pSurfaceFormats);
+}
+
 LvnFormat lvnSwapchainGetFormat(const LvnSwapchain* swapchain)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
