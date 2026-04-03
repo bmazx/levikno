@@ -1133,7 +1133,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     VkLayerProperties* availableLayers = NULL;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-    LvnVulkanBackends* vkBackends = lvn_calloc(sizeof(LvnVulkanBackends));
+    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) lvn_calloc(sizeof(LvnVulkanBackends));
     graphicsctx->implData = vkBackends;
 
     vkBackends->graphicsctx = graphicsctx;
@@ -1228,42 +1228,42 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
         if (vkBackends->ext.KHR_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_KHR_surface";
         }
         if (vkBackends->ext.KHR_win32_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_KHR_win32_surface";
         }
         if (vkBackends->ext.MVK_macos_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_MVK_macos_surface";
         }
         if (vkBackends->ext.EXT_metal_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_EXT_metal_surface";
         }
         if (vkBackends->ext.KHR_xlib_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_KHR_xlib_surface";
         }
         if (vkBackends->ext.KHR_xcb_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_KHR_xcb_surface";
         }
         if (vkBackends->ext.KHR_wayland_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_KHR_wayland_surface";
         }
         if (vkBackends->ext.EXT_headless_surface)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = "VK_EXT_headless_surface";
         }
     }
@@ -1274,7 +1274,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     if (vkBackends->enableValidationLayers)
     {
         vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, NULL);
-        availableLayers = lvn_calloc(availableLayerCount * sizeof(VkLayerProperties));
+        availableLayers = (VkLayerProperties*) lvn_calloc(availableLayerCount * sizeof(VkLayerProperties));
         vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, availableLayers);
 
         for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkValidationLayers); i++)
@@ -1299,7 +1299,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         // add validation message callback extension
         if (layerSupport)
         {
-            extensionNames = lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
+            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
             extensionNames[extensionCount - 1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
 
