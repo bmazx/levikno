@@ -219,10 +219,10 @@ int main(int argc, char** argv)
     lvnCreateSurface(graphicsctx, &surface, &sci);
 
     uint32_t formatCount;
-    lvnGetSupportedSurfaceFormats(surface, &formatCount, NULL);
+    lvnSurfaceGetSupportedFormats(surface, &formatCount, NULL);
 
     LvnFormat* formats = (LvnFormat*) malloc(formatCount * sizeof(LvnFormat));
-    lvnGetSupportedSurfaceFormats(surface, &formatCount, formats);
+    lvnSurfaceGetSupportedFormats(surface, &formatCount, formats);
 
     LvnFormat selFormat = formats[0];
     for (uint32_t i = 0; i < formatCount; i++)
@@ -230,16 +230,37 @@ int main(int argc, char** argv)
         if (formats[i] == Lvn_Format_B8G8R8A8_SRGB)
         {
             selFormat = formats[i];
+            printf("found surface format\n");
             break;
         }
     }
+
+    free(formats);
+
+    uint32_t presentModeCount;
+    lvnSurfaceGetSupportedPresentModes(surface, &presentModeCount, NULL);
+
+    LvnPresentMode* presentModes = (LvnPresentMode*) malloc(presentModeCount * sizeof(LvnPresentMode));
+    lvnSurfaceGetSupportedPresentModes(surface, &presentModeCount, presentModes);
+
+    LvnPresentMode selPresentMode = Lvn_PresentMode_FIFO;
+    for (uint32_t i = 0; i < presentModeCount; i++)
+    {
+        if (presentModes[i] == Lvn_PresentMode_Mailbox)
+        {
+            selPresentMode = presentModes[i];
+            printf("found present mode\n");
+        }
+    }
+
+    free(presentModes);
 
     LvnSwapchainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.surface = surface;
     swapchainCreateInfo.width = 800;
     swapchainCreateInfo.height = 600;
     swapchainCreateInfo.surfaceFormat = selFormat;
-    swapchainCreateInfo.presentMode = Lvn_PresentMode_FIFO;
+    swapchainCreateInfo.presentMode = selPresentMode;
     swapchainCreateInfo.minImageCount = 3;
 
     LvnSwapchain* swapchain;

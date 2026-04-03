@@ -61,6 +61,8 @@ static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFilter                    lvn_getVkTextureFilterEnum(LvnTextureFilter filter);
 static VkSamplerAddressMode        lvn_getVkTextureModeEnum(LvnTextureMode mode);
+static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
+static LvnPresentMode              lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode);
 static void                        lvn_transitionImageLayout(const LvnVulkanBackends* vkBackends, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
 static LvnResult                   lvn_createBuffer(const LvnVulkanBackends* vkBackends, VkBuffer* buffer, VmaAllocation* bufferMemory, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBackends, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset);
@@ -837,6 +839,36 @@ static VkSamplerAddressMode lvn_getVkTextureModeEnum(LvnTextureMode mode)
     return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 }
 
+static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
+{
+    switch (format)
+    {
+        case VK_FORMAT_UNDEFINED: { return Lvn_Format_None; }
+        case VK_FORMAT_R8G8B8_UNORM: { return Lvn_Format_R8G8B8_UNORM; }
+        case VK_FORMAT_R8G8B8_SRGB: { return Lvn_Format_R8G8B8_SRGB; }
+        case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_R8G8B8A8_UNORM; }
+        case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_R8G8B8A8_SRGB; }
+        case VK_FORMAT_B8G8R8_SRGB: { return Lvn_Format_B8G8R8_SRGB; }
+        case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_B8G8R8A8_SRGB; }
+        default: { break; }
+    }
+
+    return Lvn_Format_None;
+}
+
+static LvnPresentMode lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode)
+{
+    switch (presentMode)
+    {
+        case VK_PRESENT_MODE_FIFO_KHR: { return Lvn_PresentMode_FIFO; }
+        case VK_PRESENT_MODE_MAILBOX_KHR: { return Lvn_PresentMode_Mailbox; }
+        case VK_PRESENT_MODE_IMMEDIATE_KHR: { return Lvn_PresentMode_Immediate; }
+        default: { break; }
+    }
+
+    return Lvn_PresentMode_FIFO;
+}
+
 static void lvn_transitionImageLayout(
     const LvnVulkanBackends* vkBackends,
     VkImage image,
@@ -1105,23 +1137,6 @@ static void lvn_copyBufferToImage(
     vkBackends->queueWaitIdle(vkBackends->graphicsQueue);
 
     vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
-}
-
-static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
-{
-    switch (format)
-    {
-        case VK_FORMAT_UNDEFINED: { return Lvn_Format_None; }
-        case VK_FORMAT_R8G8B8_UNORM: { return Lvn_Format_R8G8B8_UNORM; }
-        case VK_FORMAT_R8G8B8_SRGB: { return Lvn_Format_R8G8B8_SRGB; }
-        case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_R8G8B8A8_UNORM; }
-        case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_R8G8B8A8_SRGB; }
-        case VK_FORMAT_B8G8R8_SRGB: { return Lvn_Format_B8G8R8_SRGB; }
-        case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_B8G8R8A8_SRGB; }
-        default: { break; }
-    }
-
-    return Lvn_Format_None;
 }
 
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -1803,7 +1818,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
     graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
     graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
-    graphicsctx->implGetSupportedSurfaceFormats = lvnImplVkGetSupportedSurfaceFormats;
+    graphicsctx->implSurfaceGetSupportedFormats = lvnImplVkSurfaceGetSupportedFormats;
+    graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplVkSurfaceGetSupportedPresentModes;
     graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
     graphicsctx->implSwapchainAcquireNextImage = lvnImplVkSwapchainAcquireNextImage;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
@@ -2956,7 +2972,7 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
     return Lvn_Result_Success;
 }
 
-void lvnImplVkGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
+void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
 {
     LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
@@ -2975,7 +2991,7 @@ void lvnImplVkGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* fo
     if (!formats)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
-                      "[vulkan] failed to allocate temporary format (VkFormat) array when querying surface formats");
+                      "[vulkan] failed to allocate temporary format (VkSurfaceFormatKHR) array when querying surface formats");
         return;
     }
 
@@ -2999,6 +3015,55 @@ void lvnImplVkGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* fo
     *formatCount = supportedFormatCount;
 
     lvn_free(formats);
+}
+
+void lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes)
+{
+    LVN_ASSERT(surface && presentModeCount, "surface and presentModeCount cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+
+    uint32_t vkPresentModeCount = 0;
+    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, NULL);
+
+    if (!vkPresentModeCount)
+    {
+        *presentModeCount = 0;
+        return;
+    }
+
+    VkPresentModeKHR* presentModes = (VkPresentModeKHR*) lvn_calloc(vkPresentModeCount * sizeof(VkPresentModeKHR));
+    if (!presentModes)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate temporary format (VkPresentModeKHR) array when querying surface present modes");
+        return;
+    }
+
+    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, presentModes);
+
+    bool fifoFound = false;
+    uint32_t supportedPresentModeCount = 0;
+    for (uint32_t i = 0; i < vkPresentModeCount; i++)
+    {
+        LvnPresentMode presentMode = lvn_getLvnPresentModeEnum(presentModes[i]);
+        if (presentMode == Lvn_PresentMode_FIFO)
+        {
+            if (fifoFound)
+                continue;
+            else
+                fifoFound = true;
+        }
+
+        supportedPresentModeCount++;
+
+        if (pPresentModes)
+            pPresentModes[i] = presentMode;
+    }
+
+    *presentModeCount = supportedPresentModeCount;
+
+    lvn_free(presentModes);
 }
 
 LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)

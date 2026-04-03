@@ -543,11 +543,18 @@ fail_cleanup:
     return Lvn_Result_Failure;
 }
 
-void lvnGetSupportedSurfaceFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
+void lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
 {
     LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
     const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
-    graphicsctx->implGetSupportedSurfaceFormats(surface, formatCount, pSurfaceFormats);
+    graphicsctx->implSurfaceGetSupportedFormats(surface, formatCount, pSurfaceFormats);
+}
+
+void lvnSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes)
+{
+    LVN_ASSERT(surface && presentModeCount, "surface and presentModeCount cannot be null");
+    const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
+    graphicsctx->implSurfaceGetSupportedPresentModes(surface, presentModeCount, pPresentModes);
 }
 
 LvnFormat lvnSwapchainGetFormat(const LvnSwapchain* swapchain)

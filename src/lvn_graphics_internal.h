@@ -134,7 +134,8 @@ struct LvnGraphicsContext
     void                        (*implDestroyTexture)(LvnTexture*);
     LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
 
-    void                        (*implGetSupportedSurfaceFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
+    void                        (*implSurfaceGetSupportedFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
+    void                        (*implSurfaceGetSupportedPresentModes)(const LvnSurface*, uint32_t*, LvnPresentMode*);
 
     LvnResult                   (*implSwapchainResize)(LvnSwapchain*, uint32_t, uint32_t);
     LvnResult                   (*implSwapchainAcquireNextImage)(LvnSwapchain*, LvnSemaphore*, LvnFence*, uint32_t*);
