@@ -349,7 +349,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     LVN_ASSERT(vkBackends && swapchainData && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
     LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
 
-    VkPresentModeKHR* presentModes = NULL;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkImage* swapchainImages = NULL;
     VkImageView* swapchainImageViews = NULL;
@@ -367,30 +366,6 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain, no supported present mode found");
         goto fail_cleanup;
-    }
-
-    presentModes = lvn_calloc(presentModeCount * sizeof(VkPresentModeKHR));
-    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, presentModes);
-
-    // find desired present mode
-    VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    bool presentModeDefault = true;
-    for (uint32_t i = 0; i < presentModeCount; i++)
-    {
-        if (presentModes[i] == createInfo->presentMode)
-        {
-            presentMode = presentModes[i];
-            presentModeDefault = false;
-            break;
-        }
-    }
-
-    if (presentModeDefault)
-    {
-        LVN_LOG_WARN(vkBackends->graphicsctx->coreLogger,
-                     "[vulkan] unable to find desired present mode (VkPresentModeKHR) %d, fallback to supported vulkan present mode %d",
-                     createInfo->presentMode,
-                     presentMode);
     }
 
     // choose swapchain extent
@@ -448,7 +423,7 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainCreateInfo.preTransform = capabilities.currentTransform;
     swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainCreateInfo.presentMode = presentMode;
+    swapchainCreateInfo.presentMode = createInfo->presentMode;
     swapchainCreateInfo.clipped = VK_TRUE;
     swapchainCreateInfo.oldSwapchain = swapchainData->oldSwapchain; // use for recreating swapchain on window resize
 
@@ -506,13 +481,11 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     swapchainData->surface = createInfo->surface;
     swapchainData->swapchain = swapchain;
     swapchainData->swapchainFormat = createInfo->surfaceFormat;
-    swapchainData->presentMode = presentMode;
+    swapchainData->presentMode = createInfo->presentMode;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImageCount = swapchainImageCount;
     swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageViews = swapchainImageViews;
-
-    lvn_free(presentModes);
 
     return Lvn_Result_Success;
 
@@ -522,7 +495,6 @@ fail_cleanup:
     vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
     lvn_free(swapchainImageViews);
     lvn_free(swapchainImages);
-    lvn_free(presentModes);
     return Lvn_Result_Failure;
 }
 
