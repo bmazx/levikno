@@ -707,7 +707,14 @@ void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
     graphicsctx->implBufferResize(buffer, size);
 }
 
-LvnImage lvnLoadImage(const char* filepath, int forceChannels, bool flipVertically)
+LvnImage lvnLoadImage(const char* filepath)
+{
+    LVN_ASSERT(filepath, "filepath cannot not be null");
+
+    return lvnLoadImageEx(filepath, 0, false);
+}
+
+LvnImage lvnLoadImageEx(const char* filepath, int forceChannels, bool flipVertically)
 {
     LVN_ASSERT(filepath, "filepath cannot not be null");
     LVN_ASSERT(forceChannels >= 0 && forceChannels <= 4, "forceChannels must be between 0 and 4");

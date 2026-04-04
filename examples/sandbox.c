@@ -404,6 +404,28 @@ int main(int argc, char** argv)
     LvnBuffer* indexBuffer;
     lvnCreateBuffer(graphicsctx, &indexBuffer, &bufferCreateInfo);
 
+    LvnSamplerCreateInfo samplerCreateInfo = {
+        .magFilter = Lvn_TextureFilter_Nearest,
+        .minFilter = Lvn_TextureFilter_Nearest,
+        .wrapR = Lvn_TextureMode_Repeat,
+        .wrapS = Lvn_TextureMode_Repeat,
+        .wrapT = Lvn_TextureMode_Repeat,
+    };
+
+    LvnSampler* sampler;
+    lvnCreateSampler(graphicsctx, &sampler, &samplerCreateInfo);
+
+    LvnImage image = lvnLoadImageEx("/home/bma/Documents/textures/woodBox.jpg", 4, false);
+
+    LvnTextureCreateInfo textureCreateInfo = {
+        .format = Lvn_TextureFormat_Srgb,
+        .image = &image,
+        .sampler = sampler,
+    };
+
+    LvnTexture* texture;
+    lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
+
     uint32_t imageIndex = 0;
     LvnResult result;
 
@@ -506,6 +528,8 @@ int main(int argc, char** argv)
         glfwPollEvents();
     }
 
+    lvnDestroyTexture(texture);
+    lvnDestroySampler(sampler);
     lvnDestroyBuffer(vertexBuffer);
     lvnDestroyBuffer(indexBuffer);
     lvnDestroyFence(fence);
@@ -521,6 +545,8 @@ int main(int argc, char** argv)
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);
+
+    lvnUnloadImage(&image);
 
     glfwDestroyWindow(window);
     glfwTerminate();

@@ -1499,6 +1499,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     VkPhysicalDeviceProperties deviceProperties;
     vkBackends->getPhysicalDeviceProperties(vkBackends->physicalDevice, &deviceProperties);
 
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkBackends->getPhysicalDeviceFeatures(vkBackends->physicalDevice, &deviceFeatures);
+
     LVN_LOG_TRACE(graphicsctx->coreLogger,
                   "[vulkan] found supported physical device: \"%s\", driverVersion: (%u), apiVersion: (%u)",
                   deviceProperties.deviceName,
@@ -1529,6 +1532,15 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     const char* requiredExtensions = NULL;
     uint32_t requiredExtensionCount = 0;
+
+    // enable device features
+    VkPhysicalDeviceFeatures enabledDeviceFeatures = {0};
+
+    // sampler anisotropy
+    if (deviceFeatures.samplerAnisotropy)
+        enabledDeviceFeatures.samplerAnisotropy = VK_TRUE;
+
+    deviceCreateInfo.pEnabledFeatures = &enabledDeviceFeatures;
 
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
     {
@@ -1817,6 +1829,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
     graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
     graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
+    graphicsctx->implCreateSampler = lvnImplVksCreateSampler;
+    graphicsctx->implDestroySampler = lvnImplVksDestroySampler;
+    graphicsctx->implCreateTexture = lvnImplVksCreateTexture;
+    graphicsctx->implDestroyTexture = lvnImplVksDestroyTexture;
     graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplVkSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplVkSurfaceGetSupportedPresentModes;
@@ -2819,7 +2835,7 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
     if (vkBackends->createSampler(vkBackends->device, &samplerInfo, NULL, &textureSampler) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to create texture sampler <VkSampler> (%p)",
+                      "[vulkan] failed to create sampler <VkSampler> (%p)",
                       textureSampler);
         return Lvn_Result_Failure;
     }
@@ -2852,7 +2868,12 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
 
     VkDeviceSize imageSize = createInfo->image->width * createInfo->image->height * createInfo->image->channels;
     if (lvn_createBuffer(vkBackends, &stagingBuffer, &stagingBufferMemory, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY) != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create transision buffer <VkBuffer> for image <VkImage> for texture (%p)",
+                      texture);
         goto fail_cleanup;
+    }
 
     void* data;
     vmaMapMemory(vkBackends->vmaAllocator, stagingBufferMemory, &data);
