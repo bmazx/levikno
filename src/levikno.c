@@ -1359,3 +1359,36 @@ LvnMemoryArena* lvn_memArenaRebuild(LvnMemoryArena* headArena)
 
     return memArena;
 }
+
+void lvn_getWindowPlatform(LvnWindowPlatformSupport* windowPlatformSupport)
+{
+    LVN_ASSERT(windowPlatformSupport, "windowPlatformSupport cannot be null");
+
+#if defined(LVN_INCLUDE_WIN32)
+    windowPlatformSupport->win32Support = true;
+#else
+    windowPlatformSupport->win32Support = false;
+#endif
+#if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
+    const char* session = getenv("XDG_SESSION_TYPE");
+    if (session && (strcmp(session, "wayland") == 0 || strcmp(session, "x11") == 0))
+    {
+        if (strcmp(session, "wayland") == 0)
+            windowPlatformSupport->waylandSupport = true;
+        else if (strcmp(session, "x11") == 0)
+            windowPlatformSupport->x11Support = true;
+    }
+    else
+    {
+        const char* waylandenv = getenv("WAYLAND_DISPLAY");
+        const char* x11env = getenv("DISPLAY");
+        if (waylandenv)
+            windowPlatformSupport->waylandSupport = true;
+        else if (x11env)
+            windowPlatformSupport->x11Support = true;
+    }
+#else
+    windowPlatformSupport->waylandSupport = false;
+    windowPlatformSupport->x11Support = false;
+#endif
+}

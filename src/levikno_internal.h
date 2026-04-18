@@ -45,6 +45,13 @@ typedef struct LvnMemoryArena
 #endif
 } LvnMemoryArena;
 
+typedef struct LvnWindowPlatformSupport
+{
+    bool win32Support;
+    bool waylandSupport;
+    bool x11Support;
+} LvnWindowPlatformSupport;
+
 struct LvnLogger
 {
     const LvnContext*    ctx;                 /* pointer to context */
@@ -90,6 +97,8 @@ void*              lvn_memArenaAlloc(LvnMemoryArena* memArena, size_t size);
 void*              lvn_memArenaAllocAligned(LvnMemoryArena* memArena, size_t size, size_t align);
 void               lvn_memArenaReset(LvnMemoryArena* headArena);
 LvnMemoryArena*    lvn_memArenaRebuild(LvnMemoryArena* headArena);
+
+void               lvn_getWindowPlatform(LvnWindowPlatformSupport* windowPlatformSupport);
 
 void*              lvn_platformLoadModule(const char* path);
 void               lvn_platformFreeModule(void* handle);

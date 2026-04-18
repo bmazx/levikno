@@ -2,8 +2,11 @@
 
 #include <string.h>
 
+#ifdef LVN_INCLUDE_OPENGL
+    #include "lvn_impl_ogl.h"
+#endif
 #ifdef LVN_INCLUDE_VULKAN
-#include "lvn_impl_vk.h"
+    #include "lvn_impl_vk.h"
 #endif
 
 #include "stb_image.h"
@@ -73,7 +76,9 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
         case Lvn_GraphicsApi_None:
             break;
         case Lvn_GraphicsApi_Opengl:
-            // TODO: add opengl impl
+#ifdef LVN_INCLUDE_OPENGL
+            result = lvnImplOglInit(gctxPtr, createInfo);
+#endif
             break;
         case Lvn_GraphicsApi_Vulkan:
 #ifdef LVN_INCLUDE_VULKAN
@@ -89,7 +94,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
         goto fail_cleanup_setapi;
     }
 
-    LVN_LOG_TRACE(gctxPtr->coreLogger, "graphics context created: (%p), graphics api set: %s",
+    LVN_LOG_TRACE(gctxPtr->coreLogger, "graphics context created: (%p), graphics api: %s",
                   *graphicsctx,
                   lvn_getGraphicsApiEnumName(createInfo->graphicsapi));
 
@@ -110,7 +115,9 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
         case Lvn_GraphicsApi_None:
             break;
         case Lvn_GraphicsApi_Opengl:
-            // TODO: add opengl impl
+#ifdef LVN_INCLUDE_OPENGL
+            lvnImplOglTerminate(graphicsctx);
+#endif
             break;
         case Lvn_GraphicsApi_Vulkan:
 #ifdef LVN_INCLUDE_VULKAN

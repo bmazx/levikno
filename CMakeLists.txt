@@ -11,11 +11,12 @@ include(FindPkgConfig)
 # options
 option(LVN_BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(LVN_BUILD_VULKAN "Build support for vulkan" ON)
-option(LVN_BUILD_GLSLANG "Build support for glslang" ON)
 option(LVN_BUILD_WAYLAND "Build support for wayland" ON)
 option(LVN_BUILD_X11 "Build support for x11" ON)
 option(LVN_BUILD_WIN32 "Build support for win32 api" ON)
+option(LVN_BUILD_OPENGL "Build support for opengl" ON)
+option(LVN_BUILD_VULKAN "Build support for vulkan" ON)
+option(LVN_BUILD_GLSLANG "Build support for glslang" ON)
 
 set(LVN_LIB_TYPE "${LVN_LIB_TYPE}" CACHE STRING
     "Library type override for levikno (SHARED, STATIC, OBJECT, or empty to follow BUILD_SHARED_LIBS)")
@@ -98,12 +99,37 @@ set(LVN_GRAPHICS_SRC
     src/external/stb_image.h
 )
 
+# opengl
+if (LVN_BUILD_OPENGL)
+    find_package(OpenGL)
+
+    if (OpenGL_FOUND)
+        message("OpenGL found, including OpenGL support")
+        add_definitions(-DLVN_INCLUDE_OPENGL)
+
+        list(APPEND LVN_GRAPHICS_SRC
+            src/api/lvn_impl_ogl.c
+            src/api/lvn_impl_ogl.h
+        )
+
+        if (OpenGL_EGL_FOUND)
+            message("EGL found, including EGL support")
+            add_definitions(-DLVN_INCLUDE_EGL)
+
+            list(APPEND LVN_GRAPHICS_SRC
+                src/api/lvn_impl_egl_loader.c
+                src/api/lvn_impl_egl_loader.h
+            )
+        endif()
+    endif()
+endif()
+
 # vulkanSDK
 if (LVN_BUILD_VULKAN)
     set(MIN_VULKAN_VERSION 1.3)
     find_package(Vulkan ${MIN_VULKAN_VERSION})
 
-    if(Vulkan_FOUND)
+    if (Vulkan_FOUND)
         message("Vulkan SDK found, including vulkan support")
         add_definitions(-DLVN_INCLUDE_VULKAN)
 
