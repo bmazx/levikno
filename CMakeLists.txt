@@ -108,6 +108,7 @@ if (LVN_BUILD_OPENGL)
         add_definitions(-DLVN_INCLUDE_OPENGL)
 
         list(APPEND LVN_GRAPHICS_SRC
+            src/external/KHR/khrplatform.h
             src/api/lvn_impl_ogl.c
             src/api/lvn_impl_ogl.h
         )

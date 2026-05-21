@@ -211,6 +211,102 @@ int main(int argc, char** argv)
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
+    LvnSurfaceCreateInfo sci = {0};
+    sci.nativeDisplayHandle = nativeDisplay;
+    sci.nativeWindowHandle = &nativeWindow;
+
+    LvnSurface* surface;
+    lvnCreateSurface(graphicsctx, &surface, &sci);
+
+    uint32_t formatCount;
+    lvnSurfaceGetSupportedFormats(surface, &formatCount, NULL);
+
+    LvnFormat* formats = (LvnFormat*) malloc(formatCount * sizeof(LvnFormat));
+    lvnSurfaceGetSupportedFormats(surface, &formatCount, formats);
+
+    LvnFormat selFormat = formats[0];
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        if (formats[i] == Lvn_Format_B8G8R8A8_SRGB)
+        {
+            selFormat = formats[i];
+            printf("found surface format\n");
+            break;
+        }
+    }
+
+    free(formats);
+
+    uint32_t presentModeCount;
+    lvnSurfaceGetSupportedPresentModes(surface, &presentModeCount, NULL);
+
+    LvnPresentMode* presentModes = (LvnPresentMode*) malloc(presentModeCount * sizeof(LvnPresentMode));
+    lvnSurfaceGetSupportedPresentModes(surface, &presentModeCount, presentModes);
+
+    LvnPresentMode selPresentMode = Lvn_PresentMode_FIFO;
+    for (uint32_t i = 0; i < presentModeCount; i++)
+    {
+        if (presentModes[i] == Lvn_PresentMode_Mailbox)
+        {
+            selPresentMode = presentModes[i];
+            printf("found present mode\n");
+        }
+    }
+
+    free(presentModes);
+
+    LvnSwapchainCreateInfo swapchainCreateInfo = {0};
+    swapchainCreateInfo.surface = surface;
+    swapchainCreateInfo.width = 800;
+    swapchainCreateInfo.height = 600;
+    swapchainCreateInfo.surfaceFormat = selFormat;
+    swapchainCreateInfo.presentMode = selPresentMode;
+    swapchainCreateInfo.minImageCount = 3;
+
+    LvnSwapchain* swapchain;
+    lvnCreateSwapchain(graphicsctx, &swapchain, &swapchainCreateInfo);
+
+    LvnColorAttachment colorAttachment = {
+        .usage = Lvn_AttachmentUsage_PresentSrc,
+        .format = Lvn_Format_B8G8R8A8_SRGB,
+        .samples = Lvn_SampleCountFlag_1_Bit,
+        .loadOp = Lvn_AttachmentLoadOp_Clear,
+        .storeOp = Lvn_AttachmentStoreOp_Store,
+    };
+
+    LvnRenderPassCreateInfo renderPassCreateInfo = {
+        .pColorAttachments = &colorAttachment,
+        .colorAttachmentCount = 1,
+        .depthStencilAttachment = NULL,
+    };
+
+    LvnRenderPass* renderPass;
+    lvnCreateRenderPass(graphicsctx, &renderPass, &renderPassCreateInfo);
+
+    uint32_t imageCount = lvnSwapchainGetImageCount(swapchain);
+    LvnExtent2D extent = lvnSwapchainGetExtent(swapchain);
+
+    LvnFramebuffer** swapchainFramebuffers = (LvnFramebuffer**) malloc(imageCount * sizeof(LvnFramebuffer*));
+
+    for (uint32_t i = 0; i < imageCount; i++)
+    {
+        LvnTexture* swapchainImage = lvnSwapchainGetImage(swapchain, i);
+        LvnFramebufferCreateInfo framebufferCreateInfo = {
+            .renderPass = renderPass,
+            .pColorAttachments = &swapchainImage,
+            .colorAttachmentCount = 1,
+            .width = extent.width,
+            .height = extent.height,
+        };
+
+        lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
+    }
+
+    for (uint32_t i = 0; i < imageCount; i++)
+        lvnDestroyFramebuffer(swapchainFramebuffers[i]);
+    lvnDestroyRenderPass(renderPass);
+    lvnDestroySwapchain(swapchain);
+    lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);

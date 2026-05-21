@@ -194,7 +194,9 @@ typedef enum LvnFormat
     Lvn_Format_R8G8B8A8_UNORM,
     Lvn_Format_R8G8B8A8_SRGB,
 
+    Lvn_Format_B8G8R8_UNORM,
     Lvn_Format_B8G8R8_SRGB,
+    Lvn_Format_B8G8R8A8_UNORM,
     Lvn_Format_B8G8R8A8_SRGB,
 } LvnFormat;
 

@@ -734,7 +734,9 @@ static VkFormat lvn_getVkFormatEnum(LvnFormat format)
         case Lvn_Format_R8G8B8_SRGB: { return VK_FORMAT_R8G8B8_SRGB; }
         case Lvn_Format_R8G8B8A8_UNORM: { return VK_FORMAT_R8G8B8A8_UNORM; }
         case Lvn_Format_R8G8B8A8_SRGB: { return VK_FORMAT_R8G8B8A8_SRGB; }
+        case Lvn_Format_B8G8R8_UNORM: { return VK_FORMAT_B8G8R8_UNORM; }
         case Lvn_Format_B8G8R8_SRGB: { return VK_FORMAT_B8G8R8_SRGB; }
+        case Lvn_Format_B8G8R8A8_UNORM: { return VK_FORMAT_B8G8R8A8_UNORM; }
         case Lvn_Format_B8G8R8A8_SRGB: { return VK_FORMAT_B8G8R8A8_SRGB; }
     }
 
@@ -790,7 +792,9 @@ static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
         case VK_FORMAT_R8G8B8_SRGB: { return Lvn_Format_R8G8B8_SRGB; }
         case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_R8G8B8A8_UNORM; }
         case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_R8G8B8A8_SRGB; }
+        case VK_FORMAT_B8G8R8_UNORM: { return Lvn_Format_B8G8R8_UNORM; }
         case VK_FORMAT_B8G8R8_SRGB: { return Lvn_Format_B8G8R8_SRGB; }
+        case VK_FORMAT_B8G8R8A8_UNORM: { return Lvn_Format_B8G8R8A8_UNORM; }
         case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_B8G8R8A8_SRGB; }
         default: { break; }
     }
@@ -1465,12 +1469,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.enabledExtensionCount = 0;
-
-    if (vkBackends->enableValidationLayers)
-    {
-        deviceCreateInfo.enabledLayerCount = LVN_ARRAY_LEN(s_LvnVkValidationLayers);
-        deviceCreateInfo.ppEnabledLayerNames = s_LvnVkValidationLayers;
-    }
 
     const char* requiredExtensions = NULL;
     uint32_t requiredExtensionCount = 0;
