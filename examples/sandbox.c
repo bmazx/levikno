@@ -227,7 +227,7 @@ int main(int argc, char** argv)
     LvnFormat selFormat = formats[0];
     for (uint32_t i = 0; i < formatCount; i++)
     {
-        if (formats[i] == Lvn_Format_B8G8R8A8_SRGB)
+        if (formats[i] == Lvn_Format_BGRA8_SRGB)
         {
             selFormat = formats[i];
             printf("found surface format\n");
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
 
     LvnColorAttachment colorAttachment = {
         .usage = Lvn_AttachmentUsage_PresentSrc,
-        .format = Lvn_Format_B8G8R8A8_SRGB,
+        .format = Lvn_Format_BGRA8_SRGB,
         .samples = Lvn_SampleCountFlag_1_Bit,
         .loadOp = Lvn_AttachmentLoadOp_Clear,
         .storeOp = Lvn_AttachmentStoreOp_Store,
@@ -301,6 +301,144 @@ int main(int argc, char** argv)
 
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
+
+    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
+
+    LvnShaderCreateInfo vertShCreateInfo = {0};
+    vertShCreateInfo.pCode = vertfile.data;
+    vertShCreateInfo.codeSize = vertfile.size;
+
+    LvnShader* vertShader;
+    lvnCreateShader(graphicsctx, &vertShader, &vertShCreateInfo);
+
+    LvnShaderCreateInfo fragShCreateInfo = {0};
+    fragShCreateInfo.pCode = fragfile.data;
+    fragShCreateInfo.codeSize = fragfile.size;
+
+    LvnShader* fragShader;
+    lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
+
+    LvnPipelineShaderStageCreateInfo stages[] =
+    {
+        { Lvn_ShaderStage_Vertex, vertShader, "main" },
+        { Lvn_ShaderStage_Fragment, fragShader, "main" },
+    };
+
+    LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
+    pipelineFixedFuncs.viewport.width = 800;
+    pipelineFixedFuncs.viewport.height = 600;
+    pipelineFixedFuncs.scissor.extent.width = 800;
+    pipelineFixedFuncs.scissor.extent.height = 600;
+
+    LvnVertexAttribute attributes[2] =
+    {
+        { 0, 0, Lvn_AttributeFormat_Vec2_f32, 0 },
+        { 0, 1, Lvn_AttributeFormat_Vec3_f32, (2 * sizeof(float)) },
+    };
+
+    LvnVertexBindingDescription vertexBindingDescription = {
+        .binding = 0,
+        .stride = 5 * sizeof(float),
+    };
+
+    LvnPipelineCreateInfo pipelineCreateInfo = {0};
+    pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
+    pipelineCreateInfo.pVertexAttributes = attributes;
+    pipelineCreateInfo.vertexAttributeCount = LVN_ARRAY_LEN(attributes);
+    pipelineCreateInfo.pVertexBindingDescriptions = &vertexBindingDescription;
+    pipelineCreateInfo.vertexBindingDescriptionCount = 1;
+    pipelineCreateInfo.pDescriptorLayouts = NULL;
+    pipelineCreateInfo.descriptorLayoutCount = 0;
+    pipelineCreateInfo.pStages = stages;
+    pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(stages);
+    pipelineCreateInfo.renderPass = renderPass;
+
+    LvnPipeline* pipeline;
+    lvnCreatePipeline(graphicsctx, &pipeline, &pipelineCreateInfo);
+
+    lvnDestroyShader(vertShader);
+    lvnDestroyShader(fragShader);
+    lvnUnloadFile(&vertfile);
+    lvnUnloadFile(&fragfile);
+
+    LvnCommandBufferAllocInfo cmdBuffAllocInfo = {
+        .level = Lvn_CommandBufferLevel_Primary,
+        .count = 1,
+    };
+
+    LvnCommandBuffer* cmdBuff;
+    lvnAllocateCommandBuffers(graphicsctx, &cmdBuffAllocInfo, &cmdBuff);
+
+    LvnFence* fence;
+    lvnCreateFence(graphicsctx, &fence);
+
+    LvnSemaphore* imageWaitSemaphore;
+    lvnCreateSemaphore(graphicsctx, &imageWaitSemaphore);
+
+    // NOTE: hard coding to be set number of images temporarily for now
+    LvnSemaphore* renderFinishedSemaphores[12];
+    for (uint32_t i = 0; i < 12; i++)
+        lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphores[i]);
+
+
+    // vertex buffer create info struct
+    LvnBufferCreateInfo bufferCreateInfo = {
+        .type = Lvn_BufferTypeFlag_Vertex,
+        .usage = Lvn_BufferUsage_Dynamic,
+        .data = s_Vertices,
+        .size = sizeof(s_Vertices),
+    };
+
+    // create buffer
+    LvnBuffer* vertexBuffer;
+    lvnCreateBuffer(graphicsctx, &vertexBuffer, &bufferCreateInfo);
+
+    // index buffer create info struct
+    bufferCreateInfo.type = Lvn_BufferTypeFlag_Index;
+    bufferCreateInfo.usage = Lvn_BufferUsage_Static;
+    bufferCreateInfo.data = s_Indices;
+    bufferCreateInfo.size = sizeof(s_Indices);
+
+    // create buffer
+    LvnBuffer* indexBuffer;
+    lvnCreateBuffer(graphicsctx, &indexBuffer, &bufferCreateInfo);
+
+    LvnSamplerCreateInfo samplerCreateInfo = {
+        .magFilter = Lvn_TextureFilter_Nearest,
+        .minFilter = Lvn_TextureFilter_Nearest,
+        .wrapR = Lvn_TextureMode_Repeat,
+        .wrapS = Lvn_TextureMode_Repeat,
+        .wrapT = Lvn_TextureMode_Repeat,
+    };
+
+    LvnSampler* sampler;
+    lvnCreateSampler(graphicsctx, &sampler, &samplerCreateInfo);
+
+    LvnImage image = lvnLoadImageEx("/home/bma/Documents/textures/woodBox.jpg", 4, false);
+
+    LvnTextureCreateInfo textureCreateInfo = {
+        .format = Lvn_Format_RGBA8_SRGB,
+        .image = &image,
+        .sampler = sampler,
+        .samples = Lvn_SampleCountFlag_1_Bit,
+        .width = image.width,
+        .height = image.height,
+    };
+
+    LvnTexture* texture;
+    lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
+
+
+    lvnDestroyTexture(texture);
+    lvnDestroySampler(sampler);
+    lvnDestroyBuffer(vertexBuffer);
+    lvnDestroyBuffer(indexBuffer);
+    lvnDestroyFence(fence);
+    lvnDestroySemaphore(imageWaitSemaphore);
+    for (uint32_t i = 0; i < 12; i++)
+        lvnDestroySemaphore(renderFinishedSemaphores[i]);
+    lvnDestroyPipeline(pipeline);
 
     for (uint32_t i = 0; i < imageCount; i++)
         lvnDestroyFramebuffer(swapchainFramebuffers[i]);

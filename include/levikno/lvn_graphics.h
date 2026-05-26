@@ -188,16 +188,21 @@ typedef enum LvnShaderStage
 
 typedef enum LvnFormat
 {
-    Lvn_Format_None = 0,
-    Lvn_Format_R8G8B8_UNORM,
-    Lvn_Format_R8G8B8_SRGB,
-    Lvn_Format_R8G8B8A8_UNORM,
-    Lvn_Format_R8G8B8A8_SRGB,
-
-    Lvn_Format_B8G8R8_UNORM,
-    Lvn_Format_B8G8R8_SRGB,
-    Lvn_Format_B8G8R8A8_UNORM,
-    Lvn_Format_B8G8R8A8_SRGB,
+    Lvn_Format_Undefined = 0,
+    Lvn_Format_R8_UNORM,
+    Lvn_Format_R16_FLOAT,
+    Lvn_Format_R32_FLOAT,
+    Lvn_Format_RG8_UNORM,
+    Lvn_Format_RG16_FLOAT,
+    Lvn_Format_RG32_FLOAT,
+    Lvn_Format_RGBA8_UNORM,
+    Lvn_Format_RGBA8_SRGB,
+    Lvn_Format_RGBA16_FLOAT,
+    Lvn_Format_RGBA32_FLOAT,
+    Lvn_Format_BGRA8_UNORM,
+    Lvn_Format_BGRA8_SRGB,
+    Lvn_Format_D24_UNORM_S8_UINT,
+    Lvn_Format_D32_FLOAT,
 } LvnFormat;
 
 typedef enum LvnPresentMode
@@ -236,11 +241,12 @@ typedef enum LvnTextureFilter
     Lvn_TextureFilter_Linear,
 } LvnTextureFilter;
 
-typedef enum LvnTextureFormat
+typedef enum LvnMipmapMode
 {
-    Lvn_TextureFormat_Unorm = 0,
-    Lvn_TextureFormat_Srgb  = 1,
-} LvnTextureFormat;
+    Lvn_MipmapMode_Disabled = 0,
+    Lvn_MipmapMode_Nearest,
+    Lvn_MipmapMode_Linear,
+} LvnMipmapMode;
 
 typedef enum LvnTextureMode
 {
@@ -485,18 +491,25 @@ typedef struct LvnBufferCreateInfo
 
 typedef struct LvnSamplerCreateInfo
 {
-    LvnTextureFilter minFilter;
-    LvnTextureFilter magFilter;
-    LvnTextureMode wrapS;
-    LvnTextureMode wrapT;
-    LvnTextureMode wrapR;
+    LvnTextureFilter    minFilter;
+    LvnTextureFilter    magFilter;
+    LvnMipmapMode       mipmapMode;
+    LvnTextureMode      wrapS;
+    LvnTextureMode      wrapT;
+    LvnTextureMode      wrapR;
+    float               mipLodBias;
+    float               minLod;
+    float               maxLod;
 } LvnSamplerCreateInfo;
 
 typedef struct LvnTextureCreateInfo
 {
-    const LvnSampler* sampler;
-    const LvnImage* image;
-    LvnTextureFormat format;
+    const LvnSampler*      sampler;
+    const LvnImage*        image;
+    LvnFormat              format;
+    LvnSampleCountFlags    samples;
+    uint32_t               width;
+    uint32_t               height;
 } LvnTextureCreateInfo;
 
 typedef struct LvnCommandBufferAllocInfo

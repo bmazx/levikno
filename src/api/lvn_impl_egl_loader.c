@@ -203,12 +203,22 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glGetString");
     oglBackends->glGetError = (PFNGLGETERRORPROC)
         eglLoader->eglGetProcAddress("glGetError");
+    oglBackends->glDebugMessageCallback = (PFNGLDEBUGMESSAGECALLBACKPROC)
+        eglLoader->eglGetProcAddress("glDebugMessageCallback");
     oglBackends->glGetIntegerv = (PFNGLGETINTEGERVPROC)
         eglLoader->eglGetProcAddress("glGetIntegerv");
+    oglBackends->glDisable = (PFNGLDISABLEPROC)
+        eglLoader->eglGetProcAddress("glDisable");
+    oglBackends->glEnable = (PFNGLENABLEPROC)
+        eglLoader->eglGetProcAddress("glEnable");
     oglBackends->glCreateBuffers = (PFNGLCREATEBUFFERSPROC)
         eglLoader->eglGetProcAddress("glCreateBuffers");
     oglBackends->glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)
         eglLoader->eglGetProcAddress("glDeleteBuffers");
+    oglBackends->glCreateSamplers = (PFNGLCREATESAMPLERSPROC)
+        eglLoader->eglGetProcAddress("glCreateSamplers");
+    oglBackends->glDeleteSamplers = (PFNGLDELETESAMPLERSPROC)
+        eglLoader->eglGetProcAddress("glDeleteSamplers");
     oglBackends->glCreateTextures = (PFNGLCREATETEXTURESPROC)
         eglLoader->eglGetProcAddress("glCreateTextures");
     oglBackends->glDeleteTextures = (PFNGLDELETETEXTURESPROC)
@@ -217,6 +227,36 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glCreateFramebuffers");
     oglBackends->glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)
         eglLoader->eglGetProcAddress("glDeleteFramebuffers");
+    oglBackends->glCreateVertexArrays = (PFNGLCREATEVERTEXARRAYSPROC)
+        eglLoader->eglGetProcAddress("glCreateVertexArrays");
+    oglBackends->glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)
+        eglLoader->eglGetProcAddress("glDeleteVertexArrays");
+    oglBackends->glCreateShader = (PFNGLCREATESHADERPROC)
+        eglLoader->eglGetProcAddress("glCreateShader");
+    oglBackends->glDeleteShader = (PFNGLDELETESHADERPROC)
+        eglLoader->eglGetProcAddress("glDeleteShader");
+    oglBackends->glCreateProgram = (PFNGLCREATEPROGRAMPROC)
+        eglLoader->eglGetProcAddress("glCreateProgram");
+    oglBackends->glDeleteProgram = (PFNGLDELETEPROGRAMPROC)
+        eglLoader->eglGetProcAddress("glDeleteProgram");
+    oglBackends->glCheckNamedFramebufferStatus = (PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)
+        eglLoader->eglGetProcAddress("glCheckNamedFramebufferStatus");
+    oglBackends->glNamedFramebufferTexture = (PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)
+        eglLoader->eglGetProcAddress("glNamedFramebufferTexture");
+    oglBackends->glNamedFramebufferDrawBuffer = (PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC)
+        eglLoader->eglGetProcAddress("glNamedFramebufferDrawBuffer");
+    oglBackends->glNamedFramebufferDrawBuffers = (PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC)
+        eglLoader->eglGetProcAddress("glNamedFramebufferDrawBuffers");
+    oglBackends->glSamplerParameteri = (PFNGLSAMPLERPARAMETERIPROC)
+        eglLoader->eglGetProcAddress("glSamplerParameteri");
+    oglBackends->glTextureParameteri = (PFNGLTEXTUREPARAMETERIPROC)
+        eglLoader->eglGetProcAddress("glTextureParameteri");
+    oglBackends->glTextureStorage2D = (PFNGLTEXTURESTORAGE2DPROC)
+        eglLoader->eglGetProcAddress("glTextureStorage2D");
+    oglBackends->glTextureStorage2DMultisample = (PFNGLTEXTURESTORAGE2DMULTISAMPLEPROC)
+        eglLoader->eglGetProcAddress("glTextureStorage2DMultisample");
+    oglBackends->glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)
+        eglLoader->eglGetProcAddress("glTextureSubImage2D");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

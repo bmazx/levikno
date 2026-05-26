@@ -20,6 +20,7 @@ struct LvnSampler
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        samplerHandle;
+    uint32_t                     samplerId;
 };
 
 struct LvnTexture
@@ -28,6 +29,9 @@ struct LvnTexture
     void*                        imageHandle;
     void*                        imageViewHandle;
     void*                        imageMemoryHandle;
+    void*                        samplerHandle;
+    uint32_t                     texId;
+    uint32_t                     samplerId;
     uint32_t                     width;
     uint32_t                     height;
 };

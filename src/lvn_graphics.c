@@ -490,11 +490,24 @@ LvnResult lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** t
 {
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
+    // createInfo validation
+    if (!createInfo->image)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create texture at %p | createInfo->image cannot be null", texture);
+        return Lvn_Result_Failure;
+    }
+    if (!createInfo->sampler)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create texture at %p | createInfo->sampler cannot be null", texture);
+        return Lvn_Result_Failure;
+    }
+
+    // allocate texture
     *texture = (LvnTexture*) lvn_calloc(sizeof(LvnTexture));
 
     if (!*texture)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for sampler at %p", texture);
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for texture at %p", texture);
         return Lvn_Result_OutOfMemory;
     }
 

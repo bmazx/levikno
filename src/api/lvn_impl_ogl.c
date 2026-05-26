@@ -1,9 +1,5 @@
 #include "lvn_impl_ogl.h"
 
-#if defined(LVN_INCLUDE_X11)
-    #include <GL/glx.h>
-#endif
-
 #if defined(LVN_INCLUDE_EGL)
     #include "lvn_impl_egl_loader.h"
 #endif
@@ -18,6 +14,62 @@
 
 static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGraphicsContextCreateInfo* createInfo);
 static void      lvn_unloadOglLoader(LvnOpenglBackends* oglBackends);
+static GLenum    lvn_getOglTextureFilterEnum(LvnTextureFilter filter, LvnMipmapMode mipmapMode);
+static GLenum    lvn_getOglTextureModeEnum(LvnTextureMode mode);
+static GLenum    lvn_getOglInternalFormatEnum(LvnFormat format);
+static GLenum    lvn_getOglDataFormatEnum(LvnFormat format);
+static GLenum    lvn_getOglFormatTypeEnum(LvnFormat format);
+static GLenum    lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format);
+static uint32_t  lvn_getSampleCount(LvnSampleCountFlags samples);
+
+static void GLAPIENTRY lvn_openglDebugCallback(
+    GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+    const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) userParam;
+
+    const char* srcstr = "";
+    switch (source)
+    {
+        case GL_DEBUG_SOURCE_API: { srcstr = "API"; break; }
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: { srcstr = "WINDOW SYSTEM"; break; }
+        case GL_DEBUG_SOURCE_SHADER_COMPILER: { srcstr = "SHADER COMPILER"; break; }
+        case GL_DEBUG_SOURCE_THIRD_PARTY: { srcstr = "THIRD PARTY"; break; }
+        case GL_DEBUG_SOURCE_APPLICATION: { srcstr = "APPLICATION"; break; }
+        case GL_DEBUG_SOURCE_OTHER: { srcstr = "OTHER"; break; }
+        default: { srcstr = ""; break; }
+    }
+
+    const char* typestr = "";
+    switch (type)
+    {
+        case GL_DEBUG_TYPE_ERROR: { typestr = "ERROR"; break; }
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: { typestr = "DEPRECATED_BEHAVIOR"; break; }
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: { typestr = "UNDEFINED_BEHAVIOR"; break; }
+        case GL_DEBUG_TYPE_PORTABILITY: { typestr = "PORTABILITY"; break; }
+        case GL_DEBUG_TYPE_PERFORMANCE: { typestr = "PERFORMANCE"; break; }
+        case GL_DEBUG_TYPE_MARKER: { typestr = "MARKER"; break; }
+        case GL_DEBUG_TYPE_OTHER: { typestr = "OTHER"; break; }
+        default: { typestr = ""; break; }
+    }
+
+    const char* severitystr = "";
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_NOTIFICATION: { severitystr = "NOTIFICATION"; break; }
+        case GL_DEBUG_SEVERITY_LOW: { severitystr = "LOW"; break; }
+        case GL_DEBUG_SEVERITY_MEDIUM: { severitystr = "MEDIUM"; break; }
+        case GL_DEBUG_SEVERITY_HIGH: { severitystr = "HIGH"; break; }
+        default: { severitystr = ""; break; }
+    }
+
+    LVN_LOG_ERROR(graphicsctx->coreLogger, "[opengl] [%s] | type: %s | severity: %s | message: %s", srcstr, typestr, severitystr, message);
+}
 
 static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGraphicsContextCreateInfo* createInfo)
 {
@@ -39,6 +91,150 @@ static void lvn_unloadOglLoader(LvnOpenglBackends* oglBackends)
 #if defined(LVN_INCLUDE_EGL)
     lvnEglLoaderTerminate(oglBackends);
 #endif
+}
+
+static GLenum lvn_getOglTextureFilterEnum(LvnTextureFilter filter, LvnMipmapMode mipmapMode)
+{
+    if (filter == Lvn_TextureFilter_Nearest)
+    {
+        if (mipmapMode == Lvn_MipmapMode_Disabled)
+            return GL_NEAREST;
+        else if (mipmapMode == Lvn_MipmapMode_Nearest)
+            return GL_NEAREST_MIPMAP_NEAREST;
+        else if (mipmapMode == Lvn_MipmapMode_Linear)
+            return GL_NEAREST_MIPMAP_LINEAR;
+    }
+    else if (filter == Lvn_TextureFilter_Linear)
+    {
+        if (mipmapMode == Lvn_MipmapMode_Disabled)
+            return GL_LINEAR;
+        else if (mipmapMode == Lvn_MipmapMode_Nearest)
+            return GL_LINEAR_MIPMAP_NEAREST;
+        else if (mipmapMode == Lvn_MipmapMode_Linear)
+            return GL_LINEAR_MIPMAP_LINEAR;
+    }
+
+    LVN_ASSERT(false, "invalid texture filter enum");
+    return GL_NEAREST;
+}
+
+static GLenum lvn_getOglTextureModeEnum(LvnTextureMode mode)
+{
+    switch (mode)
+    {
+        case Lvn_TextureMode_Repeat: { return GL_REPEAT; }
+        case Lvn_TextureMode_MirrorRepeat: { return GL_MIRRORED_REPEAT; }
+        case Lvn_TextureMode_ClampToEdge: { return GL_CLAMP_TO_EDGE; }
+        case Lvn_TextureMode_ClampToBorder: { return GL_CLAMP_TO_BORDER; }
+    }
+
+    LVN_ASSERT(false, "invalid wrap mode enum");
+    return GL_MIRRORED_REPEAT;
+}
+
+static GLenum lvn_getOglInternalFormatEnum(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_Undefined: { return GL_NONE; }
+        case Lvn_Format_R8_UNORM: { return GL_R8; }
+        case Lvn_Format_R16_FLOAT: { return GL_R16F; }
+        case Lvn_Format_R32_FLOAT: { return GL_R32F; }
+        case Lvn_Format_RG8_UNORM: { return GL_RG8; }
+        case Lvn_Format_RG16_FLOAT: { return GL_RG16F; }
+        case Lvn_Format_RG32_FLOAT: { return GL_RG32F; }
+        case Lvn_Format_RGBA8_UNORM: { return GL_RGBA8; }
+        case Lvn_Format_RGBA8_SRGB: { return GL_SRGB8_ALPHA8; }
+        case Lvn_Format_RGBA16_FLOAT: { return GL_RGBA16F; }
+        case Lvn_Format_RGBA32_FLOAT: { return GL_RGBA32F; }
+        case Lvn_Format_BGRA8_UNORM: { return GL_RGBA8; }
+        case Lvn_Format_BGRA8_SRGB: { return GL_SRGB8_ALPHA8; }
+        case Lvn_Format_D24_UNORM_S8_UINT: { return GL_DEPTH24_STENCIL8; }
+        case Lvn_Format_D32_FLOAT: { return GL_DEPTH_COMPONENT32F; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum");
+    return GL_NONE;
+}
+
+static GLenum lvn_getOglDataFormatEnum(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_Undefined: { return GL_NONE; }
+        case Lvn_Format_R8_UNORM: { return GL_RED; }
+        case Lvn_Format_R16_FLOAT: { return GL_RED; }
+        case Lvn_Format_R32_FLOAT: { return GL_RED; }
+        case Lvn_Format_RG8_UNORM: { return GL_RG; }
+        case Lvn_Format_RG16_FLOAT: { return GL_RG; }
+        case Lvn_Format_RG32_FLOAT: { return GL_RG; }
+        case Lvn_Format_RGBA8_UNORM: { return GL_RGBA; }
+        case Lvn_Format_RGBA8_SRGB: { return GL_RGBA; }
+        case Lvn_Format_RGBA16_FLOAT: { return GL_RGBA; }
+        case Lvn_Format_RGBA32_FLOAT: { return GL_RGBA; }
+        case Lvn_Format_BGRA8_UNORM: { return GL_BGRA; }
+        case Lvn_Format_BGRA8_SRGB: { return GL_BGRA; }
+        case Lvn_Format_D24_UNORM_S8_UINT: { return GL_DEPTH_STENCIL; }
+        case Lvn_Format_D32_FLOAT: { return GL_DEPTH_COMPONENT; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum");
+    return GL_NONE;
+}
+
+static GLenum lvn_getOglFormatTypeEnum(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_Undefined: { return GL_NONE; }
+        case Lvn_Format_R8_UNORM: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_R16_FLOAT: { return GL_HALF_FLOAT; }
+        case Lvn_Format_R32_FLOAT: { return GL_FLOAT; }
+        case Lvn_Format_RG8_UNORM: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_RG16_FLOAT: { return GL_HALF_FLOAT; }
+        case Lvn_Format_RG32_FLOAT: { return GL_FLOAT; }
+        case Lvn_Format_RGBA8_UNORM: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_RGBA8_SRGB: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_RGBA16_FLOAT: { return GL_HALF_FLOAT; }
+        case Lvn_Format_RGBA32_FLOAT: { return GL_FLOAT; }
+        case Lvn_Format_BGRA8_UNORM: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_BGRA8_SRGB: { return GL_UNSIGNED_BYTE; }
+        case Lvn_Format_D24_UNORM_S8_UINT: { return GL_UNSIGNED_INT_24_8; }
+        case Lvn_Format_D32_FLOAT: { return GL_FLOAT; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum");
+    return GL_NONE;
+}
+
+static GLenum lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_D24_UNORM_S8_UINT: { return GL_DEPTH_STENCIL_ATTACHMENT; }
+        case Lvn_Format_D32_FLOAT: { return GL_DEPTH_ATTACHMENT; }
+        default: { break; }
+    }
+
+    LVN_ASSERT(false, "invalid depth stencil format enum");
+    return GL_NONE;
+}
+
+static uint32_t lvn_getSampleCount(LvnSampleCountFlags samples)
+{
+    switch (samples)
+    {
+        case Lvn_SampleCountFlag_1_Bit: { return 1; }
+        case Lvn_SampleCountFlag_2_Bit: { return 2; }
+        case Lvn_SampleCountFlag_4_Bit: { return 4; }
+        case Lvn_SampleCountFlag_8_Bit: { return 8; }
+        case Lvn_SampleCountFlag_16_Bit: { return 16; }
+        case Lvn_SampleCountFlag_32_Bit: { return 32; }
+        case Lvn_SampleCountFlag_64_Bit: { return 64; }
+    }
+
+    LVN_ASSERT(false, "invalid sample count enum");
+    return 1;
 }
 
 LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -80,25 +276,63 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         goto fail_cleanup;
     }
 
-    // opengl function symbols should be loaded in the opengl loader
+    // NOTE: opengl function symbols should be loaded in the opengl loader
     if (!oglBackends->glGetString ||
         !oglBackends->glGetError ||
+        !oglBackends->glDebugMessageCallback ||
         !oglBackends->glGetIntegerv ||
+        !oglBackends->glDisable ||
+        !oglBackends->glEnable ||
         !oglBackends->glCreateBuffers ||
         !oglBackends->glDeleteBuffers ||
+        !oglBackends->glCreateSamplers ||
+        !oglBackends->glDeleteSamplers ||
         !oglBackends->glCreateTextures ||
         !oglBackends->glDeleteTextures ||
         !oglBackends->glCreateFramebuffers ||
-        !oglBackends->glDeleteFramebuffers)
+        !oglBackends->glDeleteFramebuffers ||
+        !oglBackends->glCreateVertexArrays ||
+        !oglBackends->glDeleteVertexArrays ||
+        !oglBackends->glCreateShader ||
+        !oglBackends->glDeleteShader ||
+        !oglBackends->glCreateProgram ||
+        !oglBackends->glDeleteProgram ||
+        !oglBackends->glCheckNamedFramebufferStatus ||
+        !oglBackends->glNamedFramebufferTexture ||
+        !oglBackends->glNamedFramebufferDrawBuffer ||
+        !oglBackends->glNamedFramebufferDrawBuffers ||
+        !oglBackends->glSamplerParameteri ||
+        !oglBackends->glTextureParameteri ||
+        !oglBackends->glTextureStorage2D ||
+        !oglBackends->glTextureStorage2DMultisample ||
+        !oglBackends->glTextureSubImage2D)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
         goto fail_cleanup;
     }
 
+    // set debug message callback
+    GLint flags;
+    oglBackends->glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+
+    if ((createInfo->enableGraphicsApiDebugLogging) && (flags & GL_CONTEXT_FLAG_DEBUG_BIT))
+    {
+        oglBackends->glEnable(GL_DEBUG_OUTPUT);
+        oglBackends->glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+        oglBackends->glDebugMessageCallback(lvn_openglDebugCallback, graphicsctx);
+    }
+
+    // get opengl version
     oglBackends->glGetIntegerv(GL_MAJOR_VERSION, &oglBackends->versionMajor);
     oglBackends->glGetIntegerv(GL_MINOR_VERSION, &oglBackends->versionMinor);
 
+    // get opengl capabilities info
+    oglBackends->glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &oglBackends->maxColorAttachments);
+    oglBackends->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &oglBackends->maxDrawBuffers);
+
+    // set opengl implementation function pointers
     graphicsctx->implCreateSurface = lvnImplOglCreateSurface;
     graphicsctx->implDestroySurface = lvnImplOglDestroySurface;
     graphicsctx->implCreateSwapchain = lvnImplOglCreateSwapchain;
@@ -230,6 +464,29 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
     swapchainData->format = createInfo->surfaceFormat;
     swapchainData->presentMode = createInfo->presentMode;
 
+    swapchain->pSwapchainImages = (LvnTexture*) lvn_calloc(createInfo->minImageCount * sizeof(LvnTexture));
+    if (!swapchain->pSwapchainImages)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for swapchain images <LvnTexture> in swapchain %p",
+                      swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < createInfo->minImageCount; i++)
+    {
+        oglBackends->glTextureStorage2D(swapchainData->images[i],
+                                        1,
+                                        lvn_getOglInternalFormatEnum(createInfo->surfaceFormat),
+                                        createInfo->width,
+                                        createInfo->height);
+
+        swapchain->pSwapchainImages[i].texId = swapchainData->images[i];
+        swapchain->pSwapchainImages[i].width = createInfo->width;
+        swapchain->pSwapchainImages[i].width = createInfo->height;
+    }
+
     swapchain->swapchainData = swapchainData;
     swapchain->swapchainImageCount = createInfo->minImageCount;
     swapchain->extent = (LvnExtent2D){ .width = createInfo->width, .height = createInfo->height };
@@ -244,6 +501,8 @@ fail_cleanup:
 
         lvn_free(swapchainData);
     }
+    if (swapchain->pSwapchainImages)
+        lvn_free(swapchain->pSwapchainImages);
     return errResult;
 }
 
@@ -259,8 +518,11 @@ void lvnImplOglDestroySwapchain(LvnSwapchain* swapchain)
 
     lvn_free(swapchainData->images);
     lvn_free(swapchainData);
+    lvn_free(swapchain->pSwapchainImages);
 
     swapchain->swapchainData = NULL;
+    swapchain->pSwapchainImages = NULL;
+    swapchain->swapchainImageCount = 0;
 }
 
 LvnResult lvnImplOglCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo)
@@ -371,12 +633,96 @@ void lvnImplOglDestroyRenderPass(LvnRenderPass* renderpass)
 
 LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) createInfo->renderPass->renderpass;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglFramebufferData* framebufferData = NULL;
+
+    framebufferData = (LvnOglFramebufferData*) lvn_calloc(sizeof(LvnOglFramebufferData));
+    if (!framebufferData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for framebuffer data in framebuffer %p",
+                      framebuffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    oglBackends->glCreateFramebuffers(1, &framebufferData->fboId);
+
+    for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
+        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, GL_COLOR_ATTACHMENT0 + i, createInfo->pColorAttachments[i]->texId, 0);
+
+    if (createInfo->depthStencilAttachment)
+    {
+        GLenum attachment = lvn_getOglDepthStencilAttachmentTypeEnum(renderpassData->depthStencilAttachment.format);
+        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, attachment, createInfo->depthStencilAttachment->texId, 0);
+    }
+
+    // get min between maxColorAttachments and maxDrawBuffers
+    uint32_t maxColorAttachments = (oglBackends->maxColorAttachments > oglBackends->maxDrawBuffers)
+        ? oglBackends->maxDrawBuffers
+        : oglBackends->maxColorAttachments;
+
+    if (createInfo->colorAttachmentCount > maxColorAttachments)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to create framebuffer %p | createInfo->colorAttachmentCount cannot be greater than the max supported color attachment count (%zu)",
+                      framebuffer,
+                      maxColorAttachments);
+        goto fail_cleanup;
+    }
+
+    // set opengl attachment draw buffers
+    if (createInfo->colorAttachmentCount > 1)
+    {
+        GLenum colorAttachmentBufs[32] = { GL_COLOR_ATTACHMENT0 };
+        for (uint32_t i = 1; i < createInfo->colorAttachmentCount; i++)
+            colorAttachmentBufs[i] = colorAttachmentBufs[0] + i;
+
+        oglBackends->glNamedFramebufferDrawBuffers(framebufferData->fboId, createInfo->colorAttachmentCount, colorAttachmentBufs);
+    }
+    else if (createInfo->colorAttachmentCount == 0)
+    {
+        oglBackends->glNamedFramebufferDrawBuffer(framebufferData->fboId, GL_NONE);
+    }
+
+    // multisampling
+    if (createInfo->pResolveAttachments)
+    {
+        framebufferData->multisample = true;
+        oglBackends->glCreateFramebuffers(1, &framebufferData->resolveId);
+
+        for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
+            oglBackends->glNamedFramebufferTexture(framebufferData->resolveId, GL_COLOR_ATTACHMENT0 + i, createInfo->pResolveAttachments[i]->texId, 0);
+    }
+
+    framebuffer->framebufferHandle = framebufferData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    oglBackends->glDeleteFramebuffers(1, &framebufferData->fboId);
+    oglBackends->glDeleteFramebuffers(1, &framebufferData->resolveId);
+    lvn_free(framebufferData);
+    return errResult;
 }
 
 void lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer)
 {
+    LVN_ASSERT(framebuffer, "framebuffer cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) framebuffer->graphicsctx->implData;
+    LvnOglFramebufferData* framebufferData = (LvnOglFramebufferData*) framebuffer->framebufferHandle;
+
+    oglBackends->glDeleteFramebuffers(1, &framebufferData->fboId);
+    oglBackends->glDeleteFramebuffers(1, &framebufferData->resolveId);
+
+    lvn_free(framebufferData);
+    framebuffer->framebufferHandle = NULL;
 }
 
 LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
@@ -431,22 +777,65 @@ void lvnImplOglsDestroyBuffer(LvnBuffer* buffer)
 
 LvnResult lvnImplOglsCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && sampler && createInfo, "graphicsctx, sampler, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    oglBackends->glCreateSamplers(1, &sampler->samplerId);
+
+    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_S, lvn_getOglTextureModeEnum(createInfo->wrapS));
+    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_T, lvn_getOglTextureModeEnum(createInfo->wrapT));
+    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_R, lvn_getOglTextureModeEnum(createInfo->wrapR));
+    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_MIN_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, createInfo->mipmapMode));
+    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_MAG_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, Lvn_MipmapMode_Disabled));
+
     return Lvn_Result_Success;
 }
 
 void lvnImplOglsDestroySampler(LvnSampler* sampler)
 {
-
+    LVN_ASSERT(sampler, "sampler cannot be null");
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) sampler->graphicsctx->implData;
+    oglBackends->glDeleteSamplers(1, &sampler->samplerId);
+    sampler->samplerId = 0;
 }
 
 LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+    const LvnImage* image = createInfo->image;
+
+    oglBackends->glCreateTextures(GL_TEXTURE_2D, 1, &texture->texId);
+
+    GLenum internalFormat = lvn_getOglInternalFormatEnum(createInfo->format);
+    GLenum dataFormat = lvn_getOglDataFormatEnum(createInfo->format);
+    GLenum formatType = lvn_getOglFormatTypeEnum(createInfo->format);
+
+    if (createInfo->samples == Lvn_SampleCountFlag_1_Bit)
+        oglBackends->glTextureStorage2D(texture->texId, 1, internalFormat, createInfo->width, createInfo->height);
+    else
+    {
+        oglBackends->glTextureStorage2DMultisample(texture->texId,
+                                                   lvn_getSampleCount(createInfo->samples),
+                                                   internalFormat,
+                                                   createInfo->width,
+                                                   createInfo->height,
+                                                   GL_TRUE);
+    }
+
+    oglBackends->glTextureSubImage2D(texture->texId, 0, 0, 0, createInfo->width, createInfo->height, dataFormat, formatType, image->data);
+
     return Lvn_Result_Success;
 }
 
 void lvnImplOglsDestroyTexture(LvnTexture* texture)
 {
-
+    LVN_ASSERT(texture, "texture cannot be null");
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) texture->graphicsctx->implData;
+    oglBackends->glDeleteTextures(1, &texture->texId);
+    texture->texId = 0;
 }
 
 LvnResult lvnImplOglAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
@@ -463,10 +852,10 @@ void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* f
     if (!pSurfaceFormats)
         return;
 
-    pSurfaceFormats[0] = Lvn_Format_R8G8B8A8_UNORM;
-    pSurfaceFormats[1] = Lvn_Format_R8G8B8A8_SRGB;
-    pSurfaceFormats[2] = Lvn_Format_B8G8R8A8_UNORM;
-    pSurfaceFormats[3] = Lvn_Format_B8G8R8A8_SRGB;
+    pSurfaceFormats[0] = Lvn_Format_RGBA8_UNORM;
+    pSurfaceFormats[1] = Lvn_Format_RGBA8_SRGB;
+    pSurfaceFormats[2] = Lvn_Format_BGRA8_UNORM;
+    pSurfaceFormats[3] = Lvn_Format_BGRA8_SRGB;
 }
 
 void lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes)

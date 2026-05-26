@@ -68,7 +68,7 @@ static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBac
 static LvnResult                   lvn_createImage(const LvnVulkanBackends* vkBackends, VkImage* image, VmaAllocation* imageMemory, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkSampleCountFlagBits samples, VmaMemoryUsage memUsage);
 static void                        lvn_copyBufferToImage(const LvnVulkanBackends* vkBackends, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_debugCallback(
+static VKAPI_ATTR VkBool32 VKAPI_CALL lvn_vulkanDebugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -729,15 +729,21 @@ static VkFormat lvn_getVkFormatEnum(LvnFormat format)
 {
     switch (format)
     {
-        case Lvn_Format_None: { return VK_FORMAT_UNDEFINED; }
-        case Lvn_Format_R8G8B8_UNORM: { return VK_FORMAT_R8G8B8_UNORM; }
-        case Lvn_Format_R8G8B8_SRGB: { return VK_FORMAT_R8G8B8_SRGB; }
-        case Lvn_Format_R8G8B8A8_UNORM: { return VK_FORMAT_R8G8B8A8_UNORM; }
-        case Lvn_Format_R8G8B8A8_SRGB: { return VK_FORMAT_R8G8B8A8_SRGB; }
-        case Lvn_Format_B8G8R8_UNORM: { return VK_FORMAT_B8G8R8_UNORM; }
-        case Lvn_Format_B8G8R8_SRGB: { return VK_FORMAT_B8G8R8_SRGB; }
-        case Lvn_Format_B8G8R8A8_UNORM: { return VK_FORMAT_B8G8R8A8_UNORM; }
-        case Lvn_Format_B8G8R8A8_SRGB: { return VK_FORMAT_B8G8R8A8_SRGB; }
+        case Lvn_Format_Undefined: { return VK_FORMAT_UNDEFINED; }
+        case Lvn_Format_R8_UNORM: { return VK_FORMAT_R8_UNORM; }
+        case Lvn_Format_R16_FLOAT: { return VK_FORMAT_R16_SFLOAT; }
+        case Lvn_Format_R32_FLOAT: { return VK_FORMAT_R32_SFLOAT; }
+        case Lvn_Format_RG8_UNORM: { return VK_FORMAT_R8G8_UNORM; }
+        case Lvn_Format_RG16_FLOAT: { return VK_FORMAT_R16G16_SFLOAT; }
+        case Lvn_Format_RG32_FLOAT: { return VK_FORMAT_R32G32_SFLOAT; }
+        case Lvn_Format_RGBA8_UNORM: { return VK_FORMAT_R8G8B8A8_UNORM; }
+        case Lvn_Format_RGBA8_SRGB: { return VK_FORMAT_R8G8B8A8_SRGB; }
+        case Lvn_Format_RGBA16_FLOAT: { return VK_FORMAT_R16G16B16A16_SFLOAT; }
+        case Lvn_Format_RGBA32_FLOAT: { return VK_FORMAT_R32G32B32A32_SFLOAT; }
+        case Lvn_Format_BGRA8_UNORM: { return VK_FORMAT_B8G8R8A8_UNORM; }
+        case Lvn_Format_BGRA8_SRGB: { return VK_FORMAT_B8G8R8A8_SRGB; }
+        case Lvn_Format_D24_UNORM_S8_UINT: { return VK_FORMAT_D24_UNORM_S8_UINT; }
+        case Lvn_Format_D32_FLOAT: { return VK_FORMAT_D32_SFLOAT; }
     }
 
     LVN_ASSERT(false, "invalid format enum");
@@ -787,19 +793,25 @@ static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
 {
     switch (format)
     {
-        case VK_FORMAT_UNDEFINED: { return Lvn_Format_None; }
-        case VK_FORMAT_R8G8B8_UNORM: { return Lvn_Format_R8G8B8_UNORM; }
-        case VK_FORMAT_R8G8B8_SRGB: { return Lvn_Format_R8G8B8_SRGB; }
-        case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_R8G8B8A8_UNORM; }
-        case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_R8G8B8A8_SRGB; }
-        case VK_FORMAT_B8G8R8_UNORM: { return Lvn_Format_B8G8R8_UNORM; }
-        case VK_FORMAT_B8G8R8_SRGB: { return Lvn_Format_B8G8R8_SRGB; }
-        case VK_FORMAT_B8G8R8A8_UNORM: { return Lvn_Format_B8G8R8A8_UNORM; }
-        case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_B8G8R8A8_SRGB; }
+        case VK_FORMAT_UNDEFINED: { return Lvn_Format_Undefined; }
+        case VK_FORMAT_R8_UNORM: { return Lvn_Format_R8_UNORM; }
+        case VK_FORMAT_R16_SFLOAT: { return Lvn_Format_R16_FLOAT; }
+        case VK_FORMAT_R32_SFLOAT: { return Lvn_Format_R32_FLOAT; }
+        case VK_FORMAT_R8G8_UNORM: { return Lvn_Format_RG8_UNORM; }
+        case VK_FORMAT_R16G16_SFLOAT: { return Lvn_Format_RG16_FLOAT; }
+        case VK_FORMAT_R32G32_SFLOAT: { return Lvn_Format_RG32_FLOAT; }
+        case VK_FORMAT_R8G8B8A8_UNORM: { return Lvn_Format_RGBA8_UNORM; }
+        case VK_FORMAT_R8G8B8A8_SRGB: { return Lvn_Format_RGBA8_SRGB; }
+        case VK_FORMAT_R16G16B16A16_SFLOAT: { return Lvn_Format_RGBA16_FLOAT; }
+        case VK_FORMAT_R32G32B32A32_SFLOAT: { return Lvn_Format_RGBA32_FLOAT; }
+        case VK_FORMAT_B8G8R8A8_UNORM: { return Lvn_Format_BGRA8_UNORM; }
+        case VK_FORMAT_B8G8R8A8_SRGB: { return Lvn_Format_BGRA8_SRGB; }
+        case VK_FORMAT_D24_UNORM_S8_UINT: { return Lvn_Format_D24_UNORM_S8_UINT; }
+        case VK_FORMAT_D32_SFLOAT: { return Lvn_Format_D32_FLOAT; }
         default: { break; }
     }
 
-    return Lvn_Format_None;
+    return Lvn_Format_Undefined;
 }
 
 static LvnPresentMode lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode)
@@ -1277,7 +1289,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    debugCreateInfo.pfnUserCallback = lvn_debugCallback;
+    debugCreateInfo.pfnUserCallback = lvn_vulkanDebugCallback;
     debugCreateInfo.pUserData = graphicsctx;
 
     // get vulkan version
@@ -1923,6 +1935,8 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
     {
         swapchainImages[i].imageHandle = swapchainData->swapchainImages[i];
         swapchainImages[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        swapchainImages[i].width = swapchainData->swapchainExtent.width;
+        swapchainImages[i].height = swapchainData->swapchainExtent.height;
     }
 
     swapchain->swapchainData = swapchainData;
@@ -1971,6 +1985,7 @@ void lvnImplVkDestroySwapchain(LvnSwapchain* swapchain)
     lvn_free(swapchain->pSwapchainImages);
     swapchain->swapchainData = NULL;
     swapchain->pSwapchainImages = NULL;
+    swapchain->swapchainImageCount = 0;
 }
 
 LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo)
@@ -2771,7 +2786,6 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
     samplerInfo.maxLod = 0.0f;
 
     VkSampler textureSampler;
-
     if (vkBackends->createSampler(vkBackends->device, &samplerInfo, NULL, &textureSampler) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -2806,7 +2820,7 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     VkImage textureImage = VK_NULL_HANDLE;
     VmaAllocation textureImageMemory = VK_NULL_HANDLE;
 
-    VkDeviceSize imageSize = createInfo->image->width * createInfo->image->height * createInfo->image->channels;
+    VkDeviceSize imageSize = createInfo->width * createInfo->height * createInfo->image->channels;
     if (lvn_createBuffer(vkBackends, &stagingBuffer, &stagingBufferMemory, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -2820,24 +2834,18 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     memcpy(data, createInfo->image->data, imageSize);
     vmaUnmapMemory(vkBackends->vmaAllocator, stagingBufferMemory);
 
-    VkFormat format = createInfo->format == Lvn_TextureFormat_Unorm ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_SRGB;
-    switch (createInfo->image->channels)
-    {
-        case 1: { format = createInfo->format == Lvn_TextureFormat_Unorm ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_SRGB; break; }
-        case 2: { format = createInfo->format == Lvn_TextureFormat_Unorm ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8G8_SRGB; break; }
-        case 4: { format = createInfo->format == Lvn_TextureFormat_Unorm ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_SRGB; break; }
-    }
+    VkFormat format = lvn_getVkFormatEnum(createInfo->format);
 
     // create texture image
     if (lvn_createImage(vkBackends,
         &textureImage,
         &textureImageMemory,
-        createInfo->image->width,
-        createInfo->image->height,
+        createInfo->width,
+        createInfo->height,
         format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_SAMPLE_COUNT_1_BIT,
+        lvn_getVkSampleCountFlagEnum(createInfo->samples),
         VMA_MEMORY_USAGE_GPU_ONLY) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -2848,7 +2856,7 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
 
     // transition buffer to image
     lvn_transitionImageLayout(vkBackends, textureImage, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
-    lvn_copyBufferToImage(vkBackends, stagingBuffer, textureImage, createInfo->image->width, createInfo->image->height, 1);
+    lvn_copyBufferToImage(vkBackends, stagingBuffer, textureImage, createInfo->width, createInfo->height, 1);
     lvn_transitionImageLayout(vkBackends, textureImage, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
     // texture image view
@@ -2876,6 +2884,7 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     texture->imageHandle = textureImage;
     texture->imageMemoryHandle = textureImageMemory;
     texture->imageViewHandle = imageView;
+    texture->samplerHandle = createInfo->sampler->samplerHandle;
 
     vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingBufferMemory);
@@ -2966,7 +2975,7 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
             continue;
 
         LvnFormat format = lvn_getLvnFormatEnum(formats[i].format);
-        if (format != Lvn_Format_None)
+        if (format != Lvn_Format_Undefined)
             supportedFormatCount++;
 
         if (pSurfaceFormats)
@@ -3085,6 +3094,8 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     {
         swapchain->pSwapchainImages[i].imageHandle = swapchainData->swapchainImages[i];
         swapchain->pSwapchainImages[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        swapchain->pSwapchainImages[i].width = swapchainData->swapchainExtent.width;
+        swapchain->pSwapchainImages[i].height = swapchainData->swapchainExtent.height;
     }
 
     // update extent
