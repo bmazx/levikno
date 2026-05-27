@@ -39,6 +39,13 @@ typedef struct LvnVkSwapchainData
     VkImageView*        swapchainImageViews;
 } LvnVkSwapchainData;
 
+typedef struct LvnVkShaderData
+{
+    VkShaderModule        shaderModule;
+    char*                 entryPoint;
+    VkShaderStageFlags    shaderStage;
+} LvnVkShaderData;
+
 typedef struct LvnVulkanBackends
 {
     void*                                            handle;

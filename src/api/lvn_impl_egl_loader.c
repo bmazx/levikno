@@ -257,6 +257,18 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glTextureStorage2DMultisample");
     oglBackends->glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)
         eglLoader->eglGetProcAddress("glTextureSubImage2D");
+    oglBackends->glShaderSource = (PFNGLSHADERSOURCEPROC)
+        eglLoader->eglGetProcAddress("glShaderSource");
+    oglBackends->glCompileShader = (PFNGLCOMPILESHADERPROC)
+        eglLoader->eglGetProcAddress("glCompileShader");
+    oglBackends->glGetShaderiv = (PFNGLGETSHADERIVPROC)
+        eglLoader->eglGetProcAddress("glGetShaderiv");
+    oglBackends->glAttachShader = (PFNGLATTACHSHADERPROC)
+        eglLoader->eglGetProcAddress("glAttachShader");
+    oglBackends->glLinkProgram = (PFNGLLINKPROGRAMPROC)
+        eglLoader->eglGetProcAddress("glLinkProgram");
+    oglBackends->glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)
+        eglLoader->eglGetProcAddress("glGetShaderInfoLog");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

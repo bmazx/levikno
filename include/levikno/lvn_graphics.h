@@ -354,6 +354,8 @@ typedef struct LvnShaderCreateInfo
 {
     const uint8_t*    pCode;
     size_t            codeSize;
+    LvnShaderStage    stage;
+    const char*       entryPoint;
 } LvnShaderCreateInfo;
 
 typedef struct LvnPipelineInputAssembly
@@ -460,13 +462,6 @@ typedef struct LvnVertexAttribute
     uint64_t              offset;
 } LvnVertexAttribute;
 
-typedef struct LvnPipelineShaderStageCreateInfo
-{
-    LvnShaderStage      stage;
-    const LvnShader*    shader;
-    const char*         entryPoint;
-} LvnPipelineShaderStageCreateInfo;
-
 typedef struct LvnPipelineCreateInfo
 {
     const LvnPipelineFixedFunctions*           pipelineFixedFunctions;
@@ -476,7 +471,7 @@ typedef struct LvnPipelineCreateInfo
     uint32_t                                   vertexAttributeCount;
     const LvnDescriptorLayout* const*          pDescriptorLayouts;
     uint32_t                                   descriptorLayoutCount;
-    const LvnPipelineShaderStageCreateInfo*    pStages;
+    LvnShader* const*                          pShaderStages;
     uint32_t                                   stageCount;
     LvnRenderPass*                             renderPass;
 } LvnPipelineCreateInfo;

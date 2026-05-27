@@ -20,6 +20,7 @@ static GLenum    lvn_getOglInternalFormatEnum(LvnFormat format);
 static GLenum    lvn_getOglDataFormatEnum(LvnFormat format);
 static GLenum    lvn_getOglFormatTypeEnum(LvnFormat format);
 static GLenum    lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format);
+static GLenum    lvn_getOglShaderStageEnum(LvnShaderStage stage);
 static uint32_t  lvn_getSampleCount(LvnSampleCountFlags samples);
 
 static void GLAPIENTRY lvn_openglDebugCallback(
@@ -220,6 +221,18 @@ static GLenum lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format)
     return GL_NONE;
 }
 
+static GLenum lvn_getOglShaderStageEnum(LvnShaderStage stage)
+{
+    switch (stage)
+    {
+        case Lvn_ShaderStage_Vertex: { return GL_VERTEX_SHADER; }
+        case Lvn_ShaderStage_Fragment: { return GL_FRAGMENT_SHADER; }
+    }
+
+    LVN_ASSERT(false, "invalid shader stage enum");
+    return GL_NONE;
+}
+
 static uint32_t lvn_getSampleCount(LvnSampleCountFlags samples)
 {
     switch (samples)
@@ -305,7 +318,13 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glTextureParameteri ||
         !oglBackends->glTextureStorage2D ||
         !oglBackends->glTextureStorage2DMultisample ||
-        !oglBackends->glTextureSubImage2D)
+        !oglBackends->glTextureSubImage2D ||
+        !oglBackends->glShaderSource ||
+        !oglBackends->glCompileShader ||
+        !oglBackends->glGetShaderiv ||
+        !oglBackends->glAttachShader ||
+        !oglBackends->glLinkProgram ||
+        !oglBackends->glGetShaderInfoLog)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -727,12 +746,71 @@ void lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer)
 
 LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglShaderData* shaderData = NULL;
+
+    shaderData = (LvnOglShaderData*) lvn_calloc(sizeof(LvnOglShaderData));
+    if (!shaderData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for shader data in shader %p",
+                      shader);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    shaderData->shaderId = oglBackends->glCreateShader(lvn_getOglShaderStageEnum(createInfo->stage));
+
+    oglBackends->glShaderSource(shaderData->shaderId, 1, (const GLchar* const*)(&createInfo->pCode), NULL);
+    oglBackends->glCompileShader(shaderData->shaderId);
+
+    GLint success;
+    oglBackends->glGetShaderiv(shaderData->shaderId, GL_COMPILE_STATUS, &success);
+
+    if (!success)
+    {
+        char infoLog[1024];
+        oglBackends->glGetShaderInfoLog(shaderData->shaderId, 1024, NULL, infoLog);
+
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] shader compile error in shader %p | info log: %s",
+                      shader,
+                      infoLog);
+
+        goto fail_cleanup;
+    }
+
+    shaderData->stage = createInfo->stage;
+
+    shader->shader = shaderData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (shaderData)
+    {
+        oglBackends->glDeleteShader(shaderData->shaderId);
+        lvn_free(shaderData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyShader(LvnShader* shader)
 {
+    LVN_ASSERT(shader, "shader cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) shader->graphicsctx->implData;
+
+    LvnOglShaderData* shaderData = (LvnOglShaderData*) shader->shader;
+
+    oglBackends->glDeleteShader(shaderData->shaderId);
+    lvn_free(shaderData);
+
+    shader->shader = NULL;
 }
 
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)

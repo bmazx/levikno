@@ -308,6 +308,8 @@ int main(int argc, char** argv)
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
     vertShCreateInfo.codeSize = vertfile.size;
+    vertShCreateInfo.stage = Lvn_ShaderStage_Vertex;
+    vertShCreateInfo.entryPoint = "main";
 
     LvnShader* vertShader;
     lvnCreateShader(graphicsctx, &vertShader, &vertShCreateInfo);
@@ -315,15 +317,11 @@ int main(int argc, char** argv)
     LvnShaderCreateInfo fragShCreateInfo = {0};
     fragShCreateInfo.pCode = fragfile.data;
     fragShCreateInfo.codeSize = fragfile.size;
+    fragShCreateInfo.stage = Lvn_ShaderStage_Fragment;
+    fragShCreateInfo.entryPoint = "main";
 
     LvnShader* fragShader;
     lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
-
-    LvnPipelineShaderStageCreateInfo stages[] =
-    {
-        { Lvn_ShaderStage_Vertex, vertShader, "main" },
-        { Lvn_ShaderStage_Fragment, fragShader, "main" },
-    };
 
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
     pipelineFixedFuncs.viewport.width = 800;
@@ -342,6 +340,11 @@ int main(int argc, char** argv)
         .stride = 5 * sizeof(float),
     };
 
+    LvnShader* shaderStages[] =
+    {
+        vertShader, fragShader,
+    };
+
     LvnPipelineCreateInfo pipelineCreateInfo = {0};
     pipelineCreateInfo.pipelineFixedFunctions = &pipelineFixedFuncs;
     pipelineCreateInfo.pVertexAttributes = attributes;
@@ -350,8 +353,8 @@ int main(int argc, char** argv)
     pipelineCreateInfo.vertexBindingDescriptionCount = 1;
     pipelineCreateInfo.pDescriptorLayouts = NULL;
     pipelineCreateInfo.descriptorLayoutCount = 0;
-    pipelineCreateInfo.pStages = stages;
-    pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(stages);
+    pipelineCreateInfo.pShaderStages = shaderStages;
+    pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(shaderStages);
     pipelineCreateInfo.renderPass = renderPass;
 
     LvnPipeline* pipeline;
@@ -429,6 +432,112 @@ int main(int argc, char** argv)
     LvnTexture* texture;
     lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
 
+    /*
+    LvnResult result;
+    uint32_t imageIndex = 0;
+
+    while (!glfwWindowShouldClose(window))
+    {
+        lvnFenceWait(fence, UINT64_MAX);
+        lvnFenceReset(fence);
+
+        result = lvnSwapchainAcquireNextImage(swapchain, imageWaitSemaphore, NULL, &imageIndex);
+
+        if (result == Lvn_Result_OutOfDate)
+        {
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
+            lvnSwapchainResize(swapchain, width, height);
+            extent = lvnSwapchainGetExtent(swapchain);
+            resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            imageCount = lvnSwapchainGetImageCount(swapchain);
+            continue;
+        }
+        else if (result != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(logger, "failed to get image");
+            continue;
+        }
+
+
+        lvnBeginCommandBuffer(cmdBuff);
+
+        LvnClearValue clearValues[] = {
+            {{{0.0f, 0.0f, 0.0f}}},
+        };
+
+        LvnRenderPassBeginInfo beginInfo = {
+            .renderPass = renderPass,
+            .framebuffer = swapchainFramebuffers[imageIndex],
+            .renderArea = {{extent.width, extent.height}, {0, 0}},
+            .pClearValues = clearValues,
+            .clearValueCount = 1,
+        };
+
+        lvnCmdBeginRenderPass(cmdBuff, &beginInfo);
+
+        lvnCmdBindPipeline(cmdBuff, pipeline);
+
+        LvnViewport viewport = {
+            .x = 0, .y = 0,
+            .width = extent.width, .height = extent.height,
+            .minDepth = 0.0f, .maxDepth = 1.0f,
+        };
+
+        lvnCmdSetViewport(cmdBuff, &viewport);
+
+        LvnRenderArea renderArea = {
+            .extent = extent,
+            .offset = { 0.0f, 0.0f },
+        };
+
+        lvnCmdSetScissor(cmdBuff, &renderArea);
+
+        uint64_t offsets[] = {0};
+        lvnCmdBindVertexBuffer(cmdBuff, 0, 1, &vertexBuffer, offsets);
+        lvnCmdBindIndexBuffer(cmdBuff, indexBuffer, 0);
+
+        lvnCmdDrawIndexed(cmdBuff, LVN_ARRAY_LEN(s_Indices), 1, 0, 0, 0);
+
+        lvnCmdEndRenderPass(cmdBuff);
+        lvnEndCommandBuffer(cmdBuff);
+
+        LvnSubmitInfo submitInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &imageWaitSemaphore,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &renderFinishedSemaphores[imageIndex],
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cmdBuff,
+        };
+        lvnRenderSubmit(graphicsctx, &submitInfo, 1, fence);
+
+        LvnPresentInfo presentInfo = {
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &renderFinishedSemaphores[imageIndex],
+            .swapchainCount = 1,
+            .pSwapchains = &swapchain,
+            .pImageIndices = &imageIndex,
+        };
+        result = lvnRenderPresent(graphicsctx, &presentInfo);
+
+        if (result == Lvn_Result_OutOfDate || winData.framebufferResized)
+        {
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
+            lvnSwapchainResize(swapchain, width, height);
+            extent = lvnSwapchainGetExtent(swapchain);
+            resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            imageCount = lvnSwapchainGetImageCount(swapchain);
+            winData.framebufferResized = false;
+        }
+
+        glfwPollEvents();
+    }
+
+    */
+
+    lvnUnloadImage(&image);
 
     lvnDestroyTexture(texture);
     lvnDestroySampler(sampler);

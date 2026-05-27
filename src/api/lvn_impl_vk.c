@@ -2249,20 +2249,60 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnVkShaderData* shaderData = NULL;
+
+    shaderData = (LvnVkShaderData*) lvn_calloc(sizeof(LvnVkShaderData));
+    if (!shaderData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for shader data in shader %p",
+                      shader);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    // entry point string
+    size_t entryPointStrLen = strlen(createInfo->entryPoint) + 1;
+    shaderData->entryPoint = (char*) lvn_calloc(entryPointStrLen);
+    if (!shaderData->entryPoint)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for entryPoint string in shader data in shader %p",
+                      shader);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+    memcpy(shaderData->entryPoint, createInfo->entryPoint, entryPointStrLen);
+
+    // shader module
     VkShaderModuleCreateInfo shaderCreateInfo = {0};
     shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     shaderCreateInfo.codeSize = createInfo->codeSize;
     shaderCreateInfo.pCode = (const uint32_t*) createInfo->pCode;
 
-    VkShaderModule shaderModule;
-    if (vkBackends->createShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderModule) != VK_SUCCESS)
+    if (vkBackends->createShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderData->shaderModule) != VK_SUCCESS)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create shader module!");
-        return Lvn_Result_Failure;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create shader module in shader %p",
+                      shader);
+        goto fail_cleanup;
     }
 
-    shader->shader = shaderModule;
+    shaderData->shaderStage = lvn_getVkShaderStageEnum(createInfo->stage);
+
+    shader->shader = shaderData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (shaderData)
+    {
+        vkBackends->destroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
+        lvn_free(shaderData->entryPoint);
+        lvn_free(shaderData);
+    }
+    return errResult;
 }
 
 void lvnImplVkDestroyShader(LvnShader* shader)
@@ -2272,8 +2312,12 @@ void lvnImplVkDestroyShader(LvnShader* shader)
 
     vkBackends->deviceWaitIdle(vkBackends->device);
 
-    VkShaderModule shaderModule = (VkShaderModule) shader->shader;
-    vkBackends->destroyShaderModule(vkBackends->device, shaderModule, NULL);
+    LvnVkShaderData* shaderData = (LvnVkShaderData*) shader->shader;
+
+    vkBackends->destroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
+    lvn_free(shaderData->entryPoint);
+    lvn_free(shaderData);
+
     shader->shader = NULL;
 }
 
@@ -2303,11 +2347,13 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     for (uint32_t i = 0; i < createInfo->stageCount; i++)
     {
+        const LvnVkShaderData* shaderData = (const LvnVkShaderData*) createInfo->pShaderStages[i]->shader;
+
         VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
         stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stageCreateInfo.stage = lvn_getVkShaderStageEnum(createInfo->pStages[i].stage);
-        stageCreateInfo.module = (VkShaderModule) createInfo->pStages[i].shader->shader;
-        stageCreateInfo.pName = createInfo->pStages[i].entryPoint;
+        stageCreateInfo.stage = shaderData->shaderStage;
+        stageCreateInfo.module = shaderData->shaderModule;
+        stageCreateInfo.pName = shaderData->entryPoint;
         shaderStages[i] = stageCreateInfo;
     }
 

@@ -126,6 +126,10 @@
 #define GL_SRGB8_ALPHA8 0x8C43
 #define GL_DEPTH_COMPONENT32F 0x8CAC
 #define GL_DEPTH24_STENCIL8 0x88F0
+#define GL_FRAGMENT_SHADER 0x8B30
+#define GL_VERTEX_SHADER 0x8B31
+#define GL_COMPILE_STATUS 0x8B81
+#define GL_LINK_STATUS 0x8B82
 
 typedef khronos_int8_t GLbyte;
 typedef khronos_uint8_t GLubyte;
@@ -172,6 +176,12 @@ typedef void (GLAPIENTRY *PFNGLTEXTUREPARAMETERIPROC)(GLuint texture, GLenum pna
 typedef void (GLAPIENTRY *PFNGLTEXTURESTORAGE2DPROC)(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
 typedef void (GLAPIENTRY *PFNGLTEXTURESTORAGE2DMULTISAMPLEPROC)(GLuint texture, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 typedef void (GLAPIENTRY *PFNGLTEXTURESUBIMAGE2DPROC)(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
+typedef void (GLAPIENTRY *PFNGLSHADERSOURCEPROC)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+typedef void (GLAPIENTRY *PFNGLCOMPILESHADERPROC)(GLuint shader);
+typedef void (GLAPIENTRY *PFNGLGETSHADERIVPROC)(GLuint shader, GLenum pname, GLint *params);
+typedef void (GLAPIENTRY *PFNGLATTACHSHADERPROC)(GLuint program, GLuint shader);
+typedef void (GLAPIENTRY *PFNGLLINKPROGRAMPROC)(GLuint program);
+typedef void (GLAPIENTRY *PFNGLGETSHADERINFOLOGPROC)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 
 typedef struct LvnOglSwapchainData
 {
@@ -203,6 +213,12 @@ typedef struct LvnOglFramebufferData
     uint32_t                height;
     bool                    multisample;
 } LvnOglFramebufferData;
+
+typedef struct LvnOglShaderData
+{
+    uint32_t shaderId;
+    LvnShaderStage stage;
+} LvnOglShaderData;
 
 typedef struct LvnOpenglBackends
 {
@@ -248,6 +264,12 @@ typedef struct LvnOpenglBackends
     PFNGLTEXTURESTORAGE2DPROC               glTextureStorage2D;
     PFNGLTEXTURESTORAGE2DMULTISAMPLEPROC    glTextureStorage2DMultisample;
     PFNGLTEXTURESUBIMAGE2DPROC              glTextureSubImage2D;
+    PFNGLSHADERSOURCEPROC                   glShaderSource;
+    PFNGLCOMPILESHADERPROC                  glCompileShader;
+    PFNGLGETSHADERIVPROC                    glGetShaderiv;
+    PFNGLATTACHSHADERPROC                   glAttachShader;
+    PFNGLLINKPROGRAMPROC                    glLinkProgram;
+    PFNGLGETSHADERINFOLOGPROC               glGetShaderInfoLog;
 } LvnOpenglBackends;
 
 LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
