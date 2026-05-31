@@ -116,11 +116,11 @@ static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBack
     lvn_getWindowPlatform(&windowSupport);
 #if defined(LVN_INCLUDE_WAYLAND)
     if (windowSupport.waylandSupport)
-        return vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
+        return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
 #endif
 #if defined(LVN_INCLUDE_X11)
     if (windowSupport.x11Support)
-        return vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
+        return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
 #endif
 
     return VK_NULL_HANDLE;
@@ -142,7 +142,7 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
             .surface = (struct wl_surface*) platformData->nwh,
         };
         PFN_vkCreateWaylandSurfaceKHR vkCreateWaylandSurfaceKHR_PFN =
-            (PFN_vkCreateWaylandSurfaceKHR) vkBackends->createSurfaceProc;
+            (PFN_vkCreateWaylandSurfaceKHR) vkBackends->vkCreateSurfaceProc;
         result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &sci, NULL, surface);
     }
     else if (windowSupport.x11Support)
@@ -153,7 +153,7 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
             .window = *(Window*) platformData->nwh,
         };
         PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR =
-            (PFN_vkCreateXlibSurfaceKHR) vkBackends->createSurfaceProc;
+            (PFN_vkCreateXlibSurfaceKHR) vkBackends->vkCreateSurfaceProc;
         result = vkCreateXlibSurfaceKHR(vkBackends->instance, &sci, NULL, surface);
     }
 #endif
@@ -168,9 +168,9 @@ static LvnVkQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vk
     VkQueueFamilyProperties* queueFamilies = NULL;
     uint32_t queueFamilyCount = 0;
 
-    vkBackends->getPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
+    vkBackends->vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
     queueFamilies = lvn_calloc(queueFamilyCount * sizeof(VkQueueFamilyProperties));
-    vkBackends->getPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
+    vkBackends->vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
     for (uint32_t i = 0; i < queueFamilyCount; i++)
     {
@@ -183,7 +183,7 @@ static LvnVkQueueFamilyIndices lvn_findQueueFamilies(const LvnVulkanBackends* vk
         if (surface != NULL)
         {
             VkBool32 presentSupport = VK_FALSE;
-            vkBackends->getPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            vkBackends->vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
             if (presentSupport == VK_TRUE)
             {
@@ -216,9 +216,9 @@ static bool lvn_checkDeviceExtensionSupport(
     VkExtensionProperties* extensions = NULL;
     uint32_t extensionCount = 0;
 
-    vkBackends->enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, NULL);
+    vkBackends->vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, NULL);
     extensions = lvn_calloc(extensionCount * sizeof(VkExtensionProperties));
-    vkBackends->enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, extensions);
+    vkBackends->vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, extensions);
 
     for (uint32_t i = 0; i < requiredExtensionCount; i++)
     {
@@ -254,9 +254,9 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     VkPhysicalDevice* physicalDevices = NULL;
     uint32_t physicalDeviceCount = 0;
 
-    vkBackends->enumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, NULL);
+    vkBackends->vkEnumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, NULL);
     physicalDevices = lvn_calloc(physicalDeviceCount * sizeof(VkPhysicalDevice));
-    vkBackends->enumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
+    vkBackends->vkEnumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
 
     uint32_t requiredExtensionCount = LVN_ARRAY_LEN(s_LvnVkDeviceExtensions);
     const char** requiredExtensions = lvn_calloc(requiredExtensionCount * sizeof(const char*));
@@ -287,7 +287,7 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
             continue;
 
         VkPhysicalDeviceProperties deviceProperties;
-        vkBackends->getPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+        vkBackends->vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
         size_t score = 0;
 
@@ -327,11 +327,11 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
-    vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR(createInfo->physicalDevice, createInfo->surface, &capabilities);
+    vkBackends->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(createInfo->physicalDevice, createInfo->surface, &capabilities);
 
     // swapchain present modes
     uint32_t presentModeCount;
-    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, NULL);
+    vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR(createInfo->physicalDevice, createInfo->surface, &presentModeCount, NULL);
 
     if (!presentModeCount)
     {
@@ -412,16 +412,16 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         swapchainCreateInfo.pQueueFamilyIndices = NULL;
     }
 
-    if (vkBackends->createSwapchainKHR(vkBackends->device, &swapchainCreateInfo, NULL, &swapchain) != VK_SUCCESS)
+    if (vkBackends->vkCreateSwapchainKHR(vkBackends->device, &swapchainCreateInfo, NULL, &swapchain) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain");
         goto fail_cleanup;
     }
 
     // get swapchain images
-    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, NULL);
+    vkBackends->vkGetSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, NULL);
     swapchainImages = lvn_calloc(swapchainImageCount * sizeof(VkImage));
-    vkBackends->getSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, swapchainImages);
+    vkBackends->vkGetSwapchainImagesKHR(vkBackends->device, swapchain, &swapchainImageCount, swapchainImages);
 
     // get swapchain image views
     swapchainImageViews = lvn_calloc(swapchainImageCount * sizeof(VkImageView));
@@ -442,7 +442,7 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-        if (vkBackends->createImageView(vkBackends->device, &imageViewCreateInfo, NULL, &swapchainImageViews[i]) != VK_SUCCESS)
+        if (vkBackends->vkCreateImageView(vkBackends->device, &imageViewCreateInfo, NULL, &swapchainImageViews[i]) != VK_SUCCESS)
         {
             LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create swapchain image views");
             goto fail_cleanup;
@@ -462,8 +462,8 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
 
 fail_cleanup:
     for (uint32_t i = 0; i < swapchainImageCount; i++)
-        vkBackends->destroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchain, NULL);
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
+    vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchain, NULL);
     lvn_free(swapchainImageViews);
     lvn_free(swapchainImages);
     return Lvn_Result_Failure;
@@ -862,14 +862,14 @@ static void lvn_transitionImageLayout(
     };
 
     VkCommandBuffer commandBuffer;
-    vkBackends->allocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
+    vkBackends->vkAllocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    vkBackends->beginCommandBuffer(commandBuffer, &beginInfo);
+    vkBackends->vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     VkImageMemoryBarrier barrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -925,12 +925,12 @@ static void lvn_transitionImageLayout(
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
                       "[vulkan] unsupported layout transition during image layout transition");
-        vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
+        vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
         return;
     }
 
-    vkBackends->cmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1, &barrier);
-    vkBackends->endCommandBuffer(commandBuffer);
+    vkBackends->vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1, &barrier);
+    vkBackends->vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -938,10 +938,10 @@ static void lvn_transitionImageLayout(
         .pCommandBuffers = &commandBuffer,
     };
 
-    vkBackends->queueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkBackends->queueWaitIdle(vkBackends->graphicsQueue);
+    vkBackends->vkQueueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkBackends->vkQueueWaitIdle(vkBackends->graphicsQueue);
 
-    vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
+    vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
 }
 
 static LvnResult lvn_createBuffer(
@@ -990,14 +990,14 @@ static void lvn_copyBuffer(
     };
 
     VkCommandBuffer commandBuffer;
-    vkBackends->allocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
+    vkBackends->vkAllocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    vkBackends->beginCommandBuffer(commandBuffer, &beginInfo);
+    vkBackends->vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     VkBufferCopy copyRegion = {
         .size = size,
@@ -1005,9 +1005,9 @@ static void lvn_copyBuffer(
         .dstOffset = dstOffset,
     };
 
-    vkBackends->cmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    vkBackends->vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    vkBackends->endCommandBuffer(commandBuffer);
+    vkBackends->vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1015,10 +1015,10 @@ static void lvn_copyBuffer(
         .pCommandBuffers = &commandBuffer,
     };
 
-    vkBackends->queueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkBackends->queueWaitIdle(vkBackends->graphicsQueue);
+    vkBackends->vkQueueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkBackends->vkQueueWaitIdle(vkBackends->graphicsQueue);
 
-    vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
+    vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
 }
 
 static LvnResult lvn_createImage(
@@ -1079,14 +1079,14 @@ static void lvn_copyBufferToImage(
     };
 
     VkCommandBuffer commandBuffer;
-    vkBackends->allocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
+    vkBackends->vkAllocateCommandBuffers(vkBackends->device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    vkBackends->beginCommandBuffer(commandBuffer, &beginInfo);
+    vkBackends->vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     VkBufferImageCopy region = {
         .bufferOffset = 0,
@@ -1100,9 +1100,9 @@ static void lvn_copyBufferToImage(
         .imageExtent = { width, height, 1 },
     };
 
-    vkBackends->cmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkBackends->vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    vkBackends->endCommandBuffer(commandBuffer);
+    vkBackends->vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1110,10 +1110,10 @@ static void lvn_copyBufferToImage(
         .pCommandBuffers = &commandBuffer,
     };
 
-    vkBackends->queueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkBackends->queueWaitIdle(vkBackends->graphicsQueue);
+    vkBackends->vkQueueSubmit(vkBackends->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkBackends->vkQueueWaitIdle(vkBackends->graphicsQueue);
 
-    vkBackends->freeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
+    vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &commandBuffer);
 }
 
 LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -1143,10 +1143,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // vulkan get instace proc address
-    vkBackends->getInstanceProcAddr = (PFN_vkGetInstanceProcAddr)
+    vkBackends->vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)
         lvn_platformGetModuleSymbol(vkBackends->handle, "vkGetInstanceProcAddr");
 
-    if (!vkBackends->getInstanceProcAddr)
+    if (!vkBackends->vkGetInstanceProcAddr)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to retrieve vkGetInstanceProcAddr symbol");
@@ -1154,20 +1154,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // vulkan global level function symbols
-    vkBackends->enumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)
-        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
-    vkBackends->enumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)
-        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
-    vkBackends->enumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)
-        vkBackends->getInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
-    vkBackends->createInstance = (PFN_vkCreateInstance)
-        vkBackends->getInstanceProcAddr(NULL, "vkCreateInstance");
+    vkBackends->vkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)
+        vkBackends->vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
+    vkBackends->vkEnumerateInstanceExtensionProperties = (PFN_vkEnumerateInstanceExtensionProperties)
+        vkBackends->vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceExtensionProperties");
+    vkBackends->vkEnumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)
+        vkBackends->vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceLayerProperties");
+    vkBackends->vkCreateInstance = (PFN_vkCreateInstance)
+        vkBackends->vkGetInstanceProcAddr(NULL, "vkCreateInstance");
 
 
-    if (!vkBackends->enumerateInstanceVersion ||
-        !vkBackends->enumerateInstanceExtensionProperties ||
-        !vkBackends->enumerateInstanceLayerProperties ||
-        !vkBackends->createInstance)
+    if (!vkBackends->vkEnumerateInstanceVersion ||
+        !vkBackends->vkEnumerateInstanceExtensionProperties ||
+        !vkBackends->vkEnumerateInstanceLayerProperties ||
+        !vkBackends->vkCreateInstance)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to load vulkan global level function symbols");
@@ -1180,7 +1180,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
         uint32_t extensionPropsCount;
-        VkResult result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, NULL);
+        VkResult result = vkBackends->vkEnumerateInstanceExtensionProperties(NULL, &extensionPropsCount, NULL);
         if (result != VK_SUCCESS)
         {
             // NOTE: this happens on systems with a loader but without any vulkan ICD
@@ -1190,7 +1190,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         }
 
         extensionProps = (VkExtensionProperties*) lvn_calloc(extensionPropsCount * sizeof(VkExtensionProperties));
-        result = vkBackends->enumerateInstanceExtensionProperties(NULL, &extensionPropsCount, extensionProps);
+        result = vkBackends->vkEnumerateInstanceExtensionProperties(NULL, &extensionPropsCount, extensionProps);
         if (result != VK_SUCCESS)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -1265,9 +1265,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     uint32_t availableLayerCount = 0;
     if (vkBackends->enableValidationLayers)
     {
-        vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, NULL);
+        vkBackends->vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL);
         availableLayers = (VkLayerProperties*) lvn_calloc(availableLayerCount * sizeof(VkLayerProperties));
-        vkBackends->enumerateInstanceLayerProperties(&availableLayerCount, availableLayers);
+        vkBackends->vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers);
 
         for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkValidationLayers); i++)
         {
@@ -1313,7 +1313,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     // get vulkan version
     uint32_t vulkanVersion;
-    vkBackends->enumerateInstanceVersion(&vulkanVersion);
+    vkBackends->vkEnumerateInstanceVersion(&vulkanVersion);
     vkBackends->versionMajor = VK_VERSION_MAJOR(vulkanVersion);
     vkBackends->versionMinor = VK_VERSION_MINOR(vulkanVersion);
 
@@ -1356,7 +1356,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkCreateInfo.pNext = NULL;
     }
 
-    if (vkBackends->createInstance(&vkCreateInfo, NULL, &vkBackends->instance) != VK_SUCCESS)
+    if (vkBackends->vkCreateInstance(&vkCreateInfo, NULL, &vkBackends->instance) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create instance");
@@ -1364,36 +1364,36 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // get instance level function symbols
-    vkBackends->destroyInstance = (PFN_vkDestroyInstance)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroyInstance");
-    vkBackends->enumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumeratePhysicalDevices");
-    vkBackends->getPhysicalDeviceQueueFamilyProperties = (PFN_vkGetPhysicalDeviceQueueFamilyProperties)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceQueueFamilyProperties");
-    vkBackends->enumerateDeviceExtensionProperties = (PFN_vkEnumerateDeviceExtensionProperties)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkEnumerateDeviceExtensionProperties");
-    vkBackends->getPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceProperties");
-    vkBackends->getPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceMemoryProperties");
-    vkBackends->getPhysicalDeviceFormatProperties = (PFN_vkGetPhysicalDeviceFormatProperties)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFormatProperties");
-    vkBackends->getPhysicalDeviceFeatures = (PFN_vkGetPhysicalDeviceFeatures)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFeatures");
-    vkBackends->getDeviceProcAddr = (PFN_vkGetDeviceProcAddr)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetDeviceProcAddr");
-    vkBackends->createDevice = (PFN_vkCreateDevice)
-        vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateDevice");
+    vkBackends->vkDestroyInstance = (PFN_vkDestroyInstance)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkDestroyInstance");
+    vkBackends->vkEnumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkEnumeratePhysicalDevices");
+    vkBackends->vkGetPhysicalDeviceQueueFamilyProperties = (PFN_vkGetPhysicalDeviceQueueFamilyProperties)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceQueueFamilyProperties");
+    vkBackends->vkEnumerateDeviceExtensionProperties = (PFN_vkEnumerateDeviceExtensionProperties)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkEnumerateDeviceExtensionProperties");
+    vkBackends->vkGetPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceProperties");
+    vkBackends->vkGetPhysicalDeviceMemoryProperties = (PFN_vkGetPhysicalDeviceMemoryProperties)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceMemoryProperties");
+    vkBackends->vkGetPhysicalDeviceFormatProperties = (PFN_vkGetPhysicalDeviceFormatProperties)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFormatProperties");
+    vkBackends->vkGetPhysicalDeviceFeatures = (PFN_vkGetPhysicalDeviceFeatures)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceFeatures");
+    vkBackends->vkGetDeviceProcAddr = (PFN_vkGetDeviceProcAddr)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetDeviceProcAddr");
+    vkBackends->vkCreateDevice = (PFN_vkCreateDevice)
+        vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateDevice");
 
-    if (!vkBackends->destroyInstance ||
-        !vkBackends->enumeratePhysicalDevices ||
-        !vkBackends->getPhysicalDeviceQueueFamilyProperties ||
-        !vkBackends->enumerateDeviceExtensionProperties ||
-        !vkBackends->getPhysicalDeviceProperties ||
-        !vkBackends->getPhysicalDeviceMemoryProperties ||
-        !vkBackends->getPhysicalDeviceFeatures ||
-        !vkBackends->getDeviceProcAddr ||
-        !vkBackends->createDevice)
+    if (!vkBackends->vkDestroyInstance ||
+        !vkBackends->vkEnumeratePhysicalDevices ||
+        !vkBackends->vkGetPhysicalDeviceQueueFamilyProperties ||
+        !vkBackends->vkEnumerateDeviceExtensionProperties ||
+        !vkBackends->vkGetPhysicalDeviceProperties ||
+        !vkBackends->vkGetPhysicalDeviceMemoryProperties ||
+        !vkBackends->vkGetPhysicalDeviceFeatures ||
+        !vkBackends->vkGetDeviceProcAddr ||
+        !vkBackends->vkCreateDevice)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan instance level function symbols");
         goto fail_cleanup;
@@ -1401,27 +1401,27 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        vkBackends->getPhysicalDeviceSurfaceSupportKHR = (PFN_vkGetPhysicalDeviceSurfaceSupportKHR)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceSupportKHR");
-        vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
-        vkBackends->getPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceFormatsKHR");
-        vkBackends->getPhysicalDeviceSurfacePresentModesKHR = (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfacePresentModesKHR");
-        vkBackends->destroySurfaceKHR = (PFN_vkDestroySurfaceKHR)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroySurfaceKHR");
+        vkBackends->vkGetPhysicalDeviceSurfaceSupportKHR = (PFN_vkGetPhysicalDeviceSurfaceSupportKHR)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceSupportKHR");
+        vkBackends->vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+        vkBackends->vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfaceFormatsKHR");
+        vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR = (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkGetPhysicalDeviceSurfacePresentModesKHR");
+        vkBackends->vkDestroySurfaceKHR = (PFN_vkDestroySurfaceKHR)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkDestroySurfaceKHR");
 
 
         // get create surface PFN based on window platform
-        vkBackends->createSurfaceProc = lvn_getVulkanCreateSurfaceProcAddr(vkBackends);
+        vkBackends->vkCreateSurfaceProc = lvn_getVulkanCreateSurfaceProcAddr(vkBackends);
 
-        if (!vkBackends->getPhysicalDeviceSurfaceSupportKHR ||
-            !vkBackends->getPhysicalDeviceSurfaceCapabilitiesKHR ||
-            !vkBackends->getPhysicalDeviceSurfaceFormatsKHR ||
-            !vkBackends->getPhysicalDeviceSurfacePresentModesKHR ||
-            !vkBackends->destroySurfaceKHR ||
-            !vkBackends->createSurfaceProc)
+        if (!vkBackends->vkGetPhysicalDeviceSurfaceSupportKHR ||
+            !vkBackends->vkGetPhysicalDeviceSurfaceCapabilitiesKHR ||
+            !vkBackends->vkGetPhysicalDeviceSurfaceFormatsKHR ||
+            !vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR ||
+            !vkBackends->vkDestroySurfaceKHR ||
+            !vkBackends->vkCreateSurfaceProc)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan instance level surface function symbol");
@@ -1432,20 +1432,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // create debug messegenger if debug logging enabled
     if (vkBackends->enableValidationLayers)
     {
-        vkBackends->createDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkCreateDebugUtilsMessengerEXT");
-        vkBackends->destroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
-            vkBackends->getInstanceProcAddr(vkBackends->instance, "vkDestroyDebugUtilsMessengerEXT");
+        vkBackends->vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateDebugUtilsMessengerEXT");
+        vkBackends->vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
+            vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkDestroyDebugUtilsMessengerEXT");
 
-        if (!vkBackends->createDebugUtilsMessengerEXT ||
-            !vkBackends->destroyDebugUtilsMessengerEXT)
+        if (!vkBackends->vkCreateDebugUtilsMessengerEXT ||
+            !vkBackends->vkDestroyDebugUtilsMessengerEXT)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan debug message function symbols");
             goto fail_cleanup;
         }
 
-        if (vkBackends->createDebugUtilsMessengerEXT(vkBackends->instance, &debugCreateInfo, NULL, &vkBackends->debugMessenger) != VK_SUCCESS)
+        if (vkBackends->vkCreateDebugUtilsMessengerEXT(vkBackends->instance, &debugCreateInfo, NULL, &vkBackends->debugMessenger) != VK_SUCCESS)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to create debug message utils");
@@ -1474,10 +1474,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     VkPhysicalDeviceProperties deviceProperties;
-    vkBackends->getPhysicalDeviceProperties(vkBackends->physicalDevice, &deviceProperties);
+    vkBackends->vkGetPhysicalDeviceProperties(vkBackends->physicalDevice, &deviceProperties);
 
     VkPhysicalDeviceFeatures deviceFeatures;
-    vkBackends->getPhysicalDeviceFeatures(vkBackends->physicalDevice, &deviceFeatures);
+    vkBackends->vkGetPhysicalDeviceFeatures(vkBackends->physicalDevice, &deviceFeatures);
 
     LVN_LOG_TRACE(graphicsctx->coreLogger,
                   "[vulkan] found supported physical device: \"%s\", driverVersion: (%u), apiVersion: (%u)",
@@ -1521,183 +1521,183 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         deviceCreateInfo.enabledExtensionCount = requiredExtensionCount;
     }
 
-    if (vkBackends->createDevice(vkBackends->physicalDevice, &deviceCreateInfo, NULL, &vkBackends->device) != VK_SUCCESS)
+    if (vkBackends->vkCreateDevice(vkBackends->physicalDevice, &deviceCreateInfo, NULL, &vkBackends->device) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create logical device");
         goto fail_cleanup;
     }
 
     // get device level function symbols
-    vkBackends->destroyDevice = (PFN_vkDestroyDevice)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyDevice");
-    vkBackends->getDeviceQueue = (PFN_vkGetDeviceQueue)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetDeviceQueue");
-    vkBackends->createImage = (PFN_vkCreateImage)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateImage");
-    vkBackends->destroyImage = (PFN_vkDestroyImage)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyImage");
-    vkBackends->createImageView = (PFN_vkCreateImageView)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateImageView");
-    vkBackends->destroyImageView = (PFN_vkDestroyImageView)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyImageView");
-    vkBackends->createSampler = (PFN_vkCreateSampler)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSampler");
-    vkBackends->destroySampler = (PFN_vkDestroySampler)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySampler");
-    vkBackends->createShaderModule = (PFN_vkCreateShaderModule)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateShaderModule");
-    vkBackends->destroyShaderModule = (PFN_vkDestroyShaderModule)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyShaderModule");
-    vkBackends->createRenderPass = (PFN_vkCreateRenderPass)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateRenderPass");
-    vkBackends->destroyRenderPass = (PFN_vkDestroyRenderPass)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyRenderPass");
-    vkBackends->createPipelineLayout = (PFN_vkCreatePipelineLayout)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreatePipelineLayout");
-    vkBackends->destroyPipelineLayout = (PFN_vkDestroyPipelineLayout)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyPipelineLayout");
-    vkBackends->createGraphicsPipelines = (PFN_vkCreateGraphicsPipelines)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateGraphicsPipelines");
-    vkBackends->destroyPipeline = (PFN_vkDestroyPipeline)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyPipeline");
-    vkBackends->createFramebuffer = (PFN_vkCreateFramebuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFramebuffer");
-    vkBackends->destroyFramebuffer = (PFN_vkDestroyFramebuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFramebuffer");
-    vkBackends->createBuffer = (PFN_vkCreateBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateBuffer");
-    vkBackends->destroyBuffer = (PFN_vkDestroyBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyBuffer");
-    vkBackends->createFence = (PFN_vkCreateFence)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateFence");
-    vkBackends->destroyFence = (PFN_vkDestroyFence)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyFence");
-    vkBackends->createSemaphore = (PFN_vkCreateSemaphore)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSemaphore");
-    vkBackends->destroySemaphore = (PFN_vkDestroySemaphore)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySemaphore");
-    vkBackends->createCommandPool = (PFN_vkCreateCommandPool)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
-    vkBackends->destroyCommandPool = (PFN_vkDestroyCommandPool)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
-    vkBackends->allocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
-    vkBackends->freeCommandBuffers = (PFN_vkFreeCommandBuffers)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFreeCommandBuffers");
-    vkBackends->beginCommandBuffer = (PFN_vkBeginCommandBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBeginCommandBuffer");
-    vkBackends->endCommandBuffer = (PFN_vkEndCommandBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkEndCommandBuffer");
-    vkBackends->cmdBeginRenderPass = (PFN_vkCmdBeginRenderPass)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBeginRenderPass");
-    vkBackends->cmdEndRenderPass = (PFN_vkCmdEndRenderPass)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdEndRenderPass");
-    vkBackends->cmdPipelineBarrier = (PFN_vkCmdPipelineBarrier)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdPipelineBarrier");
-    vkBackends->cmdBindPipeline = (PFN_vkCmdBindPipeline)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindPipeline");
-    vkBackends->cmdBindVertexBuffers = (PFN_vkCmdBindVertexBuffers)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindVertexBuffers");
-    vkBackends->cmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdBindIndexBuffer");
-    vkBackends->cmdSetViewport = (PFN_vkCmdSetViewport)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdSetViewport");
-    vkBackends->cmdSetScissor = (PFN_vkCmdSetScissor)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdSetScissor");
-    vkBackends->cmdDraw = (PFN_vkCmdDraw)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdDraw");
-    vkBackends->cmdDrawIndexed = (PFN_vkCmdDrawIndexed)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdDrawIndexed");
-    vkBackends->cmdCopyBuffer = (PFN_vkCmdCopyBuffer)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdCopyBuffer");
-    vkBackends->cmdCopyBufferToImage = (PFN_vkCmdCopyBufferToImage)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkCmdCopyBufferToImage");
-    vkBackends->queueSubmit = (PFN_vkQueueSubmit)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueSubmit");
-    vkBackends->waitForFences = (PFN_vkWaitForFences)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkWaitForFences");
-    vkBackends->resetFences = (PFN_vkResetFences)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkResetFences");
-    vkBackends->deviceWaitIdle = (PFN_vkDeviceWaitIdle)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkDeviceWaitIdle");
-    vkBackends->queueWaitIdle = (PFN_vkQueueWaitIdle)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueueWaitIdle");
-    vkBackends->allocateMemory = (PFN_vkAllocateMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkAllocateMemory");
-    vkBackends->freeMemory = (PFN_vkFreeMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFreeMemory");
-    vkBackends->mapMemory = (PFN_vkMapMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkMapMemory");
-    vkBackends->unmapMemory = (PFN_vkUnmapMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkUnmapMemory");
-    vkBackends->flushMappedMemoryRanges = (PFN_vkFlushMappedMemoryRanges)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkFlushMappedMemoryRanges");
-    vkBackends->invalidateMappedMemoryRanges = (PFN_vkInvalidateMappedMemoryRanges)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkInvalidateMappedMemoryRanges");
-    vkBackends->bindBufferMemory = (PFN_vkBindBufferMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBindBufferMemory");
-    vkBackends->bindImageMemory = (PFN_vkBindImageMemory)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkBindImageMemory");
-    vkBackends->getBufferMemoryRequirements = (PFN_vkGetBufferMemoryRequirements)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetBufferMemoryRequirements");
-    vkBackends->getImageMemoryRequirements = (PFN_vkGetImageMemoryRequirements)
-        vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetImageMemoryRequirements");
+    vkBackends->vkDestroyDevice = (PFN_vkDestroyDevice)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyDevice");
+    vkBackends->vkGetDeviceQueue = (PFN_vkGetDeviceQueue)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkGetDeviceQueue");
+    vkBackends->vkCreateImage = (PFN_vkCreateImage)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateImage");
+    vkBackends->vkDestroyImage = (PFN_vkDestroyImage)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyImage");
+    vkBackends->vkCreateImageView = (PFN_vkCreateImageView)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateImageView");
+    vkBackends->vkDestroyImageView = (PFN_vkDestroyImageView)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyImageView");
+    vkBackends->vkCreateSampler = (PFN_vkCreateSampler)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateSampler");
+    vkBackends->vkDestroySampler = (PFN_vkDestroySampler)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroySampler");
+    vkBackends->vkCreateShaderModule = (PFN_vkCreateShaderModule)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateShaderModule");
+    vkBackends->vkDestroyShaderModule = (PFN_vkDestroyShaderModule)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyShaderModule");
+    vkBackends->vkCreateRenderPass = (PFN_vkCreateRenderPass)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateRenderPass");
+    vkBackends->vkDestroyRenderPass = (PFN_vkDestroyRenderPass)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyRenderPass");
+    vkBackends->vkCreatePipelineLayout = (PFN_vkCreatePipelineLayout)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreatePipelineLayout");
+    vkBackends->vkDestroyPipelineLayout = (PFN_vkDestroyPipelineLayout)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyPipelineLayout");
+    vkBackends->vkCreateGraphicsPipelines = (PFN_vkCreateGraphicsPipelines)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateGraphicsPipelines");
+    vkBackends->vkDestroyPipeline = (PFN_vkDestroyPipeline)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyPipeline");
+    vkBackends->vkCreateFramebuffer = (PFN_vkCreateFramebuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateFramebuffer");
+    vkBackends->vkDestroyFramebuffer = (PFN_vkDestroyFramebuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyFramebuffer");
+    vkBackends->vkCreateBuffer = (PFN_vkCreateBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateBuffer");
+    vkBackends->vkDestroyBuffer = (PFN_vkDestroyBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyBuffer");
+    vkBackends->vkCreateFence = (PFN_vkCreateFence)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateFence");
+    vkBackends->vkDestroyFence = (PFN_vkDestroyFence)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyFence");
+    vkBackends->vkCreateSemaphore = (PFN_vkCreateSemaphore)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateSemaphore");
+    vkBackends->vkDestroySemaphore = (PFN_vkDestroySemaphore)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroySemaphore");
+    vkBackends->vkCreateCommandPool = (PFN_vkCreateCommandPool)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
+    vkBackends->vkDestroyCommandPool = (PFN_vkDestroyCommandPool)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
+    vkBackends->vkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
+    vkBackends->vkFreeCommandBuffers = (PFN_vkFreeCommandBuffers)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkFreeCommandBuffers");
+    vkBackends->vkBeginCommandBuffer = (PFN_vkBeginCommandBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkBeginCommandBuffer");
+    vkBackends->vkEndCommandBuffer = (PFN_vkEndCommandBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkEndCommandBuffer");
+    vkBackends->vkCmdBeginRenderPass = (PFN_vkCmdBeginRenderPass)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBeginRenderPass");
+    vkBackends->vkCmdEndRenderPass = (PFN_vkCmdEndRenderPass)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdEndRenderPass");
+    vkBackends->vkCmdPipelineBarrier = (PFN_vkCmdPipelineBarrier)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdPipelineBarrier");
+    vkBackends->vkCmdBindPipeline = (PFN_vkCmdBindPipeline)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindPipeline");
+    vkBackends->vkCmdBindVertexBuffers = (PFN_vkCmdBindVertexBuffers)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindVertexBuffers");
+    vkBackends->vkCmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindIndexBuffer");
+    vkBackends->vkCmdSetViewport = (PFN_vkCmdSetViewport)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdSetViewport");
+    vkBackends->vkCmdSetScissor = (PFN_vkCmdSetScissor)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdSetScissor");
+    vkBackends->vkCmdDraw = (PFN_vkCmdDraw)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdDraw");
+    vkBackends->vkCmdDrawIndexed = (PFN_vkCmdDrawIndexed)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdDrawIndexed");
+    vkBackends->vkCmdCopyBuffer = (PFN_vkCmdCopyBuffer)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdCopyBuffer");
+    vkBackends->vkCmdCopyBufferToImage = (PFN_vkCmdCopyBufferToImage)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdCopyBufferToImage");
+    vkBackends->vkQueueSubmit = (PFN_vkQueueSubmit)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkQueueSubmit");
+    vkBackends->vkWaitForFences = (PFN_vkWaitForFences)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkWaitForFences");
+    vkBackends->vkResetFences = (PFN_vkResetFences)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkResetFences");
+    vkBackends->vkDeviceWaitIdle = (PFN_vkDeviceWaitIdle)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDeviceWaitIdle");
+    vkBackends->vkQueueWaitIdle = (PFN_vkQueueWaitIdle)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkQueueWaitIdle");
+    vkBackends->vkAllocateMemory = (PFN_vkAllocateMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateMemory");
+    vkBackends->vkFreeMemory = (PFN_vkFreeMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkFreeMemory");
+    vkBackends->vkMapMemory = (PFN_vkMapMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkMapMemory");
+    vkBackends->vkUnmapMemory = (PFN_vkUnmapMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkUnmapMemory");
+    vkBackends->vkFlushMappedMemoryRanges = (PFN_vkFlushMappedMemoryRanges)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkFlushMappedMemoryRanges");
+    vkBackends->vkInvalidateMappedMemoryRanges = (PFN_vkInvalidateMappedMemoryRanges)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkInvalidateMappedMemoryRanges");
+    vkBackends->vkBindBufferMemory = (PFN_vkBindBufferMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkBindBufferMemory");
+    vkBackends->vkBindImageMemory = (PFN_vkBindImageMemory)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkBindImageMemory");
+    vkBackends->vkGetBufferMemoryRequirements = (PFN_vkGetBufferMemoryRequirements)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkGetBufferMemoryRequirements");
+    vkBackends->vkGetImageMemoryRequirements = (PFN_vkGetImageMemoryRequirements)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkGetImageMemoryRequirements");
 
-    if (!vkBackends->destroyDevice ||
-        !vkBackends->getDeviceQueue ||
-        !vkBackends->createImage ||
-        !vkBackends->destroyImage ||
-        !vkBackends->createImageView ||
-        !vkBackends->destroyImageView ||
-        !vkBackends->createSampler ||
-        !vkBackends->destroySampler ||
-        !vkBackends->createShaderModule ||
-        !vkBackends->destroyShaderModule ||
-        !vkBackends->createRenderPass ||
-        !vkBackends->destroyRenderPass ||
-        !vkBackends->createPipelineLayout ||
-        !vkBackends->destroyPipelineLayout ||
-        !vkBackends->createGraphicsPipelines ||
-        !vkBackends->destroyPipeline ||
-        !vkBackends->createFramebuffer ||
-        !vkBackends->destroyFramebuffer ||
-        !vkBackends->createBuffer ||
-        !vkBackends->destroyBuffer ||
-        !vkBackends->createFence ||
-        !vkBackends->destroyFence ||
-        !vkBackends->createSemaphore ||
-        !vkBackends->destroySemaphore ||
-        !vkBackends->createCommandPool ||
-        !vkBackends->destroyCommandPool ||
-        !vkBackends->allocateCommandBuffers ||
-        !vkBackends->beginCommandBuffer ||
-        !vkBackends->endCommandBuffer ||
-        !vkBackends->cmdBeginRenderPass ||
-        !vkBackends->cmdEndRenderPass ||
-        !vkBackends->cmdPipelineBarrier ||
-        !vkBackends->cmdBindPipeline ||
-        !vkBackends->cmdBindVertexBuffers ||
-        !vkBackends->cmdBindIndexBuffer ||
-        !vkBackends->cmdSetViewport ||
-        !vkBackends->cmdSetScissor ||
-        !vkBackends->cmdDraw ||
-        !vkBackends->cmdDrawIndexed ||
-        !vkBackends->cmdCopyBuffer ||
-        !vkBackends->cmdCopyBufferToImage ||
-        !vkBackends->queueSubmit ||
-        !vkBackends->waitForFences ||
-        !vkBackends->resetFences ||
-        !vkBackends->deviceWaitIdle ||
-        !vkBackends->allocateMemory ||
-        !vkBackends->freeMemory ||
-        !vkBackends->mapMemory ||
-        !vkBackends->unmapMemory ||
-        !vkBackends->flushMappedMemoryRanges ||
-        !vkBackends->invalidateMappedMemoryRanges ||
-        !vkBackends->bindBufferMemory ||
-        !vkBackends->bindImageMemory ||
-        !vkBackends->getBufferMemoryRequirements ||
-        !vkBackends->getImageMemoryRequirements)
+    if (!vkBackends->vkDestroyDevice ||
+        !vkBackends->vkGetDeviceQueue ||
+        !vkBackends->vkCreateImage ||
+        !vkBackends->vkDestroyImage ||
+        !vkBackends->vkCreateImageView ||
+        !vkBackends->vkDestroyImageView ||
+        !vkBackends->vkCreateSampler ||
+        !vkBackends->vkDestroySampler ||
+        !vkBackends->vkCreateShaderModule ||
+        !vkBackends->vkDestroyShaderModule ||
+        !vkBackends->vkCreateRenderPass ||
+        !vkBackends->vkDestroyRenderPass ||
+        !vkBackends->vkCreatePipelineLayout ||
+        !vkBackends->vkDestroyPipelineLayout ||
+        !vkBackends->vkCreateGraphicsPipelines ||
+        !vkBackends->vkDestroyPipeline ||
+        !vkBackends->vkCreateFramebuffer ||
+        !vkBackends->vkDestroyFramebuffer ||
+        !vkBackends->vkCreateBuffer ||
+        !vkBackends->vkDestroyBuffer ||
+        !vkBackends->vkCreateFence ||
+        !vkBackends->vkDestroyFence ||
+        !vkBackends->vkCreateSemaphore ||
+        !vkBackends->vkDestroySemaphore ||
+        !vkBackends->vkCreateCommandPool ||
+        !vkBackends->vkDestroyCommandPool ||
+        !vkBackends->vkAllocateCommandBuffers ||
+        !vkBackends->vkBeginCommandBuffer ||
+        !vkBackends->vkEndCommandBuffer ||
+        !vkBackends->vkCmdBeginRenderPass ||
+        !vkBackends->vkCmdEndRenderPass ||
+        !vkBackends->vkCmdPipelineBarrier ||
+        !vkBackends->vkCmdBindPipeline ||
+        !vkBackends->vkCmdBindVertexBuffers ||
+        !vkBackends->vkCmdBindIndexBuffer ||
+        !vkBackends->vkCmdSetViewport ||
+        !vkBackends->vkCmdSetScissor ||
+        !vkBackends->vkCmdDraw ||
+        !vkBackends->vkCmdDrawIndexed ||
+        !vkBackends->vkCmdCopyBuffer ||
+        !vkBackends->vkCmdCopyBufferToImage ||
+        !vkBackends->vkQueueSubmit ||
+        !vkBackends->vkWaitForFences ||
+        !vkBackends->vkResetFences ||
+        !vkBackends->vkDeviceWaitIdle ||
+        !vkBackends->vkAllocateMemory ||
+        !vkBackends->vkFreeMemory ||
+        !vkBackends->vkMapMemory ||
+        !vkBackends->vkUnmapMemory ||
+        !vkBackends->vkFlushMappedMemoryRanges ||
+        !vkBackends->vkInvalidateMappedMemoryRanges ||
+        !vkBackends->vkBindBufferMemory ||
+        !vkBackends->vkBindImageMemory ||
+        !vkBackends->vkGetBufferMemoryRequirements ||
+        !vkBackends->vkGetImageMemoryRequirements)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to load vulkan device level function symbols");
         goto fail_cleanup;
@@ -1705,22 +1705,22 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        vkBackends->createSwapchainKHR = (PFN_vkCreateSwapchainKHR)
-            vkBackends->getDeviceProcAddr(vkBackends->device, "vkCreateSwapchainKHR");
-        vkBackends->destroySwapchainKHR = (PFN_vkDestroySwapchainKHR)
-            vkBackends->getDeviceProcAddr(vkBackends->device, "vkDestroySwapchainKHR");
-        vkBackends->getSwapchainImagesKHR = (PFN_vkGetSwapchainImagesKHR)
-            vkBackends->getDeviceProcAddr(vkBackends->device, "vkGetSwapchainImagesKHR");
-        vkBackends->acquireNextImageKHR = (PFN_vkAcquireNextImageKHR)
-            vkBackends->getDeviceProcAddr(vkBackends->device, "vkAcquireNextImageKHR");
-        vkBackends->queuePresentKHR = (PFN_vkQueuePresentKHR)
-            vkBackends->getDeviceProcAddr(vkBackends->device, "vkQueuePresentKHR");
+        vkBackends->vkCreateSwapchainKHR = (PFN_vkCreateSwapchainKHR)
+            vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateSwapchainKHR");
+        vkBackends->vkDestroySwapchainKHR = (PFN_vkDestroySwapchainKHR)
+            vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroySwapchainKHR");
+        vkBackends->vkGetSwapchainImagesKHR = (PFN_vkGetSwapchainImagesKHR)
+            vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkGetSwapchainImagesKHR");
+        vkBackends->vkAcquireNextImageKHR = (PFN_vkAcquireNextImageKHR)
+            vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAcquireNextImageKHR");
+        vkBackends->vkQueuePresentKHR = (PFN_vkQueuePresentKHR)
+            vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkQueuePresentKHR");
 
-        if (!vkBackends->createSwapchainKHR ||
-            !vkBackends->destroySwapchainKHR ||
-            !vkBackends->getSwapchainImagesKHR ||
-            !vkBackends->acquireNextImageKHR ||
-            !vkBackends->queuePresentKHR)
+        if (!vkBackends->vkCreateSwapchainKHR ||
+            !vkBackends->vkDestroySwapchainKHR ||
+            !vkBackends->vkGetSwapchainImagesKHR ||
+            !vkBackends->vkAcquireNextImageKHR ||
+            !vkBackends->vkQueuePresentKHR)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to load vulkan device level surface function symbol");
@@ -1730,10 +1730,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // get graphics and present queues from device
-    vkBackends->getDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.graphicsIndex, 0, &vkBackends->graphicsQueue);
+    vkBackends->vkGetDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.graphicsIndex, 0, &vkBackends->graphicsQueue);
 
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
-        vkBackends->getDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.presentIndex, 0, &vkBackends->presentQueue);
+        vkBackends->vkGetDeviceQueue(vkBackends->device, vkBackends->queueFamilyIndices.presentIndex, 0, &vkBackends->presentQueue);
 
 
     // create command pool
@@ -1741,7 +1741,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolCreateInfo.queueFamilyIndex = vkBackends->queueFamilyIndices.graphicsIndex;
-    if (vkBackends->createCommandPool(vkBackends->device, &poolCreateInfo, NULL, &vkBackends->commandPool) != VK_SUCCESS)
+    if (vkBackends->vkCreateCommandPool(vkBackends->device, &poolCreateInfo, NULL, &vkBackends->commandPool) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create command pool");
         goto fail_cleanup;
@@ -1749,23 +1749,23 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     // create vma allocator
     VmaVulkanFunctions vkFuncs = {
-        .vkGetPhysicalDeviceProperties       = vkBackends->getPhysicalDeviceProperties,
-        .vkGetPhysicalDeviceMemoryProperties = vkBackends->getPhysicalDeviceMemoryProperties,
-        .vkAllocateMemory                    = vkBackends->allocateMemory,
-        .vkFreeMemory                        = vkBackends->freeMemory,
-        .vkMapMemory                         = vkBackends->mapMemory,
-        .vkUnmapMemory                       = vkBackends->unmapMemory,
-        .vkFlushMappedMemoryRanges           = vkBackends->flushMappedMemoryRanges,
-        .vkInvalidateMappedMemoryRanges      = vkBackends->invalidateMappedMemoryRanges,
-        .vkBindBufferMemory                  = vkBackends->bindBufferMemory,
-        .vkBindImageMemory                   = vkBackends->bindImageMemory,
-        .vkGetBufferMemoryRequirements       = vkBackends->getBufferMemoryRequirements,
-        .vkGetImageMemoryRequirements        = vkBackends->getImageMemoryRequirements,
-        .vkCreateBuffer                      = vkBackends->createBuffer,
-        .vkDestroyBuffer                     = vkBackends->destroyBuffer,
-        .vkCreateImage                       = vkBackends->createImage,
-        .vkDestroyImage                      = vkBackends->destroyImage,
-        .vkCmdCopyBuffer                     = vkBackends->cmdCopyBuffer,
+        .vkGetPhysicalDeviceProperties       = vkBackends->vkGetPhysicalDeviceProperties,
+        .vkGetPhysicalDeviceMemoryProperties = vkBackends->vkGetPhysicalDeviceMemoryProperties,
+        .vkAllocateMemory                    = vkBackends->vkAllocateMemory,
+        .vkFreeMemory                        = vkBackends->vkFreeMemory,
+        .vkMapMemory                         = vkBackends->vkMapMemory,
+        .vkUnmapMemory                       = vkBackends->vkUnmapMemory,
+        .vkFlushMappedMemoryRanges           = vkBackends->vkFlushMappedMemoryRanges,
+        .vkInvalidateMappedMemoryRanges      = vkBackends->vkInvalidateMappedMemoryRanges,
+        .vkBindBufferMemory                  = vkBackends->vkBindBufferMemory,
+        .vkBindImageMemory                   = vkBackends->vkBindImageMemory,
+        .vkGetBufferMemoryRequirements       = vkBackends->vkGetBufferMemoryRequirements,
+        .vkGetImageMemoryRequirements        = vkBackends->vkGetImageMemoryRequirements,
+        .vkCreateBuffer                      = vkBackends->vkCreateBuffer,
+        .vkDestroyBuffer                     = vkBackends->vkDestroyBuffer,
+        .vkCreateImage                       = vkBackends->vkCreateImage,
+        .vkDestroyImage                      = vkBackends->vkDestroyImage,
+        .vkCmdCopyBuffer                     = vkBackends->vkCmdCopyBuffer,
     };
 
     VmaAllocatorCreateInfo allocatorInfo = {
@@ -1827,7 +1827,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implRenderSubmit = lvnImplVkRenderSubmit;
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
 
-    vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
+    vkBackends->vkDestroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1836,8 +1836,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
 fail_cleanup:
     vmaDestroyAllocator(vkBackends->vmaAllocator);
-    vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
-    vkBackends->destroySurfaceKHR(vkBackends->instance, surface, NULL);
+    vkBackends->vkDestroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
+    vkBackends->vkDestroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1851,18 +1851,18 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     if (vkBackends->vmaAllocator)
         vmaDestroyAllocator(vkBackends->vmaAllocator);
     if (vkBackends->commandPool)
-        vkBackends->destroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
+        vkBackends->vkDestroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     if (vkBackends->device)
-        vkBackends->destroyDevice(vkBackends->device, NULL);
+        vkBackends->vkDestroyDevice(vkBackends->device, NULL);
     if (vkBackends->debugMessenger)
-        vkBackends->destroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
+        vkBackends->vkDestroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
     if (vkBackends->instance)
-        vkBackends->destroyInstance(vkBackends->instance, NULL);
+        vkBackends->vkDestroyInstance(vkBackends->instance, NULL);
 
     if (vkBackends->handle)
         lvn_platformFreeModule(vkBackends->handle);
@@ -1898,10 +1898,10 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
-    vkBackends->destroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
+    vkBackends->vkDestroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
     surface->surface = NULL;
 }
 
@@ -1969,9 +1969,9 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
 
 fail_cleanup:
     lvn_free(swapchainImages);
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+    vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImageViews);
     lvn_free(swapchainData->swapchainImages);
 fail_cleanup_swapchaindata:
@@ -1986,18 +1986,18 @@ void lvnImplVkDestroySwapchain(LvnSwapchain* swapchain)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImageViews);
 
     // swapchain images
     lvn_free(swapchainData->swapchainImages);
 
     // swapchain
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+    vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
 
     // swapchain data struct
     lvn_free(swapchain->swapchainData);
@@ -2149,7 +2149,7 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
     };
 
     VkRenderPass vkRenderPass;
-    if (vkBackends->createRenderPass(vkBackends->device, &renderPassInfo, NULL, &vkRenderPass) != VK_SUCCESS)
+    if (vkBackends->vkCreateRenderPass(vkBackends->device, &renderPassInfo, NULL, &vkRenderPass) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create render pass");
         goto fail_cleanup;
@@ -2177,9 +2177,9 @@ void lvnImplVkDestroyRenderPass(LvnRenderPass* renderpass)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) renderpass->graphicsctx->implData;
     VkRenderPass vkRenderPass = (VkRenderPass) renderpass->renderpass;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    vkBackends->destroyRenderPass(vkBackends->device, vkRenderPass, NULL);
+    vkBackends->vkDestroyRenderPass(vkBackends->device, vkRenderPass, NULL);
     renderpass->renderpass = NULL;
 }
 
@@ -2191,7 +2191,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
     VkRenderPass vkRenderPass = (VkRenderPass) createInfo->renderPass->renderpass;
     LvnResult result = Lvn_Result_Failure;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     VkImageView* attachments = NULL;
 
@@ -2232,7 +2232,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
     };
 
     VkFramebuffer vkFramebuffer;
-    if (vkBackends->createFramebuffer(vkBackends->device, &framebufferInfo, NULL, &vkFramebuffer) != VK_SUCCESS)
+    if (vkBackends->vkCreateFramebuffer(vkBackends->device, &framebufferInfo, NULL, &vkFramebuffer) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create framebuffer");
         goto fail_cleanup;
@@ -2256,9 +2256,9 @@ void lvnImplVkDestroyFramebuffer(LvnFramebuffer* framebuffer)
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) framebuffer->graphicsctx->implData;
     VkFramebuffer vkFramebuffer = (VkFramebuffer) framebuffer->framebufferHandle;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    vkBackends->destroyFramebuffer(vkBackends->device, vkFramebuffer, NULL);
+    vkBackends->vkDestroyFramebuffer(vkBackends->device, vkFramebuffer, NULL);
     framebuffer->framebufferHandle = NULL;
 }
 
@@ -2300,7 +2300,7 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
     shaderCreateInfo.codeSize = createInfo->codeSize;
     shaderCreateInfo.pCode = (const uint32_t*) createInfo->pCode;
 
-    if (vkBackends->createShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderData->shaderModule) != VK_SUCCESS)
+    if (vkBackends->vkCreateShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderData->shaderModule) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create shader module in shader %p",
@@ -2317,7 +2317,7 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 fail_cleanup:
     if (shaderData)
     {
-        vkBackends->destroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
+        vkBackends->vkDestroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
         lvn_free(shaderData->entryPoint);
         lvn_free(shaderData);
     }
@@ -2329,11 +2329,11 @@ void lvnImplVkDestroyShader(LvnShader* shader)
     LVN_ASSERT(shader, "shader cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) shader->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     LvnVkShaderData* shaderData = (LvnVkShaderData*) shader->shader;
 
-    vkBackends->destroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
+    vkBackends->vkDestroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
     lvn_free(shaderData->entryPoint);
     lvn_free(shaderData);
 
@@ -2593,7 +2593,7 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         pipelineLayoutInfo.pSetLayouts = NULL;
     }
 
-    if (vkBackends->createPipelineLayout(vkBackends->device, &pipelineLayoutInfo, NULL, &pipelineLayout) != VK_SUCCESS)
+    if (vkBackends->vkCreatePipelineLayout(vkBackends->device, &pipelineLayoutInfo, NULL, &pipelineLayout) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create pipeline layout for pipeline %p", pipeline);
         goto fail_cleanup;
@@ -2620,7 +2620,7 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     pipelineInfo.basePipelineIndex = -1;
     pipelineInfo.renderPass = renderPass;
 
-    if (vkBackends->createGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
+    if (vkBackends->vkCreateGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create graphics pipeline for pipeline %p", pipeline);
         goto fail_cleanup;
@@ -2639,8 +2639,8 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
-    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    vkBackends->vkDestroyPipeline(vkBackends->device, vkPipeline, NULL);
+    vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
     lvn_free(colorBlendAttachments);
     lvn_free(colorAttachmentFormats);
     lvn_free(descriptorLayouts);
@@ -2656,13 +2656,13 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) pipeline->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
     VkPipelineLayout pipelineLayout = (VkPipelineLayout) pipeline->pipelineLayoutHandle;
 
-    vkBackends->destroyPipeline(vkBackends->device, vkPipeline, NULL);
-    vkBackends->destroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    vkBackends->vkDestroyPipeline(vkBackends->device, vkPipeline, NULL);
+    vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
 }
 
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
@@ -2676,7 +2676,7 @@ LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* 
     };
 
     VkFence vkFence;
-    if (vkBackends->createFence(vkBackends->device, &fenceInfo, NULL, &vkFence) != VK_SUCCESS)
+    if (vkBackends->vkCreateFence(vkBackends->device, &fenceInfo, NULL, &vkFence) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkFence");
         return Lvn_Result_Failure;
@@ -2690,9 +2690,9 @@ void lvnImplVkDestroyFence(LvnFence* fence)
 {
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
     VkFence vkFence = (VkFence) fence->fenceHandle;
-    vkBackends->destroyFence(vkBackends->device, vkFence, NULL);
+    vkBackends->vkDestroyFence(vkBackends->device, vkFence, NULL);
 }
 
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore)
@@ -2705,7 +2705,7 @@ LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSem
     };
 
     VkSemaphore vkSemaphore;
-    if (vkBackends->createSemaphore(vkBackends->device, &semaphoreInfo, NULL, &vkSemaphore) != VK_SUCCESS)
+    if (vkBackends->vkCreateSemaphore(vkBackends->device, &semaphoreInfo, NULL, &vkSemaphore) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkSemaphore");
         return Lvn_Result_Failure;
@@ -2719,9 +2719,9 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
 {
     LVN_ASSERT(semaphore, "semaphore cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) semaphore->graphicsctx->implData;
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
     VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
-    vkBackends->destroySemaphore(vkBackends->device, vkSemaphore, NULL);
+    vkBackends->vkDestroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
 
 LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
@@ -2785,7 +2785,7 @@ LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffe
 
         lvn_copyBuffer(vkBackends, stagingBuffer, vkBuffer, createInfo->size, 0, 0);
 
-        vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
+        vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
         vmaFreeMemory(vkBackends->vmaAllocator, stagingMemory);
 
         bufferData->buffer = vkBuffer;
@@ -2822,8 +2822,8 @@ LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffe
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
-    vkBackends->destroyBuffer(vkBackends->device, vkBuffer, NULL);
+    vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
+    vkBackends->vkDestroyBuffer(vkBackends->device, vkBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingMemory);
     vmaFreeMemory(vkBackends->vmaAllocator, bufferMemory);
     lvn_free(bufferData);
@@ -2836,14 +2836,14 @@ void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) buffer->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
     if (buffer->usage != Lvn_BufferMemoryUsage_GpuOnly)
         vmaUnmapMemory(vkBackends->vmaAllocator, bufferData->bufferMemory);
 
-    vkBackends->destroyBuffer(vkBackends->device, bufferData->buffer, NULL);
+    vkBackends->vkDestroyBuffer(vkBackends->device, bufferData->buffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, bufferData->bufferMemory);
 
     lvn_free(bufferData);
@@ -2867,10 +2867,10 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
     };
 
     VkPhysicalDeviceFeatures physicalDeviceFeatures;
-    vkBackends->getPhysicalDeviceFeatures(vkBackends->physicalDevice, &physicalDeviceFeatures);
+    vkBackends->vkGetPhysicalDeviceFeatures(vkBackends->physicalDevice, &physicalDeviceFeatures);
 
     VkPhysicalDeviceProperties physicalDeviceProperties;
-    vkBackends->getPhysicalDeviceProperties(vkBackends->physicalDevice, &physicalDeviceProperties);
+    vkBackends->vkGetPhysicalDeviceProperties(vkBackends->physicalDevice, &physicalDeviceProperties);
 
     if (physicalDeviceFeatures.samplerAnisotropy)
     {
@@ -2893,7 +2893,7 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
     samplerInfo.maxLod = 0.0f;
 
     VkSampler textureSampler;
-    if (vkBackends->createSampler(vkBackends->device, &samplerInfo, NULL, &textureSampler) != VK_SUCCESS)
+    if (vkBackends->vkCreateSampler(vkBackends->device, &samplerInfo, NULL, &textureSampler) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create sampler <VkSampler> (%p)",
@@ -2910,9 +2910,9 @@ void lvnImplVksDestroySampler(LvnSampler* sampler)
 {
     LVN_ASSERT(sampler, "sampler cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) sampler->graphicsctx->implData;
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
     VkSampler textureSampler = (VkSampler) sampler->samplerHandle;
-    vkBackends->destroySampler(vkBackends->device, textureSampler, NULL);
+    vkBackends->vkDestroySampler(vkBackends->device, textureSampler, NULL);
 }
 
 LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
@@ -2980,7 +2980,7 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     };
 
     VkImageView imageView;
-    if (vkBackends->createImageView(vkBackends->device, &viewInfo, NULL, &imageView) != VK_SUCCESS)
+    if (vkBackends->vkCreateImageView(vkBackends->device, &viewInfo, NULL, &imageView) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to create texture image view <VkImageView> for texture (%p)",
@@ -2993,14 +2993,14 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     texture->imageViewHandle = imageView;
     texture->samplerHandle = createInfo->sampler->samplerHandle;
 
-    vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
+    vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingBufferMemory);
 
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->destroyImage(vkBackends->device, textureImage, NULL);
-    vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
+    vkBackends->vkDestroyImage(vkBackends->device, textureImage, NULL);
+    vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingBufferMemory);
     vmaFreeMemory(vkBackends->vmaAllocator, textureImageMemory);
     return result;
@@ -3011,15 +3011,15 @@ void lvnImplVksDestroyTexture(LvnTexture* texture)
     LVN_ASSERT(texture, "texture cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) texture->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     VkImage image = (VkImage) texture->imageHandle;
     VmaAllocation imageMemory = (VmaAllocation) texture->imageMemoryHandle;
     VkImageView imageView = (VkImageView) texture->imageViewHandle;
 
-    vkBackends->destroyImage(vkBackends->device, image, NULL);
+    vkBackends->vkDestroyImage(vkBackends->device, image, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, imageMemory);
-    vkBackends->destroyImageView(vkBackends->device, imageView, NULL);
+    vkBackends->vkDestroyImageView(vkBackends->device, imageView, NULL);
 }
 
 LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
@@ -3036,7 +3036,7 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
     };
 
     VkCommandBuffer* commandBuffers = lvn_calloc(allocInfo->count * sizeof(VkCommandBuffer));
-    if (vkBackends->allocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, commandBuffers) != VK_SUCCESS)
+    if (vkBackends->vkAllocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, commandBuffers) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
         return Lvn_Result_Failure;
@@ -3056,7 +3056,7 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
 
     uint32_t vkFormatCount = 0;
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, NULL);
+    vkBackends->vkGetPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, NULL);
 
     if (!vkFormatCount)
     {
@@ -3072,7 +3072,7 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
         return;
     }
 
-    vkBackends->getPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, formats);
+    vkBackends->vkGetPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, formats);
 
     uint32_t supportedFormatCount = 0;
     for (uint32_t i = 0; i < vkFormatCount; i++)
@@ -3101,7 +3101,7 @@ void lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
 
     uint32_t vkPresentModeCount = 0;
-    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, NULL);
+    vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, NULL);
 
     if (!vkPresentModeCount)
     {
@@ -3117,7 +3117,7 @@ void lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_
         return;
     }
 
-    vkBackends->getPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, presentModes);
+    vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, presentModes);
 
     bool fifoFound = false;
     uint32_t supportedPresentModeCount = 0;
@@ -3149,14 +3149,14 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
 
-    vkBackends->deviceWaitIdle(vkBackends->device);
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
     VkSurfaceKHR surface = (VkSurfaceKHR) swapchainData->surface;
 
     // destroy swapchain resources
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->destroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
     lvn_free(swapchainData->swapchainImages);
     lvn_free(swapchainData->swapchainImageViews);
     swapchainData->swapchainImages = NULL;
@@ -3187,7 +3187,7 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     }
 
     // destroy old swapchain
-    vkBackends->destroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
+    vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
     swapchainData->oldSwapchain = VK_NULL_HANDLE;
 
     if (swapchain->swapchainImageCount != swapchainData->swapchainImageCount)
@@ -3221,7 +3221,7 @@ LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemapho
     VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreHandle : VK_NULL_HANDLE;
     VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceHandle : VK_NULL_HANDLE;
 
-    VkResult result = vkBackends->acquireNextImageKHR(vkBackends->device, vkSwapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
+    VkResult result = vkBackends->vkAcquireNextImageKHR(vkBackends->device, vkSwapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
         return Lvn_Result_OutOfDate;
@@ -3234,7 +3234,7 @@ LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
     VkFence vkFence = (VkFence) fence->fenceHandle;
-    return (vkBackends->waitForFences(vkBackends->device, 1, &vkFence, VK_TRUE, timeout) == VK_SUCCESS)
+    return (vkBackends->vkWaitForFences(vkBackends->device, 1, &vkFence, VK_TRUE, timeout) == VK_SUCCESS)
         ? Lvn_Result_Success
         : Lvn_Result_Failure;
 }
@@ -3244,7 +3244,7 @@ LvnResult lvnImplVkFenceReset(LvnFence* fence)
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
     VkFence vkFence = (VkFence) fence->fenceHandle;
-    return (vkBackends->resetFences(vkBackends->device, 1, &vkFence) == VK_SUCCESS)
+    return (vkBackends->vkResetFences(vkBackends->device, 1, &vkFence) == VK_SUCCESS)
         ? Lvn_Result_Success
         : Lvn_Result_Failure;
 }
@@ -3273,7 +3273,7 @@ void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
     cmdBuffBeginInfo.flags = 0;
     cmdBuffBeginInfo.pInheritanceInfo = NULL;
 
-    if (vkBackends->beginCommandBuffer(cmdBuff, &cmdBuffBeginInfo) != VK_SUCCESS)
+    if (vkBackends->vkBeginCommandBuffer(cmdBuff, &cmdBuffBeginInfo) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to begin command buffer");
     }
@@ -3284,7 +3284,7 @@ void lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer)
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    vkBackends->endCommandBuffer(cmdBuff);
+    vkBackends->vkEndCommandBuffer(cmdBuff);
 }
 
 void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo)
@@ -3316,7 +3316,7 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
         .pClearValues = clearColors,
     };
 
-    vkBackends->cmdBeginRenderPass(cmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkBackends->vkCmdBeginRenderPass(cmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     lvn_memArenaReset(graphicsctx->frameArena);
 }
@@ -3326,7 +3326,7 @@ void lvnImplVkCmdEndRenderPass(LvnCommandBuffer* commandBuffer)
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    vkBackends->cmdEndRenderPass(cmdBuff);
+    vkBackends->vkCmdEndRenderPass(cmdBuff);
 }
 
 void lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)
@@ -3336,7 +3336,7 @@ void lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipe
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
     VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
 
-    vkBackends->cmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+    vkBackends->vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
 }
 
 void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets)
@@ -3350,7 +3350,7 @@ void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firs
     for (uint32_t i = 0; i < bindingCount; i++)
         buffers[i] = ((LvnVkBufferData*)pBuffers[i]->bufferData)->buffer;
 
-    vkBackends->cmdBindVertexBuffers(cmdBuff, firstBinding, bindingCount, buffers, pOffsets);
+    vkBackends->vkCmdBindVertexBuffers(cmdBuff, firstBinding, bindingCount, buffers, pOffsets);
 }
 
 void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset)
@@ -3361,7 +3361,7 @@ void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buf
 
     LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
-   vkBackends->cmdBindIndexBuffer(cmdBuff, bufferData->buffer, offset, VK_INDEX_TYPE_UINT32);
+   vkBackends->vkCmdBindIndexBuffer(cmdBuff, bufferData->buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
 void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
@@ -3379,7 +3379,7 @@ void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport*
         .maxDepth = viewport->maxDepth,
     };
 
-    vkBackends->cmdSetViewport(cmdBuff, 0, 1, &viewportInfo);
+    vkBackends->vkCmdSetViewport(cmdBuff, 0, 1, &viewportInfo);
 }
 
 void lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor)
@@ -3393,7 +3393,7 @@ void lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea
         .offset = { scissor->offset.x, scissor->offset.y },
     };
 
-    vkBackends->cmdSetScissor(cmdBuff, 0, 1, &scissorInfo);
+    vkBackends->vkCmdSetScissor(cmdBuff, 0, 1, &scissorInfo);
 }
 
 void lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -3401,7 +3401,7 @@ void lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uin
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    vkBackends->cmdDraw(cmdBuff, vertexCount, instanceCount, firstVertex, firstInstance);
+    vkBackends->vkCmdDraw(cmdBuff, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 void lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
@@ -3409,7 +3409,7 @@ void lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCoun
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    vkBackends->cmdDrawIndexed(cmdBuff, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    vkBackends->vkCmdDrawIndexed(cmdBuff, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
@@ -3466,7 +3466,7 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     }
 
     // queue submit
-    if (vkBackends->queueSubmit(vkBackends->graphicsQueue, submitCount, submitInfos, vkFence) != VK_SUCCESS)
+    if (vkBackends->vkQueueSubmit(vkBackends->graphicsQueue, submitCount, submitInfos, vkFence) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to submit command buffers to queue");
@@ -3504,7 +3504,7 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
         .pResults = NULL,
     };
 
-    VkResult result = vkBackends->queuePresentKHR(vkBackends->presentQueue, &vkPresentInfo);
+    VkResult result = vkBackends->vkQueuePresentKHR(vkBackends->presentQueue, &vkPresentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         return Lvn_Result_OutOfDate;
