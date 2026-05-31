@@ -324,7 +324,11 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glGetShaderiv ||
         !oglBackends->glAttachShader ||
         !oglBackends->glLinkProgram ||
-        !oglBackends->glGetShaderInfoLog)
+        !oglBackends->glGetShaderInfoLog ||
+        !oglBackends->glNamedBufferStorage ||
+        !oglBackends->glNamedBufferData ||
+        !oglBackends->glMapNamedBufferRange ||
+        !oglBackends->glUnmapNamedBuffer)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -845,12 +849,72 @@ void lvnImplOglDestroySemaphore(LvnSemaphore* semaphore)
 
 LvnResult lvnImplOglsCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglBufferData* bufferData = NULL;
+
+    bufferData = (LvnOglBufferData*) lvn_calloc(sizeof(LvnOglBufferData));
+    if (!bufferData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for buffer data in buffer %p",
+                      buffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    oglBackends->glCreateBuffers(1, &bufferData->bufferId);
+
+    if (createInfo->usage == Lvn_BufferMemoryUsage_GpuOnly)
+    {
+        oglBackends->glNamedBufferStorage(bufferData->bufferId, createInfo->size, createInfo->data, GL_DYNAMIC_STORAGE_BIT);
+    }
+    else
+    {
+        GLbitfield flags = GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT;
+        if (createInfo->usage == Lvn_BufferMemoryUsage_CpuToGpu)
+            flags |= GL_MAP_WRITE_BIT;
+        else if (createInfo->usage == Lvn_BufferMemoryUsage_GpuToCpu)
+            flags |= GL_MAP_READ_BIT;
+
+        oglBackends->glNamedBufferStorage(bufferData->bufferId, createInfo->size, createInfo->data, flags);
+        bufferData->bufferMap = oglBackends->glMapNamedBufferRange(bufferData->bufferId, 0, createInfo->size, flags);
+    }
+
+    buffer->bufferData = bufferData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (bufferData)
+    {
+        if (bufferData->bufferMap)
+            oglBackends->glUnmapNamedBuffer(bufferData->bufferId);
+
+        oglBackends->glDeleteBuffers(1, &bufferData->bufferId);
+        lvn_free(bufferData);
+    }
+    return errResult;
 }
 
 void lvnImplOglsDestroyBuffer(LvnBuffer* buffer)
 {
+    LVN_ASSERT(buffer, "buffer cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) buffer->graphicsctx->implData;
+
+    LvnOglBufferData* bufferData = (LvnOglBufferData*) buffer->bufferData;
+
+    if (bufferData->bufferMap)
+        oglBackends->glUnmapNamedBuffer(bufferData->bufferId);
+
+    oglBackends->glDeleteBuffers(1, &bufferData->bufferId);
+    lvn_free(bufferData);
+
+    buffer->bufferData = NULL;
 }
 
 LvnResult lvnImplOglsCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)

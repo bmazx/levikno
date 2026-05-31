@@ -8,12 +8,10 @@
 struct LvnBuffer
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        buffer;
-    void*                        bufferMemory;
-    void*                        bufferMap;
+    void*                        bufferData;
     uint64_t                     size;
-    LvnBufferTypeFlagBits        type;
-    LvnBufferUsage               usage;
+    LvnBufferTypeFlags           type;
+    LvnBufferMemoryUsage         usage;
 };
 
 struct LvnSampler

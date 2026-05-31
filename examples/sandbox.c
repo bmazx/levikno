@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     pd.nwh = &nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -388,7 +388,7 @@ int main(int argc, char** argv)
     // vertex buffer create info struct
     LvnBufferCreateInfo bufferCreateInfo = {
         .type = Lvn_BufferTypeFlag_Vertex,
-        .usage = Lvn_BufferUsage_Dynamic,
+        .usage = Lvn_BufferMemoryUsage_CpuToGpu,
         .data = s_Vertices,
         .size = sizeof(s_Vertices),
     };
@@ -399,7 +399,7 @@ int main(int argc, char** argv)
 
     // index buffer create info struct
     bufferCreateInfo.type = Lvn_BufferTypeFlag_Index;
-    bufferCreateInfo.usage = Lvn_BufferUsage_Static;
+    bufferCreateInfo.usage = Lvn_BufferMemoryUsage_CpuToGpu;
     bufferCreateInfo.data = s_Indices;
     bufferCreateInfo.size = sizeof(s_Indices);
 
@@ -432,7 +432,6 @@ int main(int argc, char** argv)
     LvnTexture* texture;
     lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
 
-    /*
     LvnResult result;
     uint32_t imageIndex = 0;
 
@@ -534,8 +533,6 @@ int main(int argc, char** argv)
 
         glfwPollEvents();
     }
-
-    */
 
     lvnUnloadImage(&image);
 

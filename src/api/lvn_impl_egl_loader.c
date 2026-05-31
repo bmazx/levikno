@@ -269,6 +269,14 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glLinkProgram");
     oglBackends->glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)
         eglLoader->eglGetProcAddress("glGetShaderInfoLog");
+    oglBackends->glNamedBufferStorage = (PFNGLNAMEDBUFFERSTORAGEPROC)
+        eglLoader->eglGetProcAddress("glNamedBufferStorage");
+    oglBackends->glNamedBufferData = (PFNGLNAMEDBUFFERDATAPROC)
+        eglLoader->eglGetProcAddress("glNamedBufferData");
+    oglBackends->glMapNamedBufferRange = (PFNGLMAPNAMEDBUFFERRANGEPROC)
+        eglLoader->eglGetProcAddress("glMapNamedBufferRange");
+    oglBackends->glUnmapNamedBuffer = (PFNGLUNMAPNAMEDBUFFERPROC)
+        eglLoader->eglGetProcAddress("glUnmapNamedBuffer");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

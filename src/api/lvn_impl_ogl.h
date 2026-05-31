@@ -130,6 +130,11 @@
 #define GL_VERTEX_SHADER 0x8B31
 #define GL_COMPILE_STATUS 0x8B81
 #define GL_LINK_STATUS 0x8B82
+#define GL_MAP_READ_BIT 0x0001
+#define GL_MAP_WRITE_BIT 0x0002
+#define GL_MAP_PERSISTENT_BIT 0x0040
+#define GL_MAP_COHERENT_BIT 0x0080
+#define GL_DYNAMIC_STORAGE_BIT 0x0100
 
 typedef khronos_int8_t GLbyte;
 typedef khronos_uint8_t GLubyte;
@@ -145,8 +150,14 @@ typedef unsigned int GLuint;
 typedef int GLsizei;
 typedef double GLdouble;
 typedef char GLchar;
-typedef void (GLAPIENTRY *GLDEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam);
+typedef khronos_uint16_t GLhalf;
+typedef khronos_int32_t GLfixed;
+typedef khronos_intptr_t GLintptr;
+typedef khronos_ssize_t GLsizeiptr;
+typedef khronos_int64_t GLint64;
+typedef khronos_uint64_t GLuint64;
 
+typedef void (GLAPIENTRY *GLDEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam);
 typedef const GLubyte* (GLAPIENTRY *PFNGLGETSTRINGPROC)(GLenum name);
 typedef void (GLAPIENTRY *PFNGLDEBUGMESSAGECALLBACKPROC)(GLDEBUGPROC callback, const void *userParam);
 typedef void (GLAPIENTRY *PFNGLGETINTEGERVPROC)(GLenum pname, GLint* data);
@@ -182,6 +193,11 @@ typedef void (GLAPIENTRY *PFNGLGETSHADERIVPROC)(GLuint shader, GLenum pname, GLi
 typedef void (GLAPIENTRY *PFNGLATTACHSHADERPROC)(GLuint program, GLuint shader);
 typedef void (GLAPIENTRY *PFNGLLINKPROGRAMPROC)(GLuint program);
 typedef void (GLAPIENTRY *PFNGLGETSHADERINFOLOGPROC)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERSTORAGEPROC)(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags);
+typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERDATAPROC)(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage);
+typedef void* (GLAPIENTRY *PFNGLMAPNAMEDBUFFERRANGEPROC)(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
+typedef GLboolean (GLAPIENTRY *PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
+
 
 typedef struct LvnOglSwapchainData
 {
@@ -219,6 +235,12 @@ typedef struct LvnOglShaderData
     uint32_t shaderId;
     LvnShaderStage stage;
 } LvnOglShaderData;
+
+typedef struct LvnOglBufferData
+{
+    uint32_t    bufferId;
+    void*       bufferMap;
+} LvnOglBufferData;
 
 typedef struct LvnOpenglBackends
 {
@@ -270,6 +292,10 @@ typedef struct LvnOpenglBackends
     PFNGLATTACHSHADERPROC                   glAttachShader;
     PFNGLLINKPROGRAMPROC                    glLinkProgram;
     PFNGLGETSHADERINFOLOGPROC               glGetShaderInfoLog;
+    PFNGLNAMEDBUFFERSTORAGEPROC             glNamedBufferStorage;
+    PFNGLNAMEDBUFFERDATAPROC                glNamedBufferData;
+    PFNGLMAPNAMEDBUFFERRANGEPROC            glMapNamedBufferRange;
+    PFNGLUNMAPNAMEDBUFFERPROC               glUnmapNamedBuffer;
 } LvnOpenglBackends;
 
 LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);

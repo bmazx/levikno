@@ -228,12 +228,12 @@ typedef enum LvnBufferTypeFlagBits
 } LvnBufferTypeFlagBits;
 typedef uint32_t LvnBufferTypeFlags;
 
-typedef enum LvnBufferUsage
+typedef enum LvnBufferMemoryUsage
 {
-    Lvn_BufferUsage_Static,
-    Lvn_BufferUsage_Dynamic,
-    Lvn_BufferUsage_Resize,
-} LvnBufferUsage;
+    Lvn_BufferMemoryUsage_GpuOnly,
+    Lvn_BufferMemoryUsage_CpuToGpu,
+    Lvn_BufferMemoryUsage_GpuToCpu,
+} LvnBufferMemoryUsage;
 
 typedef enum LvnTextureFilter
 {
@@ -478,10 +478,10 @@ typedef struct LvnPipelineCreateInfo
 
 typedef struct LvnBufferCreateInfo
 {
-    LvnBufferTypeFlagBits    type;
-    LvnBufferUsage           usage;
-    uint64_t                 size;
-    const void*              data;
+    LvnBufferTypeFlags      type;
+    LvnBufferMemoryUsage    usage;
+    uint64_t                size;
+    const void*             data;
 } LvnBufferCreateInfo;
 
 typedef struct LvnSamplerCreateInfo

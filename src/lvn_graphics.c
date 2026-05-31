@@ -440,6 +440,9 @@ LvnResult lvnCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer** buf
 
     LvnBuffer* bufferPtr = *buffer;
     bufferPtr->graphicsctx = graphicsctx;
+    bufferPtr->size = createInfo->size;
+    bufferPtr->type = createInfo->type;
+    bufferPtr->usage = createInfo->usage;
 
     LvnResult result = graphicsctx->implCreateBuffer(graphicsctx, *buffer, createInfo);
     if (result != Lvn_Result_Success)
@@ -701,14 +704,6 @@ void lvnBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t 
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
     const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
-
-    if (buffer->usage == Lvn_BufferUsage_Static)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "cannot update data buffer (%p) that has static buffer usage Lvn_BufferUsage_Static",
-                      buffer);
-        return;
-    }
-
     graphicsctx->implBufferUpdateData(buffer, data, size, offset);
 }
 
@@ -716,14 +711,6 @@ void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
     const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
-
-    if (buffer->usage != Lvn_BufferUsage_Resize)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "cannot resize buffer (%p) that does not have resize buffer usage Lvn_BufferUsage_Resize",
-                      buffer);
-        return;
-    }
-
     graphicsctx->implBufferResize(buffer, size);
 }
 

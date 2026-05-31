@@ -60,6 +60,7 @@ static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFilter                    lvn_getVkTextureFilterEnum(LvnTextureFilter filter);
 static VkSamplerAddressMode        lvn_getVkTextureModeEnum(LvnTextureMode mode);
+static VkBufferUsageFlags          lvn_getVkBufferUsageFlagsEnum(LvnBufferTypeFlags type);
 static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
 static LvnPresentMode              lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode);
 static void                        lvn_transitionImageLayout(const LvnVulkanBackends* vkBackends, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
@@ -787,6 +788,24 @@ static VkSamplerAddressMode lvn_getVkTextureModeEnum(LvnTextureMode mode)
 
     LVN_ASSERT(false, "invalid wrap mode enum");
     return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+}
+
+static VkBufferUsageFlags lvn_getVkBufferUsageFlagsEnum(LvnBufferTypeFlags type)
+{
+    VkBufferUsageFlags usageFlags = 0;
+
+    if (type & Lvn_BufferTypeFlag_Vertex)
+        usageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    if (type & Lvn_BufferTypeFlag_Index)
+        usageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (type & Lvn_BufferTypeFlag_Uniform)
+        usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    if (type & Lvn_BufferTypeFlag_Storage)
+        usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+
+    LVN_ASSERT(usageFlags, "invalid buffer usage flags enum");
+
+    return usageFlags;
 }
 
 static LvnFormat lvn_getLvnFormatEnum(VkFormat format)
@@ -2708,69 +2727,107 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
 LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
+
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkDeviceSize bufferSize = createInfo->size;
 
-    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    if (createInfo->type & Lvn_BufferTypeFlag_Vertex)
-        usageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    if (createInfo->type & Lvn_BufferTypeFlag_Index)
-        usageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    if (createInfo->type & Lvn_BufferTypeFlag_Uniform)
-        usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    if (createInfo->type & Lvn_BufferTypeFlag_Storage)
-        usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnVkBufferData* bufferData = NULL;
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VmaAllocation stagingMemory = VK_NULL_HANDLE;
+    VkBuffer vkBuffer = VK_NULL_HANDLE;
+    VmaAllocation bufferMemory = VK_NULL_HANDLE;
 
-    // if buffer is static, transfer and store memory on gpu
-    if (createInfo->usage == Lvn_BufferUsage_Static)
+
+    bufferData = (LvnVkBufferData*) lvn_calloc(sizeof(LvnVkBufferData));
+    if (!bufferData)
     {
-        VkBuffer stagingBuffer;
-        VmaAllocation stagingMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for buffer data in buffer %p",
+                      buffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
 
-        VkBuffer vkBuffer;
-        VmaAllocation bufferMemory;
+    bufferData->usageFlags = lvn_getVkBufferUsageFlagsEnum(createInfo->type);
 
-        // create staging buffer to pass vertex data into
-        lvn_createBuffer(vkBackends, &stagingBuffer, &stagingMemory, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+    if (createInfo->usage == Lvn_BufferMemoryUsage_GpuOnly)
+    {
+        // staging buffer
+        LvnResult result = lvn_createBuffer(vkBackends, &stagingBuffer, &stagingMemory, createInfo->size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+        if (result != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to create vulkan staging buffer object in buffer %p",
+                          buffer);
+            errResult = result;
+            goto fail_cleanup;
+        }
 
         if (createInfo->data)
         {
             void* data;
             vmaMapMemory(vkBackends->vmaAllocator, stagingMemory, &data);
-            memcpy(data, createInfo->data, bufferSize);
+            memcpy(data, createInfo->data, createInfo->size);
             vmaUnmapMemory(vkBackends->vmaAllocator, stagingMemory);
         }
 
-        // create the main buffer to be used
-        lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, bufferSize, usageFlags, VMA_MEMORY_USAGE_GPU_ONLY);
-        lvn_copyBuffer(vkBackends, stagingBuffer, vkBuffer, bufferSize, 0, 0);
+        // gpu only buffer
+        bufferData->usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        result = lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, createInfo->size, bufferData->usageFlags, VMA_MEMORY_USAGE_GPU_ONLY);
+        if (result != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to create static vulkan buffer object in buffer %p",
+                          buffer);
+            errResult = result;
+            goto fail_cleanup;
+        }
+
+        lvn_copyBuffer(vkBackends, stagingBuffer, vkBuffer, createInfo->size, 0, 0);
 
         vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
         vmaFreeMemory(vkBackends->vmaAllocator, stagingMemory);
 
-        buffer->buffer = vkBuffer;
-        buffer->bufferMemory = bufferMemory;
+        bufferData->buffer = vkBuffer;
+        bufferData->bufferMemory = bufferMemory;
     }
-    else // dynamic buffers will store memory on cpu
+    else
     {
-        VkBuffer vkBuffer;
-        VmaAllocation bufferMemory;
+        VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
+        if (createInfo->usage == Lvn_BufferMemoryUsage_CpuToGpu)
+            memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        else if (createInfo->usage == Lvn_BufferMemoryUsage_GpuToCpu)
+            memoryUsage = VMA_MEMORY_USAGE_GPU_TO_CPU;
 
-        lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, bufferSize, usageFlags, VMA_MEMORY_USAGE_CPU_ONLY);
+        LvnResult result = lvn_createBuffer(vkBackends, &vkBuffer, &bufferMemory, createInfo->size, bufferData->usageFlags, memoryUsage);
+        if (result != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to create dynamic vulkan buffer object in buffer %p",
+                          buffer);
+            errResult = result;
+            goto fail_cleanup;
+        }
 
-        vmaMapMemory(vkBackends->vmaAllocator, bufferMemory, &buffer->bufferMap);
+        vmaMapMemory(vkBackends->vmaAllocator, bufferMemory, &bufferData->bufferMap);
         if (createInfo->data)
-            memcpy(buffer->bufferMap, createInfo->data, bufferSize);
+            memcpy(bufferData->bufferMap, createInfo->data, createInfo->size);
 
-        buffer->buffer = vkBuffer;
-        buffer->bufferMemory = bufferMemory;
+        bufferData->buffer = vkBuffer;
+        bufferData->bufferMemory = bufferMemory;
     }
 
-    buffer->type = createInfo->type;
-    buffer->usage = createInfo->usage;
-    buffer->size = createInfo->size;
+    buffer->bufferData = bufferData;
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    vkBackends->destroyBuffer(vkBackends->device, stagingBuffer, NULL);
+    vkBackends->destroyBuffer(vkBackends->device, vkBuffer, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, stagingMemory);
+    vmaFreeMemory(vkBackends->vmaAllocator, bufferMemory);
+    lvn_free(bufferData);
+    return errResult;
 }
 
 void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
@@ -2778,16 +2835,20 @@ void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
     LVN_ASSERT(buffer, "buffer cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) buffer->graphicsctx->implData;
+
     vkBackends->deviceWaitIdle(vkBackends->device);
 
-    VkBuffer vkBuffer = (VkBuffer) buffer->buffer;
-    VmaAllocation bufferMemory = (VmaAllocation) buffer->bufferMemory;
+    LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
-    if (buffer->usage != Lvn_BufferUsage_Static)
-        vmaUnmapMemory(vkBackends->vmaAllocator, bufferMemory);
+    if (buffer->usage != Lvn_BufferMemoryUsage_GpuOnly)
+        vmaUnmapMemory(vkBackends->vmaAllocator, bufferData->bufferMemory);
 
-    vkBackends->destroyBuffer(vkBackends->device, vkBuffer, NULL);
-    vmaFreeMemory(vkBackends->vmaAllocator, bufferMemory);
+    vkBackends->destroyBuffer(vkBackends->device, bufferData->buffer, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, bufferData->bufferMemory);
+
+    lvn_free(bufferData);
+
+    buffer->bufferData = NULL;
 }
 
 LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
@@ -3191,7 +3252,8 @@ LvnResult lvnImplVkFenceReset(LvnFence* fence)
 void lvnImplVkBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset)
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
-    memcpy((uint8_t*)buffer->bufferMap + offset, data, size);
+    LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
+    memcpy((uint8_t*)bufferData->bufferMap + offset, data, size);
 }
 
 void lvnImplVkBufferResize(LvnBuffer* buffer, uint64_t size)
@@ -3286,7 +3348,7 @@ void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firs
 
     VkBuffer* buffers = lvn_memArenaAlloc(graphicsctx->frameArena, bindingCount * sizeof(VkBuffer));
     for (uint32_t i = 0; i < bindingCount; i++)
-        buffers[i] = (VkBuffer) pBuffers[i]->buffer;
+        buffers[i] = ((LvnVkBufferData*)pBuffers[i]->bufferData)->buffer;
 
     vkBackends->cmdBindVertexBuffers(cmdBuff, firstBinding, bindingCount, buffers, pOffsets);
 }
@@ -3297,9 +3359,9 @@ void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buf
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
 
-    VkBuffer indexBuffer = (VkBuffer) buffer->buffer;
+    LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
-   vkBackends->cmdBindIndexBuffer(cmdBuff, indexBuffer, offset, VK_INDEX_TYPE_UINT32);
+   vkBackends->cmdBindIndexBuffer(cmdBuff, bufferData->buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
 void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)

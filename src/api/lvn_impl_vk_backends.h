@@ -46,6 +46,14 @@ typedef struct LvnVkShaderData
     VkShaderStageFlags    shaderStage;
 } LvnVkShaderData;
 
+typedef struct LvnVkBufferData
+{
+    VkBuffer              buffer;
+    VmaAllocation         bufferMemory;
+    void*                 bufferMap;
+    VkBufferUsageFlags    usageFlags;
+} LvnVkBufferData;
+
 typedef struct LvnVulkanBackends
 {
     void*                                            handle;
