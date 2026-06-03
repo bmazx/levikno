@@ -164,4 +164,7 @@ struct LvnGraphicsContext
 };
 
 
+const char* lvn_getShaderStageEnumName(LvnShaderStage stage);
+
+
 #endif // !HG_LVN_GRAPHICS_INTERNAL_H

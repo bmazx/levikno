@@ -23,7 +23,7 @@ static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
         case Lvn_GraphicsApi_Vulkan: { return "vulkan"; }
     }
 
-    LVN_ASSERT(false, "api in not a valid enum value");
+    LVN_ASSERT(false, "invalid graphics api enum value");
     return NULL;
 }
 
@@ -835,4 +835,16 @@ LvnResult lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPrese
 {
     LVN_ASSERT(graphicsctx && presentInfo, "graphicsctx and presentInfo cannot be null");
     return graphicsctx->implRenderPresent(graphicsctx, presentInfo);
+}
+
+const char* lvn_getShaderStageEnumName(LvnShaderStage stage)
+{
+    switch (stage)
+    {
+        case Lvn_ShaderStage_Vertex:   { return "vertex"; }
+        case Lvn_ShaderStage_Fragment: { return "fragment"; }
+    }
+
+    LVN_ASSERT(false, "invalid stage enum value");
+    return NULL;
 }

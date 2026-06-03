@@ -207,12 +207,14 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glDebugMessageCallback");
     oglBackends->glGetIntegerv = (PFNGLGETINTEGERVPROC)
         eglLoader->eglGetProcAddress("glGetIntegerv");
-    oglBackends->glDisable = (PFNGLDISABLEPROC)
-        eglLoader->eglGetProcAddress("glDisable");
     oglBackends->glEnable = (PFNGLENABLEPROC)
         eglLoader->eglGetProcAddress("glEnable");
     oglBackends->glEnablei = (PFNGLENABLEIPROC)
         eglLoader->eglGetProcAddress("glEnablei");
+    oglBackends->glDisable = (PFNGLDISABLEPROC)
+        eglLoader->eglGetProcAddress("glDisable");
+    oglBackends->glDisablei = (PFNGLDISABLEIPROC)
+        eglLoader->eglGetProcAddress("glDisablei");
     oglBackends->glCreateBuffers = (PFNGLCREATEBUFFERSPROC)
         eglLoader->eglGetProcAddress("glCreateBuffers");
     oglBackends->glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)

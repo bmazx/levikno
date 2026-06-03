@@ -421,9 +421,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glGetError ||
         !oglBackends->glDebugMessageCallback ||
         !oglBackends->glGetIntegerv ||
-        !oglBackends->glDisable ||
         !oglBackends->glEnable ||
         !oglBackends->glEnablei ||
+        !oglBackends->glDisable ||
+        !oglBackends->glDisablei ||
         !oglBackends->glCreateBuffers ||
         !oglBackends->glDeleteBuffers ||
         !oglBackends->glCreateSamplers ||
@@ -920,7 +921,8 @@ LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShade
         oglBackends->glGetShaderInfoLog(shaderData->shaderId, 1024, NULL, infoLog);
 
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[opengl] shader compile error in shader %p | info log: %s",
+                      "[opengl] shader compile error in (%s) shader %p | info log: %s",
+                      lvn_getShaderStageEnumName(createInfo->stage),
                       shader,
                       infoLog);
 
@@ -1092,6 +1094,8 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     pipelineData->fixedFuncEnums.stencilPassOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp);
     pipelineData->fixedFuncEnums.stencilDepthFailOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp);
 
+    pipeline->pipelineHandle = pipelineData;
+
     return Lvn_Result_Success;
 
 fail_cleanup:
@@ -1106,7 +1110,18 @@ fail_cleanup:
 
 void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)
 {
+    LVN_ASSERT(pipeline, "pipeline cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) pipeline->graphicsctx->implData;
+
+    LvnOglPipelineData* pipelineData = (LvnOglPipelineData*) pipeline->pipelineHandle;
+
+    oglBackends->glDeleteProgram(pipelineData->pipelineId);
+
+    lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
+    lvn_free(pipelineData);
+
+    pipeline->pipelineHandle = NULL;
 }
 
 LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)

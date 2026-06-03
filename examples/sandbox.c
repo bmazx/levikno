@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     pd.nwh = &nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -302,8 +302,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
-    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
+    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vk.vert.glsl");
+    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vk.frag.glsl");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
@@ -428,6 +428,7 @@ int main(int argc, char** argv)
     LvnTexture* texture;
     lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
 
+    /*
     LvnResult result;
     uint32_t imageIndex = 0;
 
@@ -529,6 +530,8 @@ int main(int argc, char** argv)
 
         glfwPollEvents();
     }
+
+    */
 
     lvnUnloadImage(&image);
 
