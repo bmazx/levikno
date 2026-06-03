@@ -47,12 +47,18 @@ typedef enum LvnTopologyType
     Lvn_TopologyType_TriangleStrip,
 } LvnTopologyType;
 
+typedef enum LvnPolygonMode {
+    Lvn_PolygonMode_Fill,
+    Lvn_PolygonMode_Line,
+    Lvn_PolygonMode_Point,
+} LvnPolygonMode;
+
 typedef enum LvnCullFaceMode
 {
+    Lvn_CullFaceMode_Disable = 0,
     Lvn_CullFaceMode_Front,
     Lvn_CullFaceMode_Back,
     Lvn_CullFaceMode_Both,
-    Lvn_CullFaceMode_Disable,
 } LvnCullFaceMode;
 
 typedef enum LvnCullFrontFace
@@ -140,6 +146,26 @@ typedef enum LvnCompareOperation
     Lvn_CompareOp_GreaterOrEqual,
     Lvn_CompareOp_Always,
 } LvnCompareOperation;
+
+typedef enum LvnLogicOperation
+{
+    Lvn_LogicOp_Clear,
+    Lvn_LogicOp_And,
+    Lvn_LogicOp_AndReverse,
+    Lvn_LogicOp_Copy,
+    Lvn_LogicOp_AndInverted,
+    Lvn_LogicOp_NoOp,
+    Lvn_LogicOp_Xor,
+    Lvn_LogicOp_Or,
+    Lvn_LogicOp_Nor,
+    Lvn_LogicOp_Equivalent,
+    Lvn_LogicOp_Invert,
+    Lvn_LogicOp_OrReverse,
+    Lvn_LogicOp_CopyInverted,
+    Lvn_LogicOp_OrInverted,
+    Lvn_LogicOp_Nand,
+    Lvn_LogicOp_Set,
+} LvnLogicOperation;
 
 typedef enum LvnAttributeFormat
 {
@@ -364,30 +390,18 @@ typedef struct LvnPipelineInputAssembly
     bool               primitiveRestartEnable;
 } LvnPipelineInputAssembly;
 
-typedef struct LvnPipelineViewport
-{
-    float x, y;
-    float width, height;
-    float minDepth, maxDepth;
-} LvnPipelineViewport;
-
-typedef struct LvnPipelineScissor
-{
-    struct { uint32_t x, y; }             offset;
-    struct { uint32_t width, height; }    extent;
-} LvnPipelineScissor;
-
 typedef struct LvnPipelineRasterizer
 {
     LvnCullFaceMode     cullMode;
     LvnCullFrontFace    frontFace;
+    LvnPolygonMode      polygonMode;
     float               lineWidth;
     float               depthBiasConstantFactor;
     float               depthBiasClamp;
     float               depthBiasSlopeFactor;
+    bool                depthBiasEnable;
     bool                depthClampEnable;
     bool                rasterizerDiscardEnable;
-    bool                depthBiasEnable;
 } LvnPipelineRasterizer;
 
 typedef struct LvnPipelineMultiSampling
@@ -417,6 +431,7 @@ typedef struct LvnPipelineColorBlend
     LvnPipelineColorBlendAttachment*    pColorBlendAttachments;
     uint32_t                            colorBlendAttachmentCount;
     float                               blendConstants[4];
+    LvnLogicOperation                   logicOp;
     bool                                logicOpEnable;
 } LvnPipelineColorBlend;
 
@@ -435,14 +450,14 @@ typedef struct LvnPipelineDepthStencil
 {
     LvnCompareOperation             depthOpCompare;
     LvnPipelineStencilAttachment    stencil;
-    bool                            enableDepth, enableStencil;
+    bool                            depthTestEnable;
+    bool                            depthWriteEnable;
+    bool                            stencilTestEnable;
 } LvnPipelineDepthStencil;
 
 typedef struct LvnPipelineFixedFunctions
 {
     LvnPipelineInputAssembly    inputAssembly;
-    LvnPipelineViewport         viewport;
-    LvnPipelineScissor          scissor;
     LvnPipelineRasterizer       rasterizer;
     LvnPipelineMultiSampling    multisampling;
     LvnPipelineColorBlend       colorBlend;

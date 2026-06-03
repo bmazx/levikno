@@ -62,7 +62,7 @@
 #endif
 
 // alignment
-#if defined(__cplusplus)
+#if defined(__cplusplus) || (__STDC_VERSION__ >= 202000)
     #define LVN_ALIGNOF(T) alignof(T)
 #elif defined(__STDC__) && (__STDC_VERSION__ >= 201112L)
     #define LVN_ALIGNOF(T) _Alignof(T)
@@ -70,7 +70,7 @@
     #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
 #endif
 
-#define LVN_DEFAULT_ALIGN (sizeof(void*))
+#define LVN_DEFAULT_ALIGN (LVN_ALIGNOF(void*))
 #define LVN_ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
 #define LVN_ALIGN_DOWN(x, a) ((x) & ~((a) - 1))
 #define LVN_ALIGNED(x, a) (((x) & ((a) - 1)) == 0)

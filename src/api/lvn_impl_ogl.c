@@ -21,6 +21,12 @@ static GLenum    lvn_getOglDataFormatEnum(LvnFormat format);
 static GLenum    lvn_getOglFormatTypeEnum(LvnFormat format);
 static GLenum    lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format);
 static GLenum    lvn_getOglShaderStageEnum(LvnShaderStage stage);
+static GLenum    lvn_getOglTopologyEnum(LvnTopologyType topology);
+static GLenum    lvn_getOglCullModeFlagEnum(LvnCullFaceMode cullFaceMode);
+static GLenum    lvn_getOglCullFrontFaceEnum(LvnCullFrontFace frontFace);
+static GLenum    lvn_getOglBlendFactorEnum(LvnColorBlendFactor blendFactor);
+static GLenum    lvn_getOglCompareOpEnum(LvnCompareOperation compareOp);
+static GLenum    lvn_getOglStencilOpEnum(LvnStencilOperation stencilOp);
 static uint32_t  lvn_getSampleCount(LvnSampleCountFlags samples);
 
 static void GLAPIENTRY lvn_openglDebugCallback(
@@ -233,6 +239,127 @@ static GLenum lvn_getOglShaderStageEnum(LvnShaderStage stage)
     return GL_NONE;
 }
 
+static GLenum lvn_getOglTopologyEnum(LvnTopologyType topology)
+{
+    switch (topology)
+    {
+        case Lvn_TopologyType_Point: { return GL_POINTS; }
+        case Lvn_TopologyType_Line: { return GL_LINES; }
+        case Lvn_TopologyType_LineStrip: { return GL_LINE_STRIP; }
+        case Lvn_TopologyType_Triangle: { return GL_TRIANGLES; }
+        case Lvn_TopologyType_TriangleStrip: { return GL_TRIANGLE_STRIP; }
+    }
+
+    LVN_ASSERT(false, "invalid topology enum");
+    return GL_POINTS;
+}
+
+static GLenum lvn_getOglCullModeFlagEnum(LvnCullFaceMode cullFaceMode)
+{
+    switch (cullFaceMode)
+    {
+        case Lvn_CullFaceMode_Disable: { return GL_NONE; }
+        case Lvn_CullFaceMode_Front: { return GL_FRONT; }
+        case Lvn_CullFaceMode_Back: { return GL_BACK; }
+        case Lvn_CullFaceMode_Both: { return GL_FRONT_AND_BACK; }
+    }
+
+    LVN_ASSERT(false, "invalid cull face mode enum");
+    return GL_BACK;
+}
+
+static GLenum lvn_getOglCullFrontFaceEnum(LvnCullFrontFace frontFace)
+{
+    switch (frontFace)
+    {
+        case Lvn_CullFrontFace_Clockwise: { return GL_CW; }
+        case Lvn_CullFrontFace_CounterClockwise: { return GL_CCW; }
+    }
+
+    LVN_ASSERT(false, "invalid cull front face enum");
+    return GL_CCW;
+}
+
+static GLenum lvn_getOglBlendFactorEnum(LvnColorBlendFactor blendFactor)
+{
+    switch (blendFactor)
+    {
+        case Lvn_ColorBlendFactor_Zero: { return GL_ZERO; }
+        case Lvn_ColorBlendFactor_One: { return GL_ONE; }
+        case Lvn_ColorBlendFactor_SrcColor: { return GL_SRC_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusSrcColor: { return GL_ONE_MINUS_SRC_COLOR; }
+        case Lvn_ColorBlendFactor_DstColor: { return GL_DST_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusDstColor: { return GL_ONE_MINUS_DST_COLOR; }
+        case Lvn_ColorBlendFactor_SrcAlpha: { return GL_SRC_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusSrcAlpha: { return GL_ONE_MINUS_SRC_ALPHA; }
+        case Lvn_ColorBlendFactor_DstAlpha: { return GL_DST_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusDstAlpha: { return GL_ONE_MINUS_DST_ALPHA; }
+        case Lvn_ColorBlendFactor_ConstantColor: { return GL_CONSTANT_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusConstantColor: { return GL_ONE_MINUS_CONSTANT_COLOR; }
+        case Lvn_ColorBlendFactor_ConstantAlpha: { return GL_CONSTANT_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusConstantAlpha: { return GL_ONE_MINUS_CONSTANT_ALPHA; }
+        case Lvn_ColorBlendFactor_SrcAlphaSaturate: { return GL_SRC_ALPHA_SATURATE; }
+        case Lvn_ColorBlendFactor_Src1Color: { return GL_SRC1_COLOR; }
+        case Lvn_ColorBlendFactor_OneMinusSrc1Color: { return GL_ONE_MINUS_SRC1_COLOR; }
+        case Lvn_ColorBlendFactor_Src1_Alpha: { return GL_SRC1_ALPHA; }
+        case Lvn_ColorBlendFactor_OneMinusSrc1Alpha: { return GL_ONE_MINUS_SRC1_ALPHA; }
+    }
+
+    LVN_ASSERT(false, "invalid blend factor enum");
+    return GL_ZERO;
+}
+
+static GLenum lvn_getOglBlendOperationEnum(LvnColorBlendOperation blendOp)
+{
+    switch (blendOp)
+    {
+        case Lvn_ColorBlendOp_Add: { return GL_FUNC_ADD; }
+        case Lvn_ColorBlendOp_Subtract: { return GL_FUNC_SUBTRACT; }
+        case Lvn_ColorBlendOp_ReverseSubtract: { return GL_FUNC_REVERSE_SUBTRACT; }
+        case Lvn_ColorBlendOp_Min: { return GL_MIN; }
+        case Lvn_ColorBlendOp_Max: { return GL_MAX; }
+    }
+
+    LVN_ASSERT(false, "invalid blend operation enum");
+    return GL_FUNC_ADD;
+}
+
+static GLenum lvn_getOglCompareOpEnum(LvnCompareOperation compareOp)
+{
+    switch (compareOp)
+    {
+        case Lvn_CompareOp_Never: { return GL_NEVER; }
+        case Lvn_CompareOp_Less: { return GL_LESS; }
+        case Lvn_CompareOp_Equal: { return GL_EQUAL; }
+        case Lvn_CompareOp_LessOrEqual: { return GL_LEQUAL; }
+        case Lvn_CompareOp_Greater: { return GL_GREATER; }
+        case Lvn_CompareOp_NotEqual: { return GL_NOTEQUAL; }
+        case Lvn_CompareOp_GreaterOrEqual: { return GL_GEQUAL; }
+        case Lvn_CompareOp_Always: { return GL_ALWAYS; }
+    }
+
+    LVN_ASSERT(false, "invalid compare operation enum");
+    return GL_EQUAL;
+}
+
+static GLenum lvn_getOglStencilOpEnum(LvnStencilOperation stencilOp)
+{
+    switch (stencilOp)
+    {
+        case Lvn_StencilOp_Keep: { return GL_KEEP; }
+        case Lvn_StencilOp_Zero: { return GL_ZERO; }
+        case Lvn_StencilOp_Replace: { return GL_REPLACE; }
+        case Lvn_StencilOp_IncrementAndClamp: { return GL_INCR; }
+        case Lvn_StencilOp_DecrementAndClamp: { return GL_DECR; }
+        case Lvn_StencilOp_Invert: { return GL_INVERT; }
+        case Lvn_StencilOp_IncrementAndWrap: { return GL_INCR_WRAP; }
+        case Lvn_StencilOp_DecrementAndWrap: { return GL_DECR_WRAP; }
+    }
+
+    LVN_ASSERT(false, "invalid stencil operation enum");
+    return GL_KEEP;
+}
+
 static uint32_t lvn_getSampleCount(LvnSampleCountFlags samples)
 {
     switch (samples)
@@ -296,6 +423,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glGetIntegerv ||
         !oglBackends->glDisable ||
         !oglBackends->glEnable ||
+        !oglBackends->glEnablei ||
         !oglBackends->glCreateBuffers ||
         !oglBackends->glDeleteBuffers ||
         !oglBackends->glCreateSamplers ||
@@ -324,11 +452,22 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glGetShaderiv ||
         !oglBackends->glAttachShader ||
         !oglBackends->glLinkProgram ||
+        !oglBackends->glGetProgramiv ||
+        !oglBackends->glGetProgramInfoLog ||
         !oglBackends->glGetShaderInfoLog ||
+        !oglBackends->glBlendFuncSeparatei ||
+        !oglBackends->glBlendEquationSeparatei ||
+        !oglBackends->glColorMaski ||
+        !oglBackends->glPolygonMode ||
         !oglBackends->glNamedBufferStorage ||
         !oglBackends->glNamedBufferData ||
         !oglBackends->glMapNamedBufferRange ||
-        !oglBackends->glUnmapNamedBuffer)
+        !oglBackends->glUnmapNamedBuffer ||
+        !oglBackends->glUseProgram ||
+        !oglBackends->glBindBuffer ||
+        !oglBackends->glBindVertexArray ||
+        !oglBackends->glDrawArraysInstanced ||
+        !oglBackends->glDrawElementsInstanced)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -819,7 +958,150 @@ void lvnImplOglDestroyShader(LvnShader* shader)
 
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglPipelineData* pipelineData = NULL;
+
+    pipelineData = (LvnOglPipelineData*) lvn_calloc(sizeof(LvnOglPipelineData));
+    if (!pipelineData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for pipeline data in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    pipelineData->pipelineId = oglBackends->glCreateProgram();
+
+    // link shaders
+    for (uint32_t i = 0; i < createInfo->stageCount; i++)
+    {
+        LvnOglShaderData* shaderData = (LvnOglShaderData*) createInfo->pShaderStages[i]->shader;
+        oglBackends->glAttachShader(pipelineData->pipelineId, shaderData->shaderId);
+    }
+
+    oglBackends->glLinkProgram(pipelineData->pipelineId);
+
+    GLint success;
+    oglBackends->glGetProgramiv(pipelineData->pipelineId, GL_LINK_STATUS, &success);
+
+    if (!success)
+    {
+        char infoLog[1024];
+        oglBackends->glGetProgramInfoLog(pipelineData->pipelineId, 1024, NULL, infoLog);
+
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] program compile error in pipeline %p | info log: %s",
+                      pipeline,
+                      infoLog);
+
+        goto fail_cleanup;
+    }
+
+    // pipeline fixed functions
+    const LvnPipelineFixedFunctions* pipelineFixedFunctions = createInfo->pipelineFixedFunctions;
+
+    // input assembly
+    pipelineData->fixedFuncEnums.inputAssembly = pipelineFixedFunctions->inputAssembly;
+    pipelineData->fixedFuncEnums.primitiveMode = lvn_getOglTopologyEnum(pipelineFixedFunctions->inputAssembly.topology);
+
+    // rasterizer
+    pipelineData->fixedFuncEnums.rasterizer = pipelineFixedFunctions->rasterizer;
+
+    if (pipelineFixedFunctions->rasterizer.cullMode != Lvn_CullFaceMode_Disable)
+    {
+        pipelineData->fixedFuncEnums.cullMode = lvn_getOglCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode);
+        pipelineData->fixedFuncEnums.frontFace = lvn_getOglCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace);
+    }
+
+    // multisampling
+    pipelineData->fixedFuncEnums.multisampling = pipelineFixedFunctions->multisampling;
+
+    // color blend
+    pipelineData->fixedFuncEnums.colorBlend = pipelineFixedFunctions->colorBlend;
+
+    pipelineData->fixedFuncEnums.colorBlendAttachmentCount =
+        (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
+        ? 1
+        : pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount;
+
+    pipelineData->fixedFuncEnums.pColorBlendAttachments = (LvnOglColorBlendAttachment*)
+        lvn_calloc(pipelineData->fixedFuncEnums.colorBlendAttachmentCount * sizeof(LvnOglColorBlendAttachment));
+    if (!pipelineData->fixedFuncEnums.pColorBlendAttachments)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for color blend attachments in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    if (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
+    {
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].srcRGB = GL_ONE;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].dstRGB = GL_ZERO;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].srcAlpha = GL_ONE;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].dstAlpha = GL_ZERO;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].modeRGB = GL_FUNC_ADD;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].modeAlpha = GL_FUNC_ADD;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].writeMaskR = true;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].writeMaskG = true;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].writeMaskB = true;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].writeMaskA = true;
+        pipelineData->fixedFuncEnums.pColorBlendAttachments[0].blendEnable = false;
+    }
+    else
+    {
+        for (uint32_t i = 0; i < pipelineData->fixedFuncEnums.colorBlendAttachmentCount; i++)
+        {
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].srcRGB =
+                lvn_getOglBlendFactorEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].srcColorBlendFactor);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].dstRGB =
+                lvn_getOglBlendFactorEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].dstColorBlendFactor);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].srcAlpha =
+                lvn_getOglBlendFactorEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].srcAlphaBlendFactor);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].dstAlpha =
+                lvn_getOglBlendFactorEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].dstAlphaBlendFactor);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].modeRGB =
+                lvn_getOglBlendOperationEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].colorBlendOp);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].modeAlpha =
+                lvn_getOglBlendOperationEnum(pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].alphaBlendOp);
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].writeMaskR =
+                (pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].colorWriteMask & Lvn_ColorComponentFlag_R) ? true : false;
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].writeMaskG =
+                (pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].colorWriteMask & Lvn_ColorComponentFlag_G) ? true : false;
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].writeMaskB =
+                (pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].colorWriteMask & Lvn_ColorComponentFlag_B) ? true : false;
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].writeMaskA =
+                (pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].colorWriteMask & Lvn_ColorComponentFlag_A) ? true : false;
+            pipelineData->fixedFuncEnums.pColorBlendAttachments[i].blendEnable =
+                pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i].blendEnable;
+        }
+    }
+
+    // depth stencil
+    pipelineData->fixedFuncEnums.depthStencil = pipelineFixedFunctions->depthstencil;
+
+    pipelineData->fixedFuncEnums.depthCompareOp = lvn_getOglCompareOpEnum(pipelineFixedFunctions->depthstencil.depthOpCompare);
+    pipelineData->fixedFuncEnums.stencilCompareOp = lvn_getOglCompareOpEnum(pipelineFixedFunctions->depthstencil.stencil.compareOp);
+    pipelineData->fixedFuncEnums.stencilFailOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp);
+    pipelineData->fixedFuncEnums.stencilPassOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp);
+    pipelineData->fixedFuncEnums.stencilDepthFailOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp);
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (pipelineData)
+    {
+        oglBackends->glDeleteProgram(pipelineData->pipelineId);
+        lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
+        lvn_free(pipelineData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)

@@ -45,6 +45,7 @@ static LvnResult                   lvn_createSwapChainData(const LvnVulkanBacken
 static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStage stage);
 static VkFormat                    lvn_getVkVertexAttributeFormatEnum(LvnAttributeFormat format);
 static VkPrimitiveTopology         lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType);
+static VkPolygonMode               lvn_getVkPolygonModeEnum(LvnPolygonMode polygonMode);
 static VkCullModeFlags             lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode);
 static VkFrontFace                 lvn_getVkCullFrontFaceEnum(LvnCullFrontFace cullFrontFace);
 static VkSampleCountFlagBits       lvn_getVkSampleCountFlagEnum(LvnSampleCountFlagBits samples);
@@ -53,6 +54,7 @@ static VkBlendFactor               lvn_getVkBlendFactorEnum(LvnColorBlendFactor 
 static VkBlendOp                   lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp);
 static VkCompareOp                 lvn_getVkCompareOpEnum(LvnCompareOperation compare);
 static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp);
+static VkLogicOp                   lvn_getVkLogicOpEnum(LvnLogicOperation logicOp);
 static VkAttachmentLoadOp          lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp);
 static VkAttachmentStoreOp         lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp storeOp);
 static VkCommandBufferLevel        lvn_getVkCommandBufferLevelEnum(LvnCommandBufferLevel level);
@@ -541,6 +543,19 @@ static VkPrimitiveTopology lvn_getVkTopologyTypeEnum(LvnTopologyType topologyTyp
     return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 }
 
+static VkPolygonMode lvn_getVkPolygonModeEnum(LvnPolygonMode polygonMode)
+{
+    switch (polygonMode)
+    {
+        case Lvn_PolygonMode_Fill: { return VK_POLYGON_MODE_FILL; }
+        case Lvn_PolygonMode_Line: { return VK_POLYGON_MODE_LINE; }
+        case Lvn_PolygonMode_Point: { return VK_POLYGON_MODE_POINT; }
+    }
+
+    LVN_ASSERT(false, "invalid polygon mode enum");
+    return VK_POLYGON_MODE_FILL;
+}
+
 static VkCullModeFlags lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode)
 {
     switch (cullFaceMode)
@@ -674,6 +689,32 @@ static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
 
     LVN_ASSERT(false, "invalid stencil operation enum");
     return VK_STENCIL_OP_KEEP;
+}
+
+static VkLogicOp lvn_getVkLogicOpEnum(LvnLogicOperation logicOp)
+{
+    switch (logicOp)
+    {
+        case Lvn_LogicOp_Clear: { return VK_LOGIC_OP_CLEAR; }
+        case Lvn_LogicOp_And: { return VK_LOGIC_OP_AND; }
+        case Lvn_LogicOp_AndReverse: { return VK_LOGIC_OP_AND_REVERSE; }
+        case Lvn_LogicOp_Copy: { return VK_LOGIC_OP_COPY; }
+        case Lvn_LogicOp_AndInverted: { return VK_LOGIC_OP_AND_INVERTED; }
+        case Lvn_LogicOp_NoOp: { return VK_LOGIC_OP_NO_OP; }
+        case Lvn_LogicOp_Xor: { return VK_LOGIC_OP_XOR; }
+        case Lvn_LogicOp_Or: { return VK_LOGIC_OP_OR; }
+        case Lvn_LogicOp_Nor: { return VK_LOGIC_OP_NOR; }
+        case Lvn_LogicOp_Equivalent: { return VK_LOGIC_OP_EQUIVALENT; }
+        case Lvn_LogicOp_Invert: { return VK_LOGIC_OP_INVERT; }
+        case Lvn_LogicOp_OrReverse: { return VK_LOGIC_OP_OR_REVERSE; }
+        case Lvn_LogicOp_CopyInverted: { return VK_LOGIC_OP_COPY_INVERTED; }
+        case Lvn_LogicOp_OrInverted: { return VK_LOGIC_OP_OR_INVERTED; }
+        case Lvn_LogicOp_Nand: { return VK_LOGIC_OP_NAND; }
+        case Lvn_LogicOp_Set: { return VK_LOGIC_OP_SET; }
+    }
+
+    LVN_ASSERT(false, "invalid logic operation enum");
+    return VK_LOGIC_OP_CLEAR;
 }
 
 static VkAttachmentLoadOp lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp)
@@ -2368,11 +2409,13 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     {
         const LvnVkShaderData* shaderData = (const LvnVkShaderData*) createInfo->pShaderStages[i]->shader;
 
-        VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
-        stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        stageCreateInfo.stage = shaderData->shaderStage;
-        stageCreateInfo.module = shaderData->shaderModule;
-        stageCreateInfo.pName = shaderData->entryPoint;
+        VkPipelineShaderStageCreateInfo stageCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = shaderData->shaderStage,
+            .module = shaderData->shaderModule,
+            .pName = shaderData->entryPoint,
+        };
+
         shaderStages[i] = stageCreateInfo;
     }
 
@@ -2387,10 +2430,11 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     for (uint32_t i = 0; i < createInfo->vertexBindingDescriptionCount; i++)
     {
-        VkVertexInputBindingDescription bindingDescription = {0};
-        bindingDescription.binding = createInfo->pVertexBindingDescriptions[i].binding;
-        bindingDescription.stride = createInfo->pVertexBindingDescriptions[i].stride;
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        VkVertexInputBindingDescription bindingDescription = {
+            .binding = createInfo->pVertexBindingDescriptions[i].binding,
+            .stride = createInfo->pVertexBindingDescriptions[i].stride,
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        };
 
         bindingDescriptions[i] = bindingDescription;
     }
@@ -2406,18 +2450,20 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     for (uint32_t i = 0; i < createInfo->vertexAttributeCount; i++)
     {
-        VkVertexInputAttributeDescription attributeDescription = {0};
-        attributeDescription.binding = createInfo->pVertexAttributes[i].binding;
-        attributeDescription.location = createInfo->pVertexAttributes[i].layout;
-        attributeDescription.format = lvn_getVkVertexAttributeFormatEnum(createInfo->pVertexAttributes[i].format);
-        attributeDescription.offset = createInfo->pVertexAttributes[i].offset;
+        VkVertexInputAttributeDescription attributeDescription = {
+            .binding = createInfo->pVertexAttributes[i].binding,
+            .location = createInfo->pVertexAttributes[i].layout,
+            .format = lvn_getVkVertexAttributeFormatEnum(createInfo->pVertexAttributes[i].format),
+            .offset = createInfo->pVertexAttributes[i].offset,
+        };
 
         vertexAttributes[i] = attributeDescription;
     }
 
     // send binding descriptions and attributes to pipeline
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+    };
 
     if (createInfo->pVertexBindingDescriptions && createInfo->vertexBindingDescriptionCount > 0)
     {
@@ -2450,17 +2496,18 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     // pipeline fixed functions
     const LvnPipelineFixedFunctions* pipelineFixedFunctions = createInfo->pipelineFixedFunctions;
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {0};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = lvn_getVkTopologyTypeEnum(pipelineFixedFunctions->inputAssembly.topology);
-    inputAssembly.primitiveRestartEnable = pipelineFixedFunctions->inputAssembly.primitiveRestartEnable;
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = lvn_getVkTopologyTypeEnum(pipelineFixedFunctions->inputAssembly.topology),
+        .primitiveRestartEnable = pipelineFixedFunctions->inputAssembly.primitiveRestartEnable,
+    };
 
     VkDynamicState dynamicStates[5];
     dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
     dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
     uint32_t dynamicStatesCount = 2;
 
-    if (pipelineFixedFunctions->depthstencil.enableStencil)
+    if (pipelineFixedFunctions->depthstencil.stencilTestEnable)
     {
         dynamicStates[2] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
         dynamicStates[3] = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
@@ -2468,39 +2515,43 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         dynamicStatesCount = 5;
     }
 
-    VkPipelineDynamicStateCreateInfo dynamicState = {0};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.pDynamicStates = dynamicStates;
-    dynamicState.dynamicStateCount = dynamicStatesCount;
+    VkPipelineDynamicStateCreateInfo dynamicState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .pDynamicStates = dynamicStates,
+        .dynamicStateCount = dynamicStatesCount,
+    };
 
-    VkPipelineViewportStateCreateInfo viewportState = {0};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount = 1;
+    VkPipelineViewportStateCreateInfo viewportState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .scissorCount = 1,
+    };
 
-    VkPipelineRasterizationStateCreateInfo rasterizer = {0};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = pipelineFixedFunctions->rasterizer.depthClampEnable;
-    rasterizer.rasterizerDiscardEnable = pipelineFixedFunctions->rasterizer.rasterizerDiscardEnable;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = pipelineFixedFunctions->rasterizer.lineWidth;
-    rasterizer.cullMode = lvn_getVkCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode);
-    rasterizer.frontFace = lvn_getVkCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace);
-    rasterizer.depthBiasEnable = pipelineFixedFunctions->rasterizer.depthBiasEnable;
-    rasterizer.depthBiasConstantFactor = pipelineFixedFunctions->rasterizer.depthBiasConstantFactor;
-    rasterizer.depthBiasClamp = pipelineFixedFunctions->rasterizer.depthBiasClamp;
-    rasterizer.depthBiasSlopeFactor = pipelineFixedFunctions->rasterizer.depthBiasSlopeFactor;
+    VkPipelineRasterizationStateCreateInfo rasterizer = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .depthClampEnable = pipelineFixedFunctions->rasterizer.depthClampEnable,
+        .rasterizerDiscardEnable = pipelineFixedFunctions->rasterizer.rasterizerDiscardEnable,
+        .polygonMode = lvn_getVkPolygonModeEnum(pipelineFixedFunctions->rasterizer.polygonMode),
+        .lineWidth = pipelineFixedFunctions->rasterizer.lineWidth,
+        .cullMode = lvn_getVkCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode),
+        .frontFace = lvn_getVkCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace),
+        .depthBiasEnable = pipelineFixedFunctions->rasterizer.depthBiasEnable,
+        .depthBiasConstantFactor = pipelineFixedFunctions->rasterizer.depthBiasConstantFactor,
+        .depthBiasClamp = pipelineFixedFunctions->rasterizer.depthBiasClamp,
+        .depthBiasSlopeFactor = pipelineFixedFunctions->rasterizer.depthBiasSlopeFactor,
+    };
 
-    VkPipelineMultisampleStateCreateInfo multisampling = {0};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = pipelineFixedFunctions->multisampling.sampleShadingEnable;
-    multisampling.rasterizationSamples = lvn_getVkSampleCountFlagEnum(pipelineFixedFunctions->multisampling.rasterizationSamples);
-    multisampling.minSampleShading = pipelineFixedFunctions->multisampling.minSampleShading;
-    multisampling.pSampleMask = pipelineFixedFunctions->multisampling.sampleMask;
-    multisampling.alphaToCoverageEnable = pipelineFixedFunctions->multisampling.alphaToCoverageEnable;
-    multisampling.alphaToOneEnable = pipelineFixedFunctions->multisampling.alphaToOneEnable;
+    VkPipelineMultisampleStateCreateInfo multisampling = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .sampleShadingEnable = pipelineFixedFunctions->multisampling.sampleShadingEnable,
+        .rasterizationSamples = lvn_getVkSampleCountFlagEnum(pipelineFixedFunctions->multisampling.rasterizationSamples),
+        .minSampleShading = pipelineFixedFunctions->multisampling.minSampleShading,
+        .pSampleMask = pipelineFixedFunctions->multisampling.sampleMask,
+        .alphaToCoverageEnable = pipelineFixedFunctions->multisampling.alphaToCoverageEnable,
+        .alphaToOneEnable = pipelineFixedFunctions->multisampling.alphaToOneEnable,
+    };
 
-    // if color blend attachments is 0, we automatically add a default color blend attachment
+    // if color blend attachments is 0, automatically add a default color blend attachment
     uint32_t colorBlendAttachmentCount = (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
         ? 1
         : pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount;
@@ -2516,15 +2567,17 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     if (pipelineFixedFunctions->colorBlend.colorBlendAttachmentCount == 0)
     {
-        VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        VkPipelineColorBlendAttachmentState colorBlendAttachment = {
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            .blendEnable = VK_FALSE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .colorBlendOp = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .alphaBlendOp = VK_BLEND_OP_ADD,
+        };
+
         colorBlendAttachments[0] = colorBlendAttachment;
     }
     else
@@ -2533,54 +2586,58 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         {
             LvnPipelineColorBlendAttachment attachment = pipelineFixedFunctions->colorBlend.pColorBlendAttachments[i];
 
-            VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
-            colorBlendAttachment.colorWriteMask = lvn_getVkColorComponentsFlagEnum(attachment.colorWriteMask);
-            colorBlendAttachment.blendEnable = attachment.blendEnable;
-            colorBlendAttachment.srcColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcColorBlendFactor);
-            colorBlendAttachment.dstColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstColorBlendFactor);
-            colorBlendAttachment.colorBlendOp = lvn_getVkBlendOperationEnum(attachment.colorBlendOp);
-            colorBlendAttachment.srcAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcAlphaBlendFactor);
-            colorBlendAttachment.dstAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstAlphaBlendFactor);
-            colorBlendAttachment.alphaBlendOp = lvn_getVkBlendOperationEnum(attachment.alphaBlendOp);
+            VkPipelineColorBlendAttachmentState colorBlendAttachment = {
+                .colorWriteMask = lvn_getVkColorComponentsFlagEnum(attachment.colorWriteMask),
+                .blendEnable = attachment.blendEnable,
+                .srcColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcColorBlendFactor),
+                .dstColorBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstColorBlendFactor),
+                .colorBlendOp = lvn_getVkBlendOperationEnum(attachment.colorBlendOp),
+                .srcAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.srcAlphaBlendFactor),
+                .dstAlphaBlendFactor = lvn_getVkBlendFactorEnum(attachment.dstAlphaBlendFactor),
+                .alphaBlendOp = lvn_getVkBlendOperationEnum(attachment.alphaBlendOp),
+            };
 
             colorBlendAttachments[i] = colorBlendAttachment;
         }
     }
 
-    VkPipelineColorBlendStateCreateInfo colorBlending = {0};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = pipelineFixedFunctions->colorBlend.logicOpEnable;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.pAttachments = colorBlendAttachments;
-    colorBlending.attachmentCount = colorBlendAttachmentCount;
-    colorBlending.blendConstants[0] = pipelineFixedFunctions->colorBlend.blendConstants[0];
-    colorBlending.blendConstants[1] = pipelineFixedFunctions->colorBlend.blendConstants[1];
-    colorBlending.blendConstants[2] = pipelineFixedFunctions->colorBlend.blendConstants[2];
-    colorBlending.blendConstants[3] = pipelineFixedFunctions->colorBlend.blendConstants[3];
+    VkPipelineColorBlendStateCreateInfo colorBlending = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = pipelineFixedFunctions->colorBlend.logicOpEnable,
+        .logicOp = lvn_getVkLogicOpEnum(pipelineFixedFunctions->colorBlend.logicOp),
+        .pAttachments = colorBlendAttachments,
+        .attachmentCount = colorBlendAttachmentCount,
+        .blendConstants[0] = pipelineFixedFunctions->colorBlend.blendConstants[0],
+        .blendConstants[1] = pipelineFixedFunctions->colorBlend.blendConstants[1],
+        .blendConstants[2] = pipelineFixedFunctions->colorBlend.blendConstants[2],
+        .blendConstants[3] = pipelineFixedFunctions->colorBlend.blendConstants[3],
+    };
 
-    VkPipelineDepthStencilStateCreateInfo depthStencil = {0};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = pipelineFixedFunctions->depthstencil.enableDepth;
-    depthStencil.depthWriteEnable = pipelineFixedFunctions->depthstencil.enableDepth;
-    depthStencil.depthCompareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.depthOpCompare);
-    depthStencil.depthBoundsTestEnable = VK_FALSE;
-    depthStencil.minDepthBounds = 0.0f;
-    depthStencil.maxDepthBounds = 1.0f;
-    depthStencil.stencilTestEnable = pipelineFixedFunctions->depthstencil.enableStencil;
-    depthStencil.back.compareMask = pipelineFixedFunctions->depthstencil.stencil.compareMask;
-    depthStencil.back.writeMask = pipelineFixedFunctions->depthstencil.stencil.writeMask;
-    depthStencil.back.reference = pipelineFixedFunctions->depthstencil.stencil.reference;
-    depthStencil.back.compareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.stencil.compareOp);
-    depthStencil.back.depthFailOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp);
-    depthStencil.back.failOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp);
-    depthStencil.back.passOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp);
-    depthStencil.front = depthStencil.back;
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable = pipelineFixedFunctions->depthstencil.depthTestEnable,
+        .depthWriteEnable = pipelineFixedFunctions->depthstencil.depthWriteEnable,
+        .depthCompareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.depthOpCompare),
+        .depthBoundsTestEnable = VK_FALSE,
+        .minDepthBounds = 0.0f,
+        .maxDepthBounds = 1.0f,
+        .stencilTestEnable = pipelineFixedFunctions->depthstencil.stencilTestEnable,
+        .back.compareMask = pipelineFixedFunctions->depthstencil.stencil.compareMask,
+        .back.writeMask = pipelineFixedFunctions->depthstencil.stencil.writeMask,
+        .back.reference = pipelineFixedFunctions->depthstencil.stencil.reference,
+        .back.compareOp = lvn_getVkCompareOpEnum(pipelineFixedFunctions->depthstencil.stencil.compareOp),
+        .back.depthFailOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp),
+        .back.failOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp),
+        .back.passOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp),
+        .front = depthStencil.back,
+    };
 
     // pipeline layout
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {0};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = NULL;
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges = NULL,
+    };
 
     if (createInfo->descriptorLayoutCount != 0)
     {
@@ -2602,23 +2659,24 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderpass;
 
     // pipeline create info
-    VkGraphicsPipelineCreateInfo pipelineInfo = {0};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = createInfo->stageCount;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
-    pipelineInfo.renderPass = renderPass;
+    VkGraphicsPipelineCreateInfo pipelineInfo = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .stageCount = createInfo->stageCount,
+        .pStages = shaderStages,
+        .pVertexInputState = &vertexInputInfo,
+        .pInputAssemblyState = &inputAssembly,
+        .pViewportState = &viewportState,
+        .pRasterizationState = &rasterizer,
+        .pMultisampleState = &multisampling,
+        .pDepthStencilState = &depthStencil,
+        .pColorBlendState = &colorBlending,
+        .pDynamicState = &dynamicState,
+        .layout = pipelineLayout,
+        .subpass = 0,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = -1,
+        .renderPass = renderPass,
+    };
 
     if (vkBackends->vkCreateGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
     {

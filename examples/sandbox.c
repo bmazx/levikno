@@ -18,8 +18,8 @@ typedef struct WindowData
 
 static float s_Vertices[] = {
     0.0f,-0.5f, 1.0f, 0.0f, 0.0f,
-    0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
    -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+    0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
 };
 
 static uint32_t s_Indices[] = {
@@ -324,10 +324,6 @@ int main(int argc, char** argv)
     lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
 
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
-    pipelineFixedFuncs.viewport.width = 800;
-    pipelineFixedFuncs.viewport.height = 600;
-    pipelineFixedFuncs.scissor.extent.width = 800;
-    pipelineFixedFuncs.scissor.extent.height = 600;
 
     LvnVertexAttribute attributes[2] =
     {

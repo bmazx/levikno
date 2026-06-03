@@ -211,6 +211,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glDisable");
     oglBackends->glEnable = (PFNGLENABLEPROC)
         eglLoader->eglGetProcAddress("glEnable");
+    oglBackends->glEnablei = (PFNGLENABLEIPROC)
+        eglLoader->eglGetProcAddress("glEnablei");
     oglBackends->glCreateBuffers = (PFNGLCREATEBUFFERSPROC)
         eglLoader->eglGetProcAddress("glCreateBuffers");
     oglBackends->glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)
@@ -267,8 +269,20 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glAttachShader");
     oglBackends->glLinkProgram = (PFNGLLINKPROGRAMPROC)
         eglLoader->eglGetProcAddress("glLinkProgram");
+    oglBackends->glGetProgramiv = (PFNGLGETPROGRAMIVPROC)
+        eglLoader->eglGetProcAddress("glGetProgramiv");
+    oglBackends->glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)
+        eglLoader->eglGetProcAddress("glGetProgramInfoLog");
     oglBackends->glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)
         eglLoader->eglGetProcAddress("glGetShaderInfoLog");
+    oglBackends->glBlendFuncSeparatei = (PFNGLBLENDFUNCSEPARATEIPROC)
+        eglLoader->eglGetProcAddress("glBlendFuncSeparatei");
+    oglBackends->glBlendEquationSeparatei = (PFNGLBLENDEQUATIONSEPARATEIPROC)
+        eglLoader->eglGetProcAddress("glBlendEquationSeparatei");
+    oglBackends->glColorMaski = (PFNGLCOLORMASKIPROC)
+        eglLoader->eglGetProcAddress("glColorMaski");
+    oglBackends->glPolygonMode = (PFNGLPOLYGONMODEPROC)
+        eglLoader->eglGetProcAddress("glPolygonMode");
     oglBackends->glNamedBufferStorage = (PFNGLNAMEDBUFFERSTORAGEPROC)
         eglLoader->eglGetProcAddress("glNamedBufferStorage");
     oglBackends->glNamedBufferData = (PFNGLNAMEDBUFFERDATAPROC)
@@ -277,6 +291,16 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glMapNamedBufferRange");
     oglBackends->glUnmapNamedBuffer = (PFNGLUNMAPNAMEDBUFFERPROC)
         eglLoader->eglGetProcAddress("glUnmapNamedBuffer");
+    oglBackends->glUseProgram = (PFNGLUSEPROGRAMPROC)
+        eglLoader->eglGetProcAddress("glUseProgram");
+    oglBackends->glBindBuffer = (PFNGLBINDBUFFERPROC)
+        eglLoader->eglGetProcAddress("glBindBuffer");
+    oglBackends->glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)
+        eglLoader->eglGetProcAddress("glBindVertexArray");
+    oglBackends->glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)
+        eglLoader->eglGetProcAddress("glDrawArraysInstanced");
+    oglBackends->glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)
+        eglLoader->eglGetProcAddress("glDrawElementsInstanced");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

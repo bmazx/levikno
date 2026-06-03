@@ -627,26 +627,13 @@ LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
     pipelineFixedFunctions.inputAssembly.topology = Lvn_TopologyType_Triangle;
     pipelineFixedFunctions.inputAssembly.primitiveRestartEnable = false;
 
-    // viewport
-    pipelineFixedFunctions.viewport.x = 0.0f;
-    pipelineFixedFunctions.viewport.y = 0.0f;
-    pipelineFixedFunctions.viewport.width = 0.0f;
-    pipelineFixedFunctions.viewport.height = 0.0f;
-    pipelineFixedFunctions.viewport.minDepth = 0.0f;
-    pipelineFixedFunctions.viewport.maxDepth = 1.0f;
-
-    // scissor
-    pipelineFixedFunctions.scissor.offset.x = 0;
-    pipelineFixedFunctions.scissor.offset.y = 0;
-    pipelineFixedFunctions.scissor.extent.width = 0;
-    pipelineFixedFunctions.scissor.extent.height = 0;
-
     // rasterizer
     pipelineFixedFunctions.rasterizer.depthClampEnable = false;
     pipelineFixedFunctions.rasterizer.rasterizerDiscardEnable = false;
     pipelineFixedFunctions.rasterizer.lineWidth = 1.0f;
     pipelineFixedFunctions.rasterizer.cullMode = Lvn_CullFaceMode_Disable;
     pipelineFixedFunctions.rasterizer.frontFace = Lvn_CullFrontFace_Clockwise;
+    pipelineFixedFunctions.rasterizer.polygonMode = Lvn_PolygonMode_Fill;
     pipelineFixedFunctions.rasterizer.depthBiasEnable = false;
     pipelineFixedFunctions.rasterizer.depthBiasConstantFactor = 0.0f;
     pipelineFixedFunctions.rasterizer.depthBiasClamp = 0.0f;
@@ -666,15 +653,16 @@ LvnPipelineFixedFunctions lvnConfigPipelineFixedFunctionsInit(void)
 
     // color blend
     pipelineFixedFunctions.colorBlend.logicOpEnable = false;
+    pipelineFixedFunctions.colorBlend.logicOp = Lvn_LogicOp_Copy;
     pipelineFixedFunctions.colorBlend.blendConstants[0] = 0.0f;
     pipelineFixedFunctions.colorBlend.blendConstants[1] = 0.0f;
     pipelineFixedFunctions.colorBlend.blendConstants[2] = 0.0f;
     pipelineFixedFunctions.colorBlend.blendConstants[3] = 0.0f;
 
     // depth stencil
-    pipelineFixedFunctions.depthstencil.enableDepth = false;
+    pipelineFixedFunctions.depthstencil.depthTestEnable = false;
     pipelineFixedFunctions.depthstencil.depthOpCompare = Lvn_CompareOp_Never;
-    pipelineFixedFunctions.depthstencil.enableStencil = false;
+    pipelineFixedFunctions.depthstencil.stencilTestEnable = false;
     pipelineFixedFunctions.depthstencil.stencil.compareMask = 0;
     pipelineFixedFunctions.depthstencil.stencil.writeMask = 0;
     pipelineFixedFunctions.depthstencil.stencil.reference = 0;

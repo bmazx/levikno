@@ -11,6 +11,69 @@
 
 #define GL_FALSE 0
 #define GL_TRUE 1
+#define GL_POINTS 0x0000
+#define GL_LINES 0x0001
+#define GL_LINE_LOOP 0x0002
+#define GL_LINE_STRIP 0x0003
+#define GL_TRIANGLES 0x0004
+#define GL_TRIANGLE_STRIP 0x0005
+#define GL_TRIANGLE_FAN 0x0006
+#define GL_NEVER 0x0200
+#define GL_LESS 0x0201
+#define GL_EQUAL 0x0202
+#define GL_LEQUAL 0x0203
+#define GL_GREATER 0x0204
+#define GL_NOTEQUAL 0x0205
+#define GL_GEQUAL 0x0206
+#define GL_ALWAYS 0x0207
+#define GL_ZERO 0
+#define GL_ONE 1
+#define GL_KEEP 0x1E00
+#define GL_REPLACE 0x1E01
+#define GL_INCR 0x1E02
+#define GL_DECR 0x1E03
+#define GL_INVERT 0x150A
+#define GL_INCR_WRAP 0x8507
+#define GL_DECR_WRAP 0x8508
+#define GL_SRC_COLOR 0x0300
+#define GL_ONE_MINUS_SRC_COLOR 0x0301
+#define GL_SRC_ALPHA 0x0302
+#define GL_ONE_MINUS_SRC_ALPHA 0x0303
+#define GL_DST_ALPHA 0x0304
+#define GL_ONE_MINUS_DST_ALPHA 0x0305
+#define GL_DST_COLOR 0x0306
+#define GL_ONE_MINUS_DST_COLOR 0x0307
+#define GL_SRC_ALPHA_SATURATE 0x0308
+#define GL_CONSTANT_COLOR 0x8001
+#define GL_ONE_MINUS_CONSTANT_COLOR 0x8002
+#define GL_CONSTANT_ALPHA 0x8003
+#define GL_ONE_MINUS_CONSTANT_ALPHA 0x8004
+#define GL_SRC1_COLOR 0x88F9
+#define GL_SRC1_ALPHA 0x8589
+#define GL_ONE_MINUS_SRC1_COLOR 0x88FA
+#define GL_ONE_MINUS_SRC1_ALPHA 0x88FB
+#define GL_NONE 0
+#define GL_FUNC_ADD 0x8006
+#define GL_FUNC_REVERSE_SUBTRACT 0x800B
+#define GL_FUNC_SUBTRACT 0x800A
+#define GL_MIN 0x8007
+#define GL_MAX 0x8008
+#define GL_FRONT_LEFT 0x0400
+#define GL_FRONT_RIGHT 0x0401
+#define GL_BACK_LEFT 0x0402
+#define GL_BACK_RIGHT 0x0403
+#define GL_FRONT 0x0404
+#define GL_BACK 0x0405
+#define GL_LEFT 0x0406
+#define GL_RIGHT 0x0407
+#define GL_FRONT_AND_BACK 0x0408
+#define GL_NO_ERROR 0
+#define GL_INVALID_ENUM 0x0500
+#define GL_INVALID_VALUE 0x0501
+#define GL_INVALID_OPERATION 0x0502
+#define GL_OUT_OF_MEMORY 0x0505
+#define GL_CW 0x0900
+#define GL_CCW 0x0901
 #define GL_CONTEXT_FLAGS 0x821E
 #define GL_CONTEXT_FLAG_DEBUG_BIT 0x00000002
 #define GL_DEBUG_SOURCE_API 0x8246
@@ -164,6 +227,7 @@ typedef void (GLAPIENTRY *PFNGLGETINTEGERVPROC)(GLenum pname, GLint* data);
 typedef GLenum (GLAPIENTRY *PFNGLGETERRORPROC)(void);
 typedef void (GLAPIENTRY *PFNGLDISABLEPROC)(GLenum cap);
 typedef void (GLAPIENTRY *PFNGLENABLEPROC)(GLenum cap);
+typedef void (GLAPIENTRY *PFNGLENABLEIPROC)(GLenum target, GLuint index);
 typedef void (GLAPIENTRY *PFNGLCREATEBUFFERSPROC)(GLsizei n, GLuint* buffers);
 typedef void (GLAPIENTRY *PFNGLDELETEBUFFERSPROC)(GLsizei n, const GLuint* buffers);
 typedef void (GLAPIENTRY *PFNGLCREATESAMPLERSPROC)(GLsizei n, GLuint *samplers);
@@ -192,11 +256,22 @@ typedef void (GLAPIENTRY *PFNGLCOMPILESHADERPROC)(GLuint shader);
 typedef void (GLAPIENTRY *PFNGLGETSHADERIVPROC)(GLuint shader, GLenum pname, GLint *params);
 typedef void (GLAPIENTRY *PFNGLATTACHSHADERPROC)(GLuint program, GLuint shader);
 typedef void (GLAPIENTRY *PFNGLLINKPROGRAMPROC)(GLuint program);
+typedef void (GLAPIENTRY *PFNGLGETPROGRAMIVPROC)(GLuint program, GLenum pname, GLint *params);
+typedef void (GLAPIENTRY *PFNGLGETPROGRAMINFOLOGPROC)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 typedef void (GLAPIENTRY *PFNGLGETSHADERINFOLOGPROC)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+typedef void (GLAPIENTRY *PFNGLBLENDFUNCSEPARATEIPROC)(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
+typedef void (GLAPIENTRY *PFNGLBLENDEQUATIONSEPARATEIPROC)(GLuint buf, GLenum modeRGB, GLenum modeAlpha);
+typedef void (GLAPIENTRY *PFNGLCOLORMASKIPROC)(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a);
+typedef void (GLAPIENTRY *PFNGLPOLYGONMODEPROC)(GLenum face, GLenum mode);
 typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERSTORAGEPROC)(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags);
 typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERDATAPROC)(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage);
 typedef void* (GLAPIENTRY *PFNGLMAPNAMEDBUFFERRANGEPROC)(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
 typedef GLboolean (GLAPIENTRY *PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
+typedef void (GLAPIENTRY *PFNGLUSEPROGRAMPROC)(GLuint program);
+typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
+typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
+typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
+typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount);
 
 
 typedef struct LvnOglSwapchainData
@@ -229,6 +304,48 @@ typedef struct LvnOglFramebufferData
     uint32_t                height;
     bool                    multisample;
 } LvnOglFramebufferData;
+
+typedef struct LvnOglColorBlendAttachment
+{
+    GLenum srcRGB;
+    GLenum dstRGB;
+    GLenum srcAlpha;
+    GLenum dstAlpha;
+    GLenum modeRGB;
+    GLenum modeAlpha;
+    bool writeMaskR;
+    bool writeMaskG;
+    bool writeMaskB;
+    bool writeMaskA;
+    bool blendEnable;
+} LvnOglColorBlendAttachment;
+
+typedef struct LvnOglPipelineData
+{
+    uint32_t pipelineId;
+
+    struct
+    {
+        LvnPipelineInputAssembly inputAssembly;
+        LvnPipelineRasterizer rasterizer;
+        LvnPipelineMultiSampling multisampling;
+        LvnPipelineColorBlend colorBlend;
+        LvnPipelineDepthStencil depthStencil;
+        LvnOglColorBlendAttachment* pColorBlendAttachments;
+        uint32_t colorBlendAttachmentCount;
+
+        GLenum primitiveMode;
+        GLenum cullMode;
+        GLenum frontFace;
+        GLenum srcBlendFactor;
+        GLenum dstBlendFactor;
+        GLenum depthCompareOp;
+        GLenum stencilCompareOp;
+        GLenum stencilFailOp;
+        GLenum stencilPassOp;
+        GLenum stencilDepthFailOp;
+    } fixedFuncEnums;
+} LvnOglPipelineData;
 
 typedef struct LvnOglShaderData
 {
@@ -263,6 +380,7 @@ typedef struct LvnOpenglBackends
     PFNGLGETINTEGERVPROC                    glGetIntegerv;
     PFNGLDISABLEPROC                        glDisable;
     PFNGLENABLEPROC                         glEnable;
+    PFNGLENABLEIPROC                        glEnablei;
     PFNGLCREATEBUFFERSPROC                  glCreateBuffers;
     PFNGLDELETEBUFFERSPROC                  glDeleteBuffers;
     PFNGLCREATESAMPLERSPROC                 glCreateSamplers;
@@ -291,11 +409,22 @@ typedef struct LvnOpenglBackends
     PFNGLGETSHADERIVPROC                    glGetShaderiv;
     PFNGLATTACHSHADERPROC                   glAttachShader;
     PFNGLLINKPROGRAMPROC                    glLinkProgram;
+    PFNGLGETPROGRAMIVPROC                   glGetProgramiv;
+    PFNGLGETPROGRAMINFOLOGPROC              glGetProgramInfoLog;
     PFNGLGETSHADERINFOLOGPROC               glGetShaderInfoLog;
+    PFNGLBLENDFUNCSEPARATEIPROC             glBlendFuncSeparatei;
+    PFNGLBLENDEQUATIONSEPARATEIPROC         glBlendEquationSeparatei;
+    PFNGLCOLORMASKIPROC                     glColorMaski;
+    PFNGLPOLYGONMODEPROC                    glPolygonMode;
     PFNGLNAMEDBUFFERSTORAGEPROC             glNamedBufferStorage;
     PFNGLNAMEDBUFFERDATAPROC                glNamedBufferData;
     PFNGLMAPNAMEDBUFFERRANGEPROC            glMapNamedBufferRange;
     PFNGLUNMAPNAMEDBUFFERPROC               glUnmapNamedBuffer;
+    PFNGLUSEPROGRAMPROC                     glUseProgram;
+    PFNGLBINDBUFFERPROC                     glBindBuffer;
+    PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;
+    PFNGLDRAWARRAYSINSTANCEDPROC            glDrawArraysInstanced;
+    PFNGLDRAWELEMENTSINSTANCEDPROC          glDrawElementsInstanced;
 } LvnOpenglBackends;
 
 LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
