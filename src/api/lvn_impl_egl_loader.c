@@ -307,6 +307,10 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glBindBuffer");
     oglBackends->glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)
         eglLoader->eglGetProcAddress("glBindVertexArray");
+    oglBackends->glClear = (PFNGLCLEARPROC)
+        eglLoader->eglGetProcAddress("glClear");
+    oglBackends->glClearColor = (PFNGLCLEARCOLORPROC)
+        eglLoader->eglGetProcAddress("glClearColor");
     oglBackends->glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)
         eglLoader->eglGetProcAddress("glDrawArraysInstanced");
     oglBackends->glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)

@@ -471,6 +471,8 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glUseProgram ||
         !oglBackends->glBindBuffer ||
         !oglBackends->glBindVertexArray ||
+        !oglBackends->glClear ||
+        !oglBackends->glClearColor ||
         !oglBackends->glDrawArraysInstanced ||
         !oglBackends->glDrawElementsInstanced)
     {

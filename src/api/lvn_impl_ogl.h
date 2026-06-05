@@ -285,6 +285,8 @@ typedef GLboolean (GLAPIENTRY *PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLUSEPROGRAMPROC)(GLuint program);
 typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
+typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
+typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount);
 
@@ -449,6 +451,8 @@ typedef struct LvnOpenglBackends
     PFNGLUSEPROGRAMPROC                     glUseProgram;
     PFNGLBINDBUFFERPROC                     glBindBuffer;
     PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;
+    PFNGLCLEARPROC                          glClear;
+    PFNGLCLEARCOLORPROC                     glClearColor;
     PFNGLDRAWARRAYSINSTANCEDPROC            glDrawArraysInstanced;
     PFNGLDRAWELEMENTSINSTANCEDPROC          glDrawElementsInstanced;
 } LvnOpenglBackends;
