@@ -373,7 +373,7 @@ LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* 
         return Lvn_Result_Failure;
     }
 
-    surface->surface = eglSurface;
+    surface->surfaceData = eglSurface;
 
     return Lvn_Result_Success;
 }
@@ -383,17 +383,17 @@ void lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surf
     LVN_ASSERT(oglBackends && surface, "oglBackends and surface cannot be null");
 
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surface;
+    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
 
     eglLoader->eglDestroySurface(eglLoader->display, eglSurface);
-    surface->surface = NULL;
+    surface->surfaceData = NULL;
 }
 
 void lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, LvnSurface* surface)
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surface;
+    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
 
     eglLoader->eglMakeCurrent(eglLoader->display, eglSurface, eglSurface, eglLoader->context);
 }
@@ -402,7 +402,7 @@ void lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, LvnSurface* surface
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surface;
+    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
 
     eglLoader->eglSwapBuffers(eglLoader->display, eglSurface);
 }

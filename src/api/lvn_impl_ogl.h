@@ -376,6 +376,16 @@ typedef struct LvnOglBufferData
     void*       bufferMap;
 } LvnOglBufferData;
 
+typedef struct LvnOglTextureData
+{
+    uint32_t    textureId;
+} LvnOglTextureData;
+
+typedef struct LvnOglSamplerData
+{
+    uint32_t    samplerId;
+} LvnOglSamplerData;
+
 typedef struct LvnOglFenceData
 {
     GLsync    fenceId;

@@ -651,9 +651,9 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
                                         createInfo->width,
                                         createInfo->height);
 
-        swapchain->pSwapchainImages[i].texId = swapchainData->images[i];
-        swapchain->pSwapchainImages[i].width = createInfo->width;
-        swapchain->pSwapchainImages[i].width = createInfo->height;
+        swapchain->pSwapchainImages[i].textureData = lvn_calloc(sizeof(LvnOglTextureData));
+        LvnOglTextureData* textureData = (LvnOglTextureData*) swapchain->pSwapchainImages[i].textureData;
+        textureData->textureId = swapchainData->images[i];
     }
 
     swapchain->swapchainData = swapchainData;
@@ -666,12 +666,19 @@ fail_cleanup:
     if (swapchainData)
     {
         if (swapchainData->images)
+        {
+            oglBackends->glDeleteTextures(createInfo->minImageCount, swapchainData->images);
             lvn_free(swapchainData->images);
+        }
 
         lvn_free(swapchainData);
     }
     if (swapchain->pSwapchainImages)
+    {
+        for (uint32_t i = 0; i < createInfo->minImageCount; i++)
+            lvn_free(swapchain->pSwapchainImages[i].textureData);
         lvn_free(swapchain->pSwapchainImages);
+    }
     return errResult;
 }
 
@@ -764,7 +771,7 @@ LvnResult lvnImplOglCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnR
         renderpassData->hasDepth = true;
     }
 
-    renderpass->renderpass = renderpassData;
+    renderpass->renderpassData = renderpassData;
 
     return Lvn_Result_Success;
 
@@ -787,7 +794,7 @@ void lvnImplOglDestroyRenderPass(LvnRenderPass* renderpass)
 {
     LVN_ASSERT(renderpass, "renderpass cannot be null");
 
-    LvnOglRenderpassData* renderpassData = (LvnOglRenderpassData*) renderpass->renderpass;
+    LvnOglRenderpassData* renderpassData = (LvnOglRenderpassData*) renderpass->renderpassData;
 
     if (renderpassData->colorAttachments)
         lvn_free(renderpassData->colorAttachments);
@@ -797,7 +804,7 @@ void lvnImplOglDestroyRenderPass(LvnRenderPass* renderpass)
         lvn_free(renderpassData->hasResolves);
 
     lvn_free(renderpassData);
-    renderpass->renderpass = NULL;
+    renderpass->renderpassData = NULL;
 }
 
 LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo)
@@ -805,7 +812,7 @@ LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, Lvn
     LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
-    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) createInfo->renderPass->renderpass;
+    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) createInfo->renderPass->renderpassData;
 
     LvnResult errResult = Lvn_Result_Failure;
     LvnOglFramebufferData* framebufferData = NULL;
@@ -823,12 +830,16 @@ LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, Lvn
     oglBackends->glCreateFramebuffers(1, &framebufferData->fboId);
 
     for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
-        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, GL_COLOR_ATTACHMENT0 + i, createInfo->pColorAttachments[i]->texId, 0);
+    {
+        LvnOglTextureData* textureData = (LvnOglTextureData*) createInfo->pColorAttachments[i]->textureData;
+        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, GL_COLOR_ATTACHMENT0 + i, textureData->textureId, 0);
+    }
 
     if (createInfo->depthStencilAttachment)
     {
+        LvnOglTextureData* textureData = (LvnOglTextureData*) createInfo->depthStencilAttachment->textureData;
         GLenum attachment = lvn_getOglDepthStencilAttachmentTypeEnum(renderpassData->depthStencilAttachment.format);
-        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, attachment, createInfo->depthStencilAttachment->texId, 0);
+        oglBackends->glNamedFramebufferTexture(framebufferData->fboId, attachment, textureData->textureId, 0);
     }
 
     // get min between maxColorAttachments and maxDrawBuffers
@@ -866,10 +877,13 @@ LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, Lvn
         oglBackends->glCreateFramebuffers(1, &framebufferData->resolveId);
 
         for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
-            oglBackends->glNamedFramebufferTexture(framebufferData->resolveId, GL_COLOR_ATTACHMENT0 + i, createInfo->pResolveAttachments[i]->texId, 0);
+        {
+            LvnOglTextureData* textureData = (LvnOglTextureData*) createInfo->pResolveAttachments[i]->textureData;
+            oglBackends->glNamedFramebufferTexture(framebufferData->resolveId, GL_COLOR_ATTACHMENT0 + i, textureData->textureId, 0);
+        }
     }
 
-    framebuffer->framebufferHandle = framebufferData;
+    framebuffer->framebufferData = framebufferData;
 
     return Lvn_Result_Success;
 
@@ -885,13 +899,13 @@ void lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer)
     LVN_ASSERT(framebuffer, "framebuffer cannot be null");
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) framebuffer->graphicsctx->implData;
-    LvnOglFramebufferData* framebufferData = (LvnOglFramebufferData*) framebuffer->framebufferHandle;
+    LvnOglFramebufferData* framebufferData = (LvnOglFramebufferData*) framebuffer->framebufferData;
 
     oglBackends->glDeleteFramebuffers(1, &framebufferData->fboId);
     oglBackends->glDeleteFramebuffers(1, &framebufferData->resolveId);
 
     lvn_free(framebufferData);
-    framebuffer->framebufferHandle = NULL;
+    framebuffer->framebufferData = NULL;
 }
 
 LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
@@ -937,7 +951,7 @@ LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShade
 
     shaderData->stage = createInfo->stage;
 
-    shader->shader = shaderData;
+    shader->shaderData = shaderData;
 
     return Lvn_Result_Success;
 
@@ -956,12 +970,12 @@ void lvnImplOglDestroyShader(LvnShader* shader)
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) shader->graphicsctx->implData;
 
-    LvnOglShaderData* shaderData = (LvnOglShaderData*) shader->shader;
+    LvnOglShaderData* shaderData = (LvnOglShaderData*) shader->shaderData;
 
     oglBackends->glDeleteShader(shaderData->shaderId);
     lvn_free(shaderData);
 
-    shader->shader = NULL;
+    shader->shaderData = NULL;
 }
 
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
@@ -988,7 +1002,7 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     // link shaders
     for (uint32_t i = 0; i < createInfo->stageCount; i++)
     {
-        LvnOglShaderData* shaderData = (LvnOglShaderData*) createInfo->pShaderStages[i]->shader;
+        LvnOglShaderData* shaderData = (LvnOglShaderData*) createInfo->pShaderStages[i]->shaderData;
         oglBackends->glAttachShader(pipelineData->pipelineId, shaderData->shaderId);
     }
 
@@ -1100,7 +1114,7 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     pipelineData->fixedFuncEnums.stencilPassOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp);
     pipelineData->fixedFuncEnums.stencilDepthFailOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp);
 
-    pipeline->pipelineHandle = pipelineData;
+    pipeline->pipelineData = pipelineData;
 
     return Lvn_Result_Success;
 
@@ -1120,14 +1134,14 @@ void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) pipeline->graphicsctx->implData;
 
-    LvnOglPipelineData* pipelineData = (LvnOglPipelineData*) pipeline->pipelineHandle;
+    LvnOglPipelineData* pipelineData = (LvnOglPipelineData*) pipeline->pipelineData;
 
     oglBackends->glDeleteProgram(pipelineData->pipelineId);
 
     lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
     lvn_free(pipelineData);
 
-    pipeline->pipelineHandle = NULL;
+    pipeline->pipelineData = NULL;
 }
 
 LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled)
@@ -1149,7 +1163,7 @@ LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence*
         goto fail_cleanup;
     }
 
-    fence->fenceHandle = fenceData;
+    fence->fenceData = fenceData;
 
     return Lvn_Result_Success;
 
@@ -1169,12 +1183,12 @@ void lvnImplOglDestroyFence(LvnFence* fence)
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
 
-    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
 
     oglBackends->glDeleteSync(fenceData->fenceId);
     lvn_free(fenceData);
 
-    fence->fenceHandle = NULL;
+    fence->fenceData = NULL;
 }
 
 LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore)
@@ -1265,23 +1279,48 @@ LvnResult lvnImplOglsCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSam
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
 
-    oglBackends->glCreateSamplers(1, &sampler->samplerId);
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglSamplerData* samplerData = NULL;
 
-    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_S, lvn_getOglTextureModeEnum(createInfo->wrapS));
-    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_T, lvn_getOglTextureModeEnum(createInfo->wrapT));
-    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_WRAP_R, lvn_getOglTextureModeEnum(createInfo->wrapR));
-    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_MIN_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, createInfo->mipmapMode));
-    oglBackends->glSamplerParameteri(sampler->samplerId, GL_TEXTURE_MAG_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, Lvn_MipmapMode_Disabled));
+    samplerData = (LvnOglSamplerData*) lvn_calloc(sizeof(LvnOglSamplerData));
+    if (!samplerData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for sampler data in sampler %p",
+                      sampler);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    oglBackends->glCreateSamplers(1, &samplerData->samplerId);
+
+    oglBackends->glSamplerParameteri(samplerData->samplerId, GL_TEXTURE_WRAP_S, lvn_getOglTextureModeEnum(createInfo->wrapS));
+    oglBackends->glSamplerParameteri(samplerData->samplerId, GL_TEXTURE_WRAP_T, lvn_getOglTextureModeEnum(createInfo->wrapT));
+    oglBackends->glSamplerParameteri(samplerData->samplerId, GL_TEXTURE_WRAP_R, lvn_getOglTextureModeEnum(createInfo->wrapR));
+    oglBackends->glSamplerParameteri(samplerData->samplerId, GL_TEXTURE_MIN_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, createInfo->mipmapMode));
+    oglBackends->glSamplerParameteri(samplerData->samplerId, GL_TEXTURE_MAG_FILTER, lvn_getOglTextureFilterEnum(createInfo->minFilter, Lvn_MipmapMode_Disabled));
+
+    sampler->samplerData = samplerData;
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (samplerData)
+    {
+        oglBackends->glDeleteSamplers(1, &samplerData->samplerId);
+        lvn_free(samplerData);
+    }
+    return errResult;
 }
 
 void lvnImplOglsDestroySampler(LvnSampler* sampler)
 {
     LVN_ASSERT(sampler, "sampler cannot be null");
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) sampler->graphicsctx->implData;
-    oglBackends->glDeleteSamplers(1, &sampler->samplerId);
-    sampler->samplerId = 0;
+    LvnOglSamplerData* samplerData = (LvnOglSamplerData*) sampler->samplerData;
+    oglBackends->glDeleteSamplers(1, &samplerData->samplerId);
+    lvn_free(samplerData);
+    sampler->samplerData = NULL;
 }
 
 LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
@@ -1291,17 +1330,30 @@ LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTex
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
     const LvnImage* image = createInfo->image;
 
-    oglBackends->glCreateTextures(GL_TEXTURE_2D, 1, &texture->texId);
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglTextureData* textureData = NULL;
+
+    textureData = (LvnOglTextureData*) lvn_calloc(sizeof(LvnOglTextureData*));
+    if (!textureData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for texture data in texture %p",
+                      texture);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    oglBackends->glCreateTextures(GL_TEXTURE_2D, 1, &textureData->textureId);
 
     GLenum internalFormat = lvn_getOglInternalFormatEnum(createInfo->format);
     GLenum dataFormat = lvn_getOglDataFormatEnum(createInfo->format);
     GLenum formatType = lvn_getOglFormatTypeEnum(createInfo->format);
 
     if (createInfo->samples == Lvn_SampleCountFlag_1_Bit)
-        oglBackends->glTextureStorage2D(texture->texId, 1, internalFormat, createInfo->width, createInfo->height);
+        oglBackends->glTextureStorage2D(textureData->textureId, 1, internalFormat, createInfo->width, createInfo->height);
     else
     {
-        oglBackends->glTextureStorage2DMultisample(texture->texId,
+        oglBackends->glTextureStorage2DMultisample(textureData->textureId,
                                                    lvn_getSampleCount(createInfo->samples),
                                                    internalFormat,
                                                    createInfo->width,
@@ -1309,17 +1361,31 @@ LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTex
                                                    GL_TRUE);
     }
 
-    oglBackends->glTextureSubImage2D(texture->texId, 0, 0, 0, createInfo->width, createInfo->height, dataFormat, formatType, image->data);
+    oglBackends->glTextureSubImage2D(textureData->textureId, 0, 0, 0, createInfo->width, createInfo->height, dataFormat, formatType, image->data);
+
+    texture->textureData = textureData;
+    texture->width = createInfo->width;
+    texture->height = createInfo->height;
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (textureData)
+    {
+        oglBackends->glDeleteTextures(1, &textureData->textureId);
+        lvn_free(textureData);
+    }
+    return errResult;
 }
 
 void lvnImplOglsDestroyTexture(LvnTexture* texture)
 {
     LVN_ASSERT(texture, "texture cannot be null");
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) texture->graphicsctx->implData;
-    oglBackends->glDeleteTextures(1, &texture->texId);
-    texture->texId = 0;
+    LvnOglTextureData* textureData = (LvnOglTextureData*) texture->textureData;
+    oglBackends->glDeleteTextures(1, &textureData->textureId);
+    lvn_free(textureData);
+    texture->textureData = NULL;
 }
 
 LvnResult lvnImplOglAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
@@ -1372,7 +1438,7 @@ LvnResult lvnImplOglFenceWait(LvnFence* fence, uint64_t timeout)
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
 
-    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
 
     if (fenceData->fenceId)
     {
@@ -1401,7 +1467,7 @@ LvnResult lvnImplOglFenceReset(LvnFence* fence)
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
 
-    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
 
     if (fenceData->fenceId)
     {
@@ -1485,7 +1551,7 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
 
-    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
 
     if (fenceData->pending)
     {

@@ -46,6 +46,12 @@ typedef struct LvnVkShaderData
     VkShaderStageFlags    shaderStage;
 } LvnVkShaderData;
 
+typedef struct LvnVkPipelineData
+{
+    VkPipeline          pipeline;
+    VkPipelineLayout    pipelineLayout;
+} LvnVkPipelineData;
+
 typedef struct LvnVkBufferData
 {
     VkBuffer              buffer;
@@ -53,6 +59,16 @@ typedef struct LvnVkBufferData
     void*                 bufferMap;
     VkBufferUsageFlags    usageFlags;
 } LvnVkBufferData;
+
+typedef struct LvnVkTextureData
+{
+    VkImage          image;
+    VkImageView      imageView;
+    VmaAllocation    imageMemory;
+    VkSampler        sampler;
+    uint32_t         width;
+    uint32_t         height;
+} LvnVkTextureData;
 
 typedef struct LvnVulkanBackends
 {

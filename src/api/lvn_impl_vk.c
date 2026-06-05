@@ -1918,9 +1918,10 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
-    LvnPlatformData platformData = {0};
-    platformData.ndh = createInfo->nativeDisplayHandle;
-    platformData.nwh = createInfo->nativeWindowHandle;
+    LvnPlatformData platformData = {
+        .ndh = createInfo->nativeDisplayHandle,
+        .nwh = createInfo->nativeWindowHandle,
+    };
 
     VkSurfaceKHR vkSurface;
     if (lvn_createPlatformSurface(vkBackends, &vkSurface, &platformData) != Lvn_Result_Success)
@@ -1929,7 +1930,7 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
         return Lvn_Result_Failure;
     }
 
-    surface->surface = vkSurface;
+    surface->surfaceData = vkSurface;
     return Lvn_Result_Success;
 }
 
@@ -1941,9 +1942,9 @@ void lvnImplVkDestroySurface(LvnSurface* surface)
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surfaceData;
     vkBackends->vkDestroySurfaceKHR(vkBackends->instance, vkSurface, NULL);
-    surface->surface = NULL;
+    surface->surfaceData = NULL;
 }
 
 LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo)
@@ -1951,7 +1952,7 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
     LVN_ASSERT(graphicsctx && swapchain && createInfo, "graphicsctx, surface, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) createInfo->surface->surface;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) createInfo->surface->surfaceData;
 
     LvnResult errResult = Lvn_Result_Failure;
     LvnVkSwapchainData* swapchainData = NULL;
@@ -1973,13 +1974,15 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for swapchain data in swapchain %p", swapchain);
         errResult = Lvn_Result_OutOfMemory;
-        goto fail_cleanup_swapchaindata;
+        goto fail_cleanup;
     }
 
-    if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    LvnResult result = lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo);
+
+    if (result != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create swapchain data for swapchain %p", swapchain);
-        errResult = Lvn_Result_Failure;
+        errResult = result;
         goto fail_cleanup;
     }
 
@@ -1993,8 +1996,22 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
 
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
-        swapchainImages[i].imageHandle = swapchainData->swapchainImages[i];
-        swapchainImages[i].imageViewHandle = swapchainData->swapchainImageViews[i];
+        swapchainImages[i].textureData = lvn_calloc(sizeof(LvnVkTextureData));
+
+        if (!swapchainImages[i].textureData)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for texture data for image in swapchain %p", swapchain);
+            errResult = Lvn_Result_OutOfMemory;
+            goto fail_cleanup;
+        }
+
+        LvnVkTextureData* textureData = (LvnVkTextureData*) swapchainImages[i].textureData;
+
+        textureData->image = swapchainData->swapchainImages[i];
+        textureData->imageView = swapchainData->swapchainImageViews[i];
+        textureData->width = swapchainData->swapchainExtent.width;
+        textureData->height = swapchainData->swapchainExtent.height;
+
         swapchainImages[i].width = swapchainData->swapchainExtent.width;
         swapchainImages[i].height = swapchainData->swapchainExtent.height;
     }
@@ -2009,14 +2026,23 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
     return Lvn_Result_Success;
 
 fail_cleanup:
-    lvn_free(swapchainImages);
-    vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
-    lvn_free(swapchainData->swapchainImageViews);
-    lvn_free(swapchainData->swapchainImages);
-fail_cleanup_swapchaindata:
-    lvn_free(swapchainData);
+    if (swapchainData)
+    {
+        vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
+
+        for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        {
+            if (swapchainImages[i].textureData)
+                lvn_free(swapchainImages[i].textureData);
+
+            vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+        }
+
+        lvn_free(swapchainImages);
+        lvn_free(swapchainData->swapchainImages);
+        lvn_free(swapchainData->swapchainImageViews);
+        lvn_free(swapchainData);
+    }
     return errResult;
 }
 
@@ -2031,7 +2057,10 @@ void lvnImplVkDestroySwapchain(LvnSwapchain* swapchain)
 
     // swapchain image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+    {
+        lvn_free(swapchain->pSwapchainImages[i].textureData);
         vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+    }
     lvn_free(swapchainData->swapchainImageViews);
 
     // swapchain images
@@ -2196,7 +2225,7 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
         goto fail_cleanup;
     }
 
-    renderpass->renderpass = vkRenderPass;
+    renderpass->renderpassData = vkRenderPass;
 
     lvn_free(resolveAttachmentRefs);
     lvn_free(colorAttachmentRefs);
@@ -2216,12 +2245,12 @@ void lvnImplVkDestroyRenderPass(LvnRenderPass* renderpass)
     LVN_ASSERT(renderpass, "renderpass cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) renderpass->graphicsctx->implData;
-    VkRenderPass vkRenderPass = (VkRenderPass) renderpass->renderpass;
+    VkRenderPass vkRenderPass = (VkRenderPass) renderpass->renderpassData;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
     vkBackends->vkDestroyRenderPass(vkBackends->device, vkRenderPass, NULL);
-    renderpass->renderpass = NULL;
+    renderpass->renderpassData = NULL;
 }
 
 LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo)
@@ -2229,7 +2258,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
     LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
-    VkRenderPass vkRenderPass = (VkRenderPass) createInfo->renderPass->renderpass;
+    VkRenderPass vkRenderPass = (VkRenderPass) createInfo->renderPass->renderpassData;
     LvnResult result = Lvn_Result_Failure;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
@@ -2253,13 +2282,21 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
         uint32_t attachmentIndex = 0;
         for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
         {
-            attachments[attachmentIndex++] = createInfo->pColorAttachments[i]->imageViewHandle;
+            LvnVkTextureData* colorTextureData = (LvnVkTextureData*) createInfo->pColorAttachments[i]->textureData;
+
+            attachments[attachmentIndex++] = colorTextureData->imageView;
             if (createInfo->pResolveAttachments)
-                attachments[attachmentIndex++] = createInfo->pResolveAttachments[i]->imageViewHandle;
+            {
+                LvnVkTextureData* resolveTextureData = (LvnVkTextureData*) createInfo->pResolveAttachments[i]->textureData;
+                attachments[attachmentIndex++] = resolveTextureData->imageView;
+            }
         }
 
         if (createInfo->depthStencilAttachment)
-            attachments[attachmentIndex++] = createInfo->depthStencilAttachment->imageViewHandle;
+        {
+            LvnVkTextureData* depthTextureData = (LvnVkTextureData*) createInfo->depthStencilAttachment->textureData;
+            attachments[attachmentIndex++] = depthTextureData->imageView;
+        }
     }
 
     VkFramebufferCreateInfo framebufferInfo = {
@@ -2279,7 +2316,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
         goto fail_cleanup;
     }
 
-    framebuffer->framebufferHandle = vkFramebuffer;
+    framebuffer->framebufferData = vkFramebuffer;
 
     lvn_free(attachments);
 
@@ -2295,12 +2332,13 @@ void lvnImplVkDestroyFramebuffer(LvnFramebuffer* framebuffer)
     LVN_ASSERT(framebuffer, "framebuffer cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) framebuffer->graphicsctx->implData;
-    VkFramebuffer vkFramebuffer = (VkFramebuffer) framebuffer->framebufferHandle;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
+    VkFramebuffer vkFramebuffer = (VkFramebuffer) framebuffer->framebufferData;
+
     vkBackends->vkDestroyFramebuffer(vkBackends->device, vkFramebuffer, NULL);
-    framebuffer->framebufferHandle = NULL;
+    framebuffer->framebufferData = NULL;
 }
 
 LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo)
@@ -2351,7 +2389,7 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 
     shaderData->shaderStage = lvn_getVkShaderStageEnum(createInfo->stage);
 
-    shader->shader = shaderData;
+    shader->shaderData = shaderData;
 
     return Lvn_Result_Success;
 
@@ -2372,13 +2410,13 @@ void lvnImplVkDestroyShader(LvnShader* shader)
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    LvnVkShaderData* shaderData = (LvnVkShaderData*) shader->shader;
+    LvnVkShaderData* shaderData = (LvnVkShaderData*) shader->shaderData;
 
     vkBackends->vkDestroyShaderModule(vkBackends->device, shaderData->shaderModule, NULL);
     lvn_free(shaderData->entryPoint);
     lvn_free(shaderData);
 
-    shader->shader = NULL;
+    shader->shaderData = NULL;
 }
 
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
@@ -2386,28 +2424,41 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline vkPipeline = VK_NULL_HANDLE;
 
+    LvnResult errResult = Lvn_Result_Failure;
     VkPipelineShaderStageCreateInfo* shaderStages = NULL;
     VkVertexInputBindingDescription* bindingDescriptions = NULL;
     VkVertexInputAttributeDescription* vertexAttributes = NULL;
     VkDescriptorSetLayout* descriptorLayouts = NULL;
     VkFormat* colorAttachmentFormats = NULL;
     VkPipelineColorBlendAttachmentState* colorBlendAttachments = NULL;
+    LvnVkPipelineData* pipelineData = NULL;
+
+    pipelineData = (LvnVkPipelineData*) lvn_calloc(sizeof(LvnVkPipelineData));
+    if (!pipelineData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for pipeline data in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
 
     // shader stages
     shaderStages = (VkPipelineShaderStageCreateInfo*)
         lvn_calloc(createInfo->stageCount * sizeof(VkPipelineShaderStageCreateInfo));
     if (createInfo->stageCount && !shaderStages)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating shaderStages array (VkPipelineShaderStageCreateInfo*)");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for shader stages array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
     for (uint32_t i = 0; i < createInfo->stageCount; i++)
     {
-        const LvnVkShaderData* shaderData = (const LvnVkShaderData*) createInfo->pShaderStages[i]->shader;
+        const LvnVkShaderData* shaderData = (const LvnVkShaderData*) createInfo->pShaderStages[i]->shaderData;
 
         VkPipelineShaderStageCreateInfo stageCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -2424,7 +2475,10 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         lvn_calloc(createInfo->vertexBindingDescriptionCount * sizeof(VkVertexInputBindingDescription));
     if (createInfo->vertexBindingDescriptionCount && !bindingDescriptions)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating bindingDescriptions array (VkVertexInputBindingDescription*)");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for binding descriptions array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
@@ -2444,7 +2498,10 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         lvn_calloc(createInfo->vertexAttributeCount * sizeof(VkVertexInputAttributeDescription));
     if (createInfo->vertexAttributeCount && !vertexAttributes)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating vertexAttributes array (VkVertexInputAttributeDescription*)");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for vertex attributes array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
@@ -2483,13 +2540,16 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     if (createInfo->descriptorLayoutCount && !descriptorLayouts)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating descriptorLayouts array (VkDescriptorSetLayout*)");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor layouts array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
     for (uint32_t i = 0; i < createInfo->descriptorLayoutCount; i++)
     {
-        VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayout;
+        VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayoutData;
         descriptorLayouts[i] = descriptorLayout;
     }
 
@@ -2561,7 +2621,10 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     if (colorBlendAttachmentCount && !colorBlendAttachments)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "malloc failure on creating colorBlendAttachments array (VkPipelineColorBlendAttachmentState*)");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for color blend attachments array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
@@ -2650,13 +2713,15 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         pipelineLayoutInfo.pSetLayouts = NULL;
     }
 
-    if (vkBackends->vkCreatePipelineLayout(vkBackends->device, &pipelineLayoutInfo, NULL, &pipelineLayout) != VK_SUCCESS)
+    if (vkBackends->vkCreatePipelineLayout(vkBackends->device, &pipelineLayoutInfo, NULL, &pipelineData->pipelineLayout) != VK_SUCCESS)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create pipeline layout for pipeline %p", pipeline);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create pipeline layout for pipeline %p",
+                      pipeline);
         goto fail_cleanup;
     }
 
-    VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderpass;
+    VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderpassData;
 
     // pipeline create info
     VkGraphicsPipelineCreateInfo pipelineInfo = {
@@ -2671,21 +2736,22 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         .pDepthStencilState = &depthStencil,
         .pColorBlendState = &colorBlending,
         .pDynamicState = &dynamicState,
-        .layout = pipelineLayout,
+        .layout = pipelineData->pipelineLayout,
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,
         .renderPass = renderPass,
     };
 
-    if (vkBackends->vkCreateGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &vkPipeline) != VK_SUCCESS)
+    if (vkBackends->vkCreateGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelineData->pipeline) != VK_SUCCESS)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create graphics pipeline for pipeline %p", pipeline);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create graphics pipeline for pipeline %p",
+                      pipeline);
         goto fail_cleanup;
     }
 
-    pipeline->pipelineHandle = vkPipeline;
-    pipeline->pipelineLayoutHandle = pipelineLayout;
+    pipeline->pipelineData = pipelineData;
 
     lvn_free(colorBlendAttachments);
     lvn_free(colorAttachmentFormats);
@@ -2697,15 +2763,19 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->vkDestroyPipeline(vkBackends->device, vkPipeline, NULL);
-    vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    if (pipelineData)
+    {
+        vkBackends->vkDestroyPipeline(vkBackends->device, pipelineData->pipeline, NULL);
+        vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineData->pipelineLayout, NULL);
+        lvn_free(pipelineData);
+    }
     lvn_free(colorBlendAttachments);
     lvn_free(colorAttachmentFormats);
     lvn_free(descriptorLayouts);
     lvn_free(vertexAttributes);
     lvn_free(bindingDescriptions);
     lvn_free(shaderStages);
-    return Lvn_Result_Failure;
+    return errResult;
 }
 
 void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
@@ -2716,11 +2786,14 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
-    VkPipelineLayout pipelineLayout = (VkPipelineLayout) pipeline->pipelineLayoutHandle;
+    LvnVkPipelineData* pipelineData = (LvnVkPipelineData*) pipeline->pipelineData;
 
-    vkBackends->vkDestroyPipeline(vkBackends->device, vkPipeline, NULL);
-    vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
+    vkBackends->vkDestroyPipeline(vkBackends->device, pipelineData->pipeline, NULL);
+    vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineData->pipelineLayout, NULL);
+
+    lvn_free(pipelineData);
+
+    pipeline->pipelineData = NULL;
 }
 
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled)
@@ -2740,7 +2813,8 @@ LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* 
         return Lvn_Result_Failure;
     }
 
-    fence->fenceHandle = vkFence;
+    fence->fenceData = vkFence;
+
     return Lvn_Result_Success;
 }
 
@@ -2749,7 +2823,7 @@ void lvnImplVkDestroyFence(LvnFence* fence)
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
-    VkFence vkFence = (VkFence) fence->fenceHandle;
+    VkFence vkFence = (VkFence) fence->fenceData;
     vkBackends->vkDestroyFence(vkBackends->device, vkFence, NULL);
 }
 
@@ -2769,7 +2843,7 @@ LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSem
         return Lvn_Result_Failure;
     }
 
-    semaphore->semaphoreHandle = vkSemaphore;
+    semaphore->semaphoreData = vkSemaphore;
     return Lvn_Result_Success;
 }
 
@@ -2778,7 +2852,7 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     LVN_ASSERT(semaphore, "semaphore cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) semaphore->graphicsctx->implData;
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
-    VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreHandle;
+    VkSemaphore vkSemaphore = (VkSemaphore) semaphore->semaphoreData;
     vkBackends->vkDestroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
 
@@ -2959,7 +3033,7 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
         return Lvn_Result_Failure;
     }
 
-    sampler->samplerHandle = textureSampler;
+    sampler->samplerData = textureSampler;
 
     return Lvn_Result_Success;
 }
@@ -2969,7 +3043,7 @@ void lvnImplVksDestroySampler(LvnSampler* sampler)
     LVN_ASSERT(sampler, "sampler cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) sampler->graphicsctx->implData;
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
-    VkSampler textureSampler = (VkSampler) sampler->samplerHandle;
+    VkSampler textureSampler = (VkSampler) sampler->samplerData;
     vkBackends->vkDestroySampler(vkBackends->device, textureSampler, NULL);
 }
 
@@ -2978,12 +3052,23 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    LvnResult result = Lvn_Result_Failure;
+    LvnResult errResult = Lvn_Result_Failure;
 
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VmaAllocation stagingBufferMemory = VK_NULL_HANDLE;
     VkImage textureImage = VK_NULL_HANDLE;
     VmaAllocation textureImageMemory = VK_NULL_HANDLE;
+    LvnVkTextureData* textureData = NULL;
+
+    textureData = (LvnVkTextureData*) lvn_calloc(sizeof(LvnVkTextureData));
+    if (!textureData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for texture data in texture (%p)",
+                      texture);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
 
     VkDeviceSize imageSize = createInfo->width * createInfo->height * createInfo->image->channels;
     if (lvn_createBuffer(vkBackends, &stagingBuffer, &stagingBufferMemory, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY) != Lvn_Result_Success)
@@ -3046,10 +3131,12 @@ LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
         goto fail_cleanup;
     }
 
-    texture->imageHandle = textureImage;
-    texture->imageMemoryHandle = textureImageMemory;
-    texture->imageViewHandle = imageView;
-    texture->samplerHandle = createInfo->sampler->samplerHandle;
+    textureData->image = textureImage;
+    textureData->imageView = imageView;
+    textureData->imageMemory = textureImageMemory;
+    textureData->sampler = createInfo->sampler->samplerData;
+
+    texture->textureData = textureData;
 
     vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingBufferMemory);
@@ -3061,7 +3148,8 @@ fail_cleanup:
     vkBackends->vkDestroyBuffer(vkBackends->device, stagingBuffer, NULL);
     vmaFreeMemory(vkBackends->vmaAllocator, stagingBufferMemory);
     vmaFreeMemory(vkBackends->vmaAllocator, textureImageMemory);
-    return result;
+    lvn_free(textureData);
+    return errResult;
 }
 
 void lvnImplVksDestroyTexture(LvnTexture* texture)
@@ -3071,13 +3159,15 @@ void lvnImplVksDestroyTexture(LvnTexture* texture)
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    VkImage image = (VkImage) texture->imageHandle;
-    VmaAllocation imageMemory = (VmaAllocation) texture->imageMemoryHandle;
-    VkImageView imageView = (VkImageView) texture->imageViewHandle;
+    LvnVkTextureData* textureData = (LvnVkTextureData*) texture->textureData;
 
-    vkBackends->vkDestroyImage(vkBackends->device, image, NULL);
-    vmaFreeMemory(vkBackends->vmaAllocator, imageMemory);
-    vkBackends->vkDestroyImageView(vkBackends->device, imageView, NULL);
+    vkBackends->vkDestroyImage(vkBackends->device, textureData->image, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, textureData->imageMemory);
+    vkBackends->vkDestroyImageView(vkBackends->device, textureData->imageView, NULL);
+
+    lvn_free(textureData);
+
+    texture->textureData = NULL;
 }
 
 LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
@@ -3101,7 +3191,7 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
     }
 
     for (uint32_t i = 0; i < allocInfo->count; i++)
-        pCommandBuffers[i]->commandbuffer = commandBuffers[i];
+        pCommandBuffers[i]->commandbufferData = commandBuffers[i];
 
     lvn_free(commandBuffers);
     return Lvn_Result_Success;
@@ -3111,7 +3201,7 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
 {
     LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surfaceData;
 
     uint32_t vkFormatCount = 0;
     vkBackends->vkGetPhysicalDeviceSurfaceFormatsKHR(vkBackends->physicalDevice, vkSurface, &vkFormatCount, NULL);
@@ -3156,7 +3246,7 @@ void lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_
 {
     LVN_ASSERT(surface && presentModeCount, "surface and presentModeCount cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
-    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surface;
+    VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surfaceData;
 
     uint32_t vkPresentModeCount = 0;
     vkBackends->vkGetPhysicalDeviceSurfacePresentModesKHR(vkBackends->physicalDevice, vkSurface, &vkPresentModeCount, NULL);
@@ -3209,16 +3299,21 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
+    LvnResult errResult = Lvn_Result_Failure;
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
     VkSurfaceKHR surface = (VkSurfaceKHR) swapchainData->surface;
 
     // destroy swapchain resources
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+    {
+        lvn_free(swapchain->pSwapchainImages[i].textureData);
         vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+    }
     lvn_free(swapchainData->swapchainImages);
     lvn_free(swapchainData->swapchainImageViews);
     swapchainData->swapchainImages = NULL;
     swapchainData->swapchainImageViews = NULL;
+    memset(swapchain->pSwapchainImages, 0, swapchain->swapchainImageCount * sizeof(LvnTexture));
 
     // set current swapchain to old swapchain
     swapchainData->oldSwapchain = swapchainData->swapchain;
@@ -3239,8 +3334,8 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
-                      "[vulkan] failed to recreate swapchain in LvnSurface %p",
-                      surface);
+                      "[vulkan] failed to recreate swapchain %p",
+                      swapchain);
         return Lvn_Result_Failure;
     }
 
@@ -3254,13 +3349,25 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
         swapchain->pSwapchainImages = lvn_realloc(swapchain->pSwapchainImages, swapchainData->swapchainImageCount * sizeof(LvnTexture*));
     }
 
-    // update image views in LvnSurface struct
+    // update image views
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
-        swapchain->pSwapchainImages[i].imageHandle = swapchainData->swapchainImages[i];
-        swapchain->pSwapchainImages[i].imageViewHandle = swapchainData->swapchainImageViews[i];
-        swapchain->pSwapchainImages[i].width = swapchainData->swapchainExtent.width;
-        swapchain->pSwapchainImages[i].height = swapchainData->swapchainExtent.height;
+        swapchain->pSwapchainImages[i].textureData = lvn_calloc(sizeof(LvnVkTextureData));
+        if (!swapchain->pSwapchainImages[i].textureData)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                          "[vulkan] failed to allocate memory for texture data for image in swapchain %p",
+                          swapchain);
+            errResult = Lvn_Result_OutOfMemory;
+            goto fail_cleanup;
+        }
+
+        LvnVkTextureData* textureData = (LvnVkTextureData*) swapchain->pSwapchainImages[i].textureData;
+
+        textureData->image = swapchainData->swapchainImages[i];
+        textureData->imageView = swapchainData->swapchainImageViews[i];
+        textureData->width = swapchainData->swapchainExtent.width;
+        textureData->height = swapchainData->swapchainExtent.height;
     }
 
     // update extent
@@ -3268,6 +3375,9 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     swapchain->extent.height = swapchainData->swapchainExtent.height;
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    return errResult;
 }
 
 LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
@@ -3276,8 +3386,8 @@ LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemapho
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) swapchain->graphicsctx->implData;
     VkSwapchainKHR vkSwapchain = ((LvnVkSwapchainData*)swapchain->swapchainData)->swapchain;
-    VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreHandle : VK_NULL_HANDLE;
-    VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceHandle : VK_NULL_HANDLE;
+    VkSemaphore vkSemaphore = (semaphore != NULL) ? (VkSemaphore) semaphore->semaphoreData : VK_NULL_HANDLE;
+    VkFence vkFence = (fence != NULL) ? (VkFence) fence->fenceData : VK_NULL_HANDLE;
 
     VkResult result = vkBackends->vkAcquireNextImageKHR(vkBackends->device, vkSwapchain, UINT64_MAX, vkSemaphore, vkFence, imageIndex);
 
@@ -3291,7 +3401,7 @@ LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
 {
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
-    VkFence vkFence = (VkFence) fence->fenceHandle;
+    VkFence vkFence = (VkFence) fence->fenceData;
     return (vkBackends->vkWaitForFences(vkBackends->device, 1, &vkFence, VK_TRUE, timeout) == VK_SUCCESS)
         ? Lvn_Result_Success
         : Lvn_Result_TimeOut;
@@ -3301,7 +3411,7 @@ LvnResult lvnImplVkFenceReset(LvnFence* fence)
 {
     LVN_ASSERT(fence, "fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) fence->graphicsctx->implData;
-    VkFence vkFence = (VkFence) fence->fenceHandle;
+    VkFence vkFence = (VkFence) fence->fenceData;
     return (vkBackends->vkResetFences(vkBackends->device, 1, &vkFence) == VK_SUCCESS)
         ? Lvn_Result_Success
         : Lvn_Result_Failure;
@@ -3324,7 +3434,7 @@ void lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
     VkCommandBufferBeginInfo cmdBuffBeginInfo = {0};
     cmdBuffBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -3341,7 +3451,7 @@ void lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
     vkBackends->vkEndCommandBuffer(cmdBuff);
 }
 
@@ -3350,9 +3460,9 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
     LVN_ASSERT(commandBuffer && beginInfo, "commandBuffer and beginInfo cannot be null");
     const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    VkRenderPass renderPass = (VkRenderPass) beginInfo->renderPass->renderpass;
-    VkFramebuffer framebuffer = (VkFramebuffer) beginInfo->framebuffer->framebufferHandle;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
+    VkRenderPass renderPass = (VkRenderPass) beginInfo->renderPass->renderpassData;
+    VkFramebuffer framebuffer = (VkFramebuffer) beginInfo->framebuffer->framebufferData;
 
     VkRect2D renderArea = {
         .offset = { beginInfo->renderArea.offset.x, beginInfo->renderArea.offset.y },
@@ -3383,7 +3493,7 @@ void lvnImplVkCmdEndRenderPass(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
     vkBackends->vkCmdEndRenderPass(cmdBuff);
 }
 
@@ -3391,10 +3501,10 @@ void lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipe
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
-    VkPipeline vkPipeline = (VkPipeline) pipeline->pipelineHandle;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
+    LvnVkPipelineData* pipelineData = (LvnVkPipelineData*) pipeline->pipelineData;
 
-    vkBackends->vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline);
+    vkBackends->vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineData->pipeline);
 }
 
 void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets)
@@ -3402,7 +3512,7 @@ void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firs
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
     VkBuffer* buffers = lvn_memArenaAlloc(graphicsctx->frameArena, bindingCount * sizeof(VkBuffer));
     for (uint32_t i = 0; i < bindingCount; i++)
@@ -3415,7 +3525,7 @@ void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buf
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
     LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
@@ -3426,7 +3536,7 @@ void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport*
 {
     LVN_ASSERT(commandBuffer && viewport, "commandBuffer and viewport cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
     VkViewport viewportInfo = {
         .x        = viewport->x,
@@ -3444,7 +3554,7 @@ void lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea
 {
     LVN_ASSERT(commandBuffer && scissor, "commandBuffer and scissor cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
     VkRect2D scissorInfo = {
         .extent = { scissor->extent.width, scissor->extent.height },
@@ -3458,7 +3568,7 @@ void lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uin
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
     vkBackends->vkCmdDraw(cmdBuff, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
@@ -3466,7 +3576,7 @@ void lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCoun
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
-    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbuffer;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
     vkBackends->vkCmdDrawIndexed(cmdBuff, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
@@ -3475,7 +3585,7 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    VkFence vkFence = fence ? (VkFence)fence->fenceHandle : VK_NULL_HANDLE;
+    VkFence vkFence = fence ? (VkFence)fence->fenceData : VK_NULL_HANDLE;
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     // get count of all semaphores and command buffers
@@ -3500,13 +3610,13 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     {
         // get vulkan semaphore/command buffer handles
         for (uint32_t j = 0; j < pSubmits[i].waitSemaphoreCount; j++)
-            waitSemaphores[waitSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pWaitSemaphores[j]->semaphoreHandle;
+            waitSemaphores[waitSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pWaitSemaphores[j]->semaphoreData;
 
         for (uint32_t j = 0; j < pSubmits[i].signalSemaphoreCount; j++)
-            signalSemaphores[signalSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pSignalSemaphores[j]->semaphoreHandle;
+            signalSemaphores[signalSemaphoreOffset + j] = (VkSemaphore) pSubmits[i].pSignalSemaphores[j]->semaphoreData;
 
         for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++)
-            commandBuffers[commandBufferOffset + j] = (VkCommandBuffer) pSubmits[i].pCommandBuffers[j]->commandbuffer;
+            commandBuffers[commandBufferOffset + j] = (VkCommandBuffer) pSubmits[i].pCommandBuffers[j]->commandbufferData;
 
         submitInfos[i].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfos[i].waitSemaphoreCount = pSubmits[i].waitSemaphoreCount;
@@ -3545,7 +3655,7 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
     VkSemaphore* waitSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena,
                                                     presentInfo->waitSemaphoreCount * sizeof(VkSemaphore));
     for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
-        waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreHandle;
+        waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreData;
 
     VkSwapchainKHR* swapchains = lvn_memArenaAlloc(graphicsctx->frameArena,
                                                    presentInfo->swapchainCount * sizeof(VkSwapchainKHR));

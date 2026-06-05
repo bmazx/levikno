@@ -17,19 +17,13 @@ struct LvnBuffer
 struct LvnSampler
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        samplerHandle;
-    uint32_t                     samplerId;
+    void*                        samplerData;
 };
 
 struct LvnTexture
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        imageHandle;
-    void*                        imageViewHandle;
-    void*                        imageMemoryHandle;
-    void*                        samplerHandle;
-    uint32_t                     texId;
-    uint32_t                     samplerId;
+    void*                        textureData;
     uint32_t                     width;
     uint32_t                     height;
 };
@@ -37,19 +31,19 @@ struct LvnTexture
 struct LvnRenderPass
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        renderpass;
+    void*                        renderpassData;
 };
 
 struct LvnFramebuffer
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        framebufferHandle;
+    void*                        framebufferData;
 };
 
 struct LvnSurface
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        surface;
+    void*                        surfaceData;
 };
 
 struct LvnSwapchain
@@ -65,38 +59,37 @@ struct LvnSwapchain
 struct LvnDescriptorLayout
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        descriptorLayout;
+    void*                        descriptorLayoutData;
 };
 
 struct LvnShader
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        shader;
+    void*                        shaderData;
 };
 
 struct LvnPipeline
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        pipelineHandle;
-    void*                        pipelineLayoutHandle;
+    void*                        pipelineData;
 };
 
 struct LvnCommandBuffer
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        commandbuffer;
+    void*                        commandbufferData;
 };
 
 struct LvnFence
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        fenceHandle;
+    void*                        fenceData;
 };
 
 struct LvnSemaphore
 {
     const LvnGraphicsContext*    graphicsctx;
-    void*                        semaphoreHandle;
+    void*                        semaphoreData;
 };
 
 struct LvnGraphicsContext
