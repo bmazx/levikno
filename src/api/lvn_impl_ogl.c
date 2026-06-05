@@ -439,6 +439,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glDeleteShader ||
         !oglBackends->glCreateProgram ||
         !oglBackends->glDeleteProgram ||
+        !oglBackends->glFenceSync ||
+        !oglBackends->glDeleteSync ||
+        !oglBackends->glClientWaitSync ||
+        !oglBackends->glWaitSync ||
         !oglBackends->glCheckNamedFramebufferStatus ||
         !oglBackends->glNamedFramebufferTexture ||
         !oglBackends->glNamedFramebufferDrawBuffer ||
@@ -1124,24 +1128,63 @@ void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)
     pipeline->pipelineHandle = NULL;
 }
 
-LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
+LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled)
 {
+    LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglFenceData* fenceData = NULL;
+
+    fenceData = (LvnOglFenceData*) lvn_calloc(sizeof(LvnOglFenceData));
+    if (!fenceData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for fence data in fence %p",
+                      fence);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    fence->fenceHandle = fenceData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (fenceData)
+    {
+        if (fenceData->fenceId)
+            oglBackends->glDeleteSync(fenceData->fenceId);
+        lvn_free(fenceData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyFence(LvnFence* fence)
 {
+    LVN_ASSERT(fence, "fence cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
+
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+
+    oglBackends->glDeleteSync(fenceData->fenceId);
+    lvn_free(fenceData);
+
+    fence->fenceHandle = NULL;
 }
 
 LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore)
 {
+    LVN_ASSERT(graphicsctx && semaphore, "graphicsctx and semaphore cannot be null");
+
     return Lvn_Result_Success;
 }
 
 void lvnImplOglDestroySemaphore(LvnSemaphore* semaphore)
 {
-
+    LVN_ASSERT(semaphore, "semaphore cannot be null");
 }
 
 LvnResult lvnImplOglsCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
@@ -1323,11 +1366,49 @@ LvnResult lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaph
 
 LvnResult lvnImplOglFenceWait(LvnFence* fence, uint64_t timeout)
 {
+    LVN_ASSERT(fence, "fence cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
+
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+
+    if (fenceData->fenceId)
+    {
+        GLenum result = oglBackends->glClientWaitSync(fenceData->fenceId, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
+
+        if (result == GL_TIMEOUT_EXPIRED)
+            return Lvn_Result_TimeOut;
+
+        oglBackends->glDeleteSync(fenceData->fenceId);
+        fenceData->fenceId = NULL;
+
+        if (result == GL_ALREADY_SIGNALED || result == GL_CONDITION_SATISFIED)
+            return Lvn_Result_Success;
+        else if (result == GL_WAIT_FAILED)
+            return Lvn_Result_Failure;
+        else
+            return Lvn_Result_Failure;
+    }
+
     return Lvn_Result_Success;
 }
 
 LvnResult lvnImplOglFenceReset(LvnFence* fence)
 {
+    LVN_ASSERT(fence, "fence cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) fence->graphicsctx->implData;
+
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+
+    if (fenceData->fenceId)
+    {
+        oglBackends->glDeleteSync(fenceData->fenceId);
+        fenceData->fenceId = NULL;
+        fenceData->pending = true;
+        return Lvn_Result_Success;
+    }
+
     return Lvn_Result_Success;
 }
 
@@ -1398,6 +1479,18 @@ void lvnImplOglCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCou
 
 LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
 {
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceHandle;
+
+    if (fenceData->pending)
+    {
+        fenceData->pending = false;
+        fenceData->fenceId = oglBackends->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
     return Lvn_Result_Success;
 }
 

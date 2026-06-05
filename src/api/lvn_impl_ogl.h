@@ -198,6 +198,15 @@
 #define GL_MAP_PERSISTENT_BIT 0x0040
 #define GL_MAP_COHERENT_BIT 0x0080
 #define GL_DYNAMIC_STORAGE_BIT 0x0100
+#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
+#define GL_UNSIGNALED 0x9118
+#define GL_SIGNALED 0x9119
+#define GL_ALREADY_SIGNALED 0x911A
+#define GL_TIMEOUT_EXPIRED 0x911B
+#define GL_CONDITION_SATISFIED 0x911C
+#define GL_WAIT_FAILED 0x911D
+#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFF
+#define GL_SYNC_FLUSH_COMMANDS_BIT 0x00000001
 
 typedef khronos_int8_t GLbyte;
 typedef khronos_uint8_t GLubyte;
@@ -219,6 +228,7 @@ typedef khronos_intptr_t GLintptr;
 typedef khronos_ssize_t GLsizeiptr;
 typedef khronos_int64_t GLint64;
 typedef khronos_uint64_t GLuint64;
+typedef struct __GLsync *GLsync;
 
 typedef void (GLAPIENTRY *GLDEBUGPROC)(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam);
 typedef const GLubyte* (GLAPIENTRY *PFNGLGETSTRINGPROC)(GLenum name);
@@ -243,6 +253,10 @@ typedef GLuint (GLAPIENTRY *PFNGLCREATESHADERPROC)(GLenum type);
 typedef void (GLAPIENTRY *PFNGLDELETESHADERPROC)(GLuint shader);
 typedef GLuint (GLAPIENTRY *PFNGLCREATEPROGRAMPROC)(void);
 typedef void (GLAPIENTRY *PFNGLDELETEPROGRAMPROC)(GLuint program);
+typedef GLsync (GLAPIENTRY *PFNGLFENCESYNCPROC)(GLenum condition, GLbitfield flags);
+typedef void (GLAPIENTRY *PFNGLDELETESYNCPROC)(GLsync sync);
+typedef GLenum (GLAPIENTRY *PFNGLCLIENTWAITSYNCPROC)(GLsync sync, GLbitfield flags, GLuint64 timeout);
+typedef void (GLAPIENTRY *PFNGLWAITSYNCPROC)(GLsync sync, GLbitfield flags, GLuint64 timeout);
 typedef GLenum (GLAPIENTRY *PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)(GLuint framebuffer, GLenum target);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC)(GLuint framebuffer, GLenum buf);
@@ -308,17 +322,17 @@ typedef struct LvnOglFramebufferData
 
 typedef struct LvnOglColorBlendAttachment
 {
-    GLenum srcRGB;
-    GLenum dstRGB;
-    GLenum srcAlpha;
-    GLenum dstAlpha;
-    GLenum modeRGB;
-    GLenum modeAlpha;
-    bool writeMaskR;
-    bool writeMaskG;
-    bool writeMaskB;
-    bool writeMaskA;
-    bool blendEnable;
+    GLenum    srcRGB;
+    GLenum    dstRGB;
+    GLenum    srcAlpha;
+    GLenum    dstAlpha;
+    GLenum    modeRGB;
+    GLenum    modeAlpha;
+    bool      writeMaskR;
+    bool      writeMaskG;
+    bool      writeMaskB;
+    bool      writeMaskA;
+    bool      blendEnable;
 } LvnOglColorBlendAttachment;
 
 typedef struct LvnOglPipelineData
@@ -327,31 +341,31 @@ typedef struct LvnOglPipelineData
 
     struct
     {
-        LvnPipelineInputAssembly inputAssembly;
-        LvnPipelineRasterizer rasterizer;
-        LvnPipelineMultiSampling multisampling;
-        LvnPipelineColorBlend colorBlend;
-        LvnPipelineDepthStencil depthStencil;
-        LvnOglColorBlendAttachment* pColorBlendAttachments;
-        uint32_t colorBlendAttachmentCount;
+        LvnPipelineInputAssembly       inputAssembly;
+        LvnPipelineRasterizer          rasterizer;
+        LvnPipelineMultiSampling       multisampling;
+        LvnPipelineColorBlend          colorBlend;
+        LvnPipelineDepthStencil        depthStencil;
+        LvnOglColorBlendAttachment*    pColorBlendAttachments;
+        uint32_t                       colorBlendAttachmentCount;
 
-        GLenum primitiveMode;
-        GLenum cullMode;
-        GLenum frontFace;
-        GLenum srcBlendFactor;
-        GLenum dstBlendFactor;
-        GLenum depthCompareOp;
-        GLenum stencilCompareOp;
-        GLenum stencilFailOp;
-        GLenum stencilPassOp;
-        GLenum stencilDepthFailOp;
+        GLenum                         primitiveMode;
+        GLenum                         cullMode;
+        GLenum                         frontFace;
+        GLenum                         srcBlendFactor;
+        GLenum                         dstBlendFactor;
+        GLenum                         depthCompareOp;
+        GLenum                         stencilCompareOp;
+        GLenum                         stencilFailOp;
+        GLenum                         stencilPassOp;
+        GLenum                         stencilDepthFailOp;
     } fixedFuncEnums;
 } LvnOglPipelineData;
 
 typedef struct LvnOglShaderData
 {
-    uint32_t shaderId;
-    LvnShaderStage stage;
+    uint32_t          shaderId;
+    LvnShaderStage    stage;
 } LvnOglShaderData;
 
 typedef struct LvnOglBufferData
@@ -359,6 +373,12 @@ typedef struct LvnOglBufferData
     uint32_t    bufferId;
     void*       bufferMap;
 } LvnOglBufferData;
+
+typedef struct LvnOglFenceData
+{
+    GLsync    fenceId;
+    bool      pending;
+} LvnOglFenceData;
 
 typedef struct LvnOpenglBackends
 {
@@ -397,6 +417,10 @@ typedef struct LvnOpenglBackends
     PFNGLDELETESHADERPROC                   glDeleteShader;
     PFNGLCREATEPROGRAMPROC                  glCreateProgram;
     PFNGLDELETEPROGRAMPROC                  glDeleteProgram;
+    PFNGLFENCESYNCPROC                      glFenceSync;
+    PFNGLDELETESYNCPROC                     glDeleteSync;
+    PFNGLCLIENTWAITSYNCPROC                 glClientWaitSync;
+    PFNGLWAITSYNCPROC                       glWaitSync;
     PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC    glCheckNamedFramebufferStatus;
     PFNGLNAMEDFRAMEBUFFERTEXTUREPROC        glNamedFramebufferTexture;
     PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC     glNamedFramebufferDrawBuffer;
@@ -444,7 +468,7 @@ LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShade
 void      lvnImplOglDestroyShader(LvnShader* shader);
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplOglDestroyPipeline(LvnPipeline* pipeline);
-LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence);
+LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
 void      lvnImplOglDestroyFence(LvnFence* fence);
 LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplOglDestroySemaphore(LvnSemaphore* semaphore);

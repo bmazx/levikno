@@ -124,7 +124,7 @@ struct LvnGraphicsContext
     void                        (*implDestroyShader)(LvnShader*);
     LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
     void                        (*implDestroyPipeline)(LvnPipeline*);
-    LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*);
+    LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*, bool);
     void                        (*implDestroyFence)(LvnFence*);
     LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
     void                        (*implDestroySemaphore)(LvnSemaphore*);

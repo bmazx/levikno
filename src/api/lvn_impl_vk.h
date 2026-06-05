@@ -19,7 +19,7 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
 void      lvnImplVkDestroyShader(LvnShader* shader);
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
-LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence);
+LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
 void      lvnImplVkDestroyFence(LvnFence* fence);
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);

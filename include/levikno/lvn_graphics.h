@@ -629,7 +629,7 @@ LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* gr
 LVN_API void                        lvnDestroyShader(LvnShader* shader);
 LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
 LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
-LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence);
+LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence, bool signaled);
 LVN_API void                        lvnDestroyFence(LvnFence* fence);
 LVN_API LvnResult                   lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore** semaphore);
 LVN_API void                        lvnDestroySemaphore(LvnSemaphore* semaphore);

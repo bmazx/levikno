@@ -103,6 +103,7 @@ typedef enum LvnResult
     Lvn_Result_Failure = -1,
     Lvn_Result_OutOfMemory = -2,
     Lvn_Result_OutOfDate = 1,
+    Lvn_Result_TimeOut = 2,
 } LvnResult;
 
 

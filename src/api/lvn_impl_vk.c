@@ -2723,14 +2723,14 @@ void lvnImplVkDestroyPipeline(LvnPipeline* pipeline)
     vkBackends->vkDestroyPipelineLayout(vkBackends->device, pipelineLayout, NULL);
 }
 
-LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence)
+LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled)
 {
     LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
     VkFenceCreateInfo fenceInfo = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+        .flags = (signaled) ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
     };
 
     VkFence vkFence;
@@ -3294,7 +3294,7 @@ LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout)
     VkFence vkFence = (VkFence) fence->fenceHandle;
     return (vkBackends->vkWaitForFences(vkBackends->device, 1, &vkFence, VK_TRUE, timeout) == VK_SUCCESS)
         ? Lvn_Result_Success
-        : Lvn_Result_Failure;
+        : Lvn_Result_TimeOut;
 }
 
 LvnResult lvnImplVkFenceReset(LvnFence* fence)

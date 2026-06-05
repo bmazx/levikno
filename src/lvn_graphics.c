@@ -366,7 +366,7 @@ void lvnDestroyPipeline(LvnPipeline* pipeline)
     lvn_free(pipeline);
 }
 
-LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence)
+LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence, bool signaled)
 {
     LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
 
@@ -381,7 +381,7 @@ LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence
     LvnFence* fencePtr = *fence;
     fencePtr->graphicsctx = graphicsctx;
 
-    LvnResult result = graphicsctx->implCreateFence(graphicsctx, *fence);
+    LvnResult result = graphicsctx->implCreateFence(graphicsctx, *fence, signaled);
     if (result != Lvn_Result_Success)
         lvn_free(*fence);
 

@@ -94,6 +94,16 @@ void resizeFramebuffers(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swa
     }
 }
 
+void resizeSemaphores(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, LvnSemaphore*** pSemaphores, uint32_t oldImageCount)
+{
+    uint32_t newImageCount = lvnSwapchainGetImageCount(swapchain);
+    for (uint32_t i = 0; i < oldImageCount; i++)
+        lvnDestroySemaphore((*pSemaphores)[i]);
+    *pSemaphores = realloc(*pSemaphores, newImageCount * sizeof(LvnSemaphore*));
+    for (uint32_t i = 0; i < newImageCount; i++)
+        lvnCreateSemaphore(graphicsctx, &(*pSemaphores)[i]);
+}
+
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     WindowData* winData = (WindowData*) glfwGetWindowUserPointer(window);
@@ -203,7 +213,7 @@ int main(int argc, char** argv)
     pd.nwh = &nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -302,8 +312,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vk.vert.glsl");
-    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vk.frag.glsl");
+    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
@@ -370,14 +380,13 @@ int main(int argc, char** argv)
     lvnAllocateCommandBuffers(graphicsctx, &cmdBuffAllocInfo, &cmdBuff);
 
     LvnFence* fence;
-    lvnCreateFence(graphicsctx, &fence);
+    lvnCreateFence(graphicsctx, &fence, true);
 
     LvnSemaphore* imageWaitSemaphore;
     lvnCreateSemaphore(graphicsctx, &imageWaitSemaphore);
 
-    // NOTE: hard coding to be set number of images temporarily for now
-    LvnSemaphore* renderFinishedSemaphores[12];
-    for (uint32_t i = 0; i < 12; i++)
+    LvnSemaphore** renderFinishedSemaphores = malloc(imageCount * sizeof(LvnSemaphore*));
+    for (uint32_t i = 0; i < imageCount; i++)
         lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphores[i]);
 
 
@@ -428,7 +437,6 @@ int main(int argc, char** argv)
     LvnTexture* texture;
     lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
 
-    /*
     LvnResult result;
     uint32_t imageIndex = 0;
 
@@ -446,6 +454,7 @@ int main(int argc, char** argv)
             lvnSwapchainResize(swapchain, width, height);
             extent = lvnSwapchainGetExtent(swapchain);
             resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            resizeSemaphores(graphicsctx, swapchain, &renderFinishedSemaphores, imageCount);
             imageCount = lvnSwapchainGetImageCount(swapchain);
             continue;
         }
@@ -524,14 +533,13 @@ int main(int argc, char** argv)
             lvnSwapchainResize(swapchain, width, height);
             extent = lvnSwapchainGetExtent(swapchain);
             resizeFramebuffers(graphicsctx, swapchain, renderPass, &swapchainFramebuffers, imageCount, extent.width, extent.height);
+            resizeSemaphores(graphicsctx, swapchain, &renderFinishedSemaphores, imageCount);
             imageCount = lvnSwapchainGetImageCount(swapchain);
             winData.framebufferResized = false;
         }
 
         glfwPollEvents();
     }
-
-    */
 
     lvnUnloadImage(&image);
 
@@ -541,8 +549,9 @@ int main(int argc, char** argv)
     lvnDestroyBuffer(indexBuffer);
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
-    for (uint32_t i = 0; i < 12; i++)
+    for (uint32_t i = 0; i < imageCount; i++)
         lvnDestroySemaphore(renderFinishedSemaphores[i]);
+    free(renderFinishedSemaphores);
     lvnDestroyPipeline(pipeline);
 
     for (uint32_t i = 0; i < imageCount; i++)

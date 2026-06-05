@@ -243,6 +243,14 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glCreateProgram");
     oglBackends->glDeleteProgram = (PFNGLDELETEPROGRAMPROC)
         eglLoader->eglGetProcAddress("glDeleteProgram");
+    oglBackends->glFenceSync = (PFNGLFENCESYNCPROC)
+        eglLoader->eglGetProcAddress("glFenceSync");
+    oglBackends->glDeleteSync = (PFNGLDELETESYNCPROC)
+        eglLoader->eglGetProcAddress("glDeleteSync");
+    oglBackends->glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)
+        eglLoader->eglGetProcAddress("glClientWaitSync");
+    oglBackends->glWaitSync = (PFNGLWAITSYNCPROC)
+        eglLoader->eglGetProcAddress("glWaitSync");
     oglBackends->glCheckNamedFramebufferStatus = (PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)
         eglLoader->eglGetProcAddress("glCheckNamedFramebufferStatus");
     oglBackends->glNamedFramebufferTexture = (PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)
