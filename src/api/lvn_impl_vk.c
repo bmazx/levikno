@@ -3163,25 +3163,39 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
+    LvnResult errResult = Lvn_Result_Failure;
+
     VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = vkBackends->commandPool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = allocInfo->count,
+        .commandPool = vkBackends->commandPool,
     };
 
     VkCommandBuffer* commandBuffers = lvn_calloc(allocInfo->count * sizeof(VkCommandBuffer));
+    if (!commandBuffers)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for command buffers array when allocating command buffers");
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
     if (vkBackends->vkAllocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, commandBuffers) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
     for (uint32_t i = 0; i < allocInfo->count; i++)
         pCommandBuffers[i]->commandbufferData = commandBuffers[i];
 
     lvn_free(commandBuffers);
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    lvn_free(commandBuffers);
+    return errResult;
 }
 
 void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
