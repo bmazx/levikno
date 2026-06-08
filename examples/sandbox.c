@@ -372,7 +372,6 @@ int main(int argc, char** argv)
     lvnUnloadFile(&fragfile);
 
     LvnCommandBufferAllocInfo cmdBuffAllocInfo = {
-        .level = Lvn_CommandBufferLevel_Primary,
         .count = 1,
     };
 

@@ -238,12 +238,6 @@ typedef enum LvnPresentMode
     Lvn_PresentMode_Immediate,
 } LvnPresentMode;
 
-typedef enum LvnCommandBufferLevel
-{
-    Lvn_CommandBufferLevel_Primary,
-    Lvn_CommandBufferLevel_Secondary,
-} LvnCommandBufferLevel;
-
 typedef enum LvnBufferTypeFlagBits
 {
     Lvn_BufferTypeFlag_Unknown = 0x00000000,
@@ -524,7 +518,6 @@ typedef struct LvnTextureCreateInfo
 
 typedef struct LvnCommandBufferAllocInfo
 {
-    LvnCommandBufferLevel    level;
     uint32_t                 count;
 } LvnCommandBufferAllocInfo;
 

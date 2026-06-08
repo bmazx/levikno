@@ -57,7 +57,6 @@ static VkStencilOp                 lvn_getVkStencilOpEnum(LvnStencilOperation st
 static VkLogicOp                   lvn_getVkLogicOpEnum(LvnLogicOperation logicOp);
 static VkAttachmentLoadOp          lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp loadOp);
 static VkAttachmentStoreOp         lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp storeOp);
-static VkCommandBufferLevel        lvn_getVkCommandBufferLevelEnum(LvnCommandBufferLevel level);
 static VkFormat                    lvn_getVkFormatEnum(LvnFormat format);
 static VkPresentModeKHR            lvn_getVkPresentModeEnum(LvnPresentMode presentMode);
 static VkFilter                    lvn_getVkTextureFilterEnum(LvnTextureFilter filter);
@@ -753,18 +752,6 @@ static VkImageLayout lvn_getVkImageLayoutEnumUsage(LvnAttachmentUsage usage)
 
     LVN_ASSERT(false, "invalid attachment usage (VkImageLayout) enum");
     return VK_IMAGE_LAYOUT_UNDEFINED;
-}
-
-static VkCommandBufferLevel lvn_getVkCommandBufferLevelEnum(LvnCommandBufferLevel level)
-{
-    switch (level)
-    {
-        case Lvn_CommandBufferLevel_Primary: { return VK_COMMAND_BUFFER_LEVEL_PRIMARY; }
-        case Lvn_CommandBufferLevel_Secondary: { return VK_COMMAND_BUFFER_LEVEL_SECONDARY; }
-    }
-
-    LVN_ASSERT(false, "invalid command buffer level enum");
-    return VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 }
 
 static VkFormat lvn_getVkFormatEnum(LvnFormat format)
@@ -3179,7 +3166,7 @@ LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx,
     VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = vkBackends->commandPool,
-        .level = lvn_getVkCommandBufferLevelEnum(allocInfo->level),
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = allocInfo->count,
     };
 
