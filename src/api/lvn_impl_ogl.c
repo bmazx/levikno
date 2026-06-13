@@ -518,13 +518,14 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     graphicsctx->implDestroyFence = lvnImplOglDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplOglCreateSemaphore;
     graphicsctx->implDestroySemaphore = lvnImplOglDestroySemaphore;
-    graphicsctx->implCreateBuffer = lvnImplOglsCreateBuffer;
-    graphicsctx->implDestroyBuffer = lvnImplOglsDestroyBuffer;
-    graphicsctx->implCreateSampler = lvnImplOglsCreateSampler;
-    graphicsctx->implDestroySampler = lvnImplOglsDestroySampler;
-    graphicsctx->implCreateTexture = lvnImplOglsCreateTexture;
-    graphicsctx->implDestroyTexture = lvnImplOglsDestroyTexture;
-    graphicsctx->implAllocateCommandBuffers = lvnImplOglAllocateCommandBuffers;
+    graphicsctx->implCreateBuffer = lvnImplOglCreateBuffer;
+    graphicsctx->implDestroyBuffer = lvnImplOglDestroyBuffer;
+    graphicsctx->implCreateSampler = lvnImplOglCreateSampler;
+    graphicsctx->implDestroySampler = lvnImplOglDestroySampler;
+    graphicsctx->implCreateTexture = lvnImplOglCreateTexture;
+    graphicsctx->implDestroyTexture = lvnImplOglDestroyTexture;
+    graphicsctx->implCreateCommandBuffer = lvnImplOglCreateCommandBuffer;
+    graphicsctx->implDestroyCommandBuffer = lvnImplOglDestroyCommandBuffer;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplOglSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplOglSurfaceGetSupportedPresentModes;
     graphicsctx->implSwapchainResize = lvnImplOglSwapchainResize;
@@ -1203,7 +1204,7 @@ void lvnImplOglDestroySemaphore(LvnSemaphore* semaphore)
     LVN_ASSERT(semaphore, "semaphore cannot be null");
 }
 
-LvnResult lvnImplOglsCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
+LvnResult lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
 
@@ -1256,7 +1257,7 @@ fail_cleanup:
     return errResult;
 }
 
-void lvnImplOglsDestroyBuffer(LvnBuffer* buffer)
+void lvnImplOglDestroyBuffer(LvnBuffer* buffer)
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
 
@@ -1273,7 +1274,7 @@ void lvnImplOglsDestroyBuffer(LvnBuffer* buffer)
     buffer->bufferData = NULL;
 }
 
-LvnResult lvnImplOglsCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
+LvnResult lvnImplOglCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && sampler && createInfo, "graphicsctx, sampler, and createInfo cannot be null");
 
@@ -1313,7 +1314,7 @@ fail_cleanup:
     return errResult;
 }
 
-void lvnImplOglsDestroySampler(LvnSampler* sampler)
+void lvnImplOglDestroySampler(LvnSampler* sampler)
 {
     LVN_ASSERT(sampler, "sampler cannot be null");
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) sampler->graphicsctx->implData;
@@ -1323,7 +1324,7 @@ void lvnImplOglsDestroySampler(LvnSampler* sampler)
     sampler->samplerData = NULL;
 }
 
-LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
+LvnResult lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
@@ -1378,7 +1379,7 @@ fail_cleanup:
     return errResult;
 }
 
-void lvnImplOglsDestroyTexture(LvnTexture* texture)
+void lvnImplOglDestroyTexture(LvnTexture* texture)
 {
     LVN_ASSERT(texture, "texture cannot be null");
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) texture->graphicsctx->implData;
@@ -1388,9 +1389,14 @@ void lvnImplOglsDestroyTexture(LvnTexture* texture)
     texture->textureData = NULL;
 }
 
-LvnResult lvnImplOglAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
+LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer)
 {
     return Lvn_Result_Success;
+}
+
+void lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+
 }
 
 void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)

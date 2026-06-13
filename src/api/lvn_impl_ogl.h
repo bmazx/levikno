@@ -486,13 +486,14 @@ LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence*
 void      lvnImplOglDestroyFence(LvnFence* fence);
 LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplOglDestroySemaphore(LvnSemaphore* semaphore);
-LvnResult lvnImplOglsCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
-void      lvnImplOglsDestroyBuffer(LvnBuffer* buffer);
-LvnResult lvnImplOglsCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
-void      lvnImplOglsDestroySampler(LvnSampler* sampler);
-LvnResult lvnImplOglsCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
-void      lvnImplOglsDestroyTexture(LvnTexture* texture);
-LvnResult lvnImplOglAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
+LvnResult lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
+void      lvnImplOglDestroyBuffer(LvnBuffer* buffer);
+LvnResult lvnImplOglCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
+void      lvnImplOglDestroySampler(LvnSampler* sampler);
+LvnResult lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
+void      lvnImplOglDestroyTexture(LvnTexture* texture);
+LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
+void      lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 void      lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 void      lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);

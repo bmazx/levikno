@@ -1148,6 +1148,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 {
     LVN_ASSERT(graphicsctx && createInfo, "graphicsctx and createInfo cannot be nullptr");
 
+    LvnResult errResult = Lvn_Result_Failure;
     const char** extensionNames = NULL;
     VkExtensionProperties* extensionProps = NULL;
     VkLayerProperties* availableLayers = NULL;
@@ -1809,6 +1810,19 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         goto fail_cleanup;
     }
 
+    LvnMemoryArenaCreateInfo arenaCreateInfo = {
+        .size = 16e+3, // 16 KB
+        .align = LVN_DEFAULT_ALIGN,
+    };
+
+    LvnResult result = lvn_memArenaCreate(&vkBackends->frameArena, &arenaCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create frame arena");
+        errResult = result;
+        goto fail_cleanup;
+    }
+
     // set vulkan implementation function pointers
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
     graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
@@ -1826,13 +1840,14 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyFence = lvnImplVkDestroyFence;
     graphicsctx->implCreateSemaphore = lvnImplVkCreateSemaphore;
     graphicsctx->implDestroySemaphore = lvnImplVkDestroySemaphore;
-    graphicsctx->implCreateBuffer = lvnImplVksCreateBuffer;
-    graphicsctx->implDestroyBuffer = lvnImplVksDestroyBuffer;
-    graphicsctx->implCreateSampler = lvnImplVksCreateSampler;
-    graphicsctx->implDestroySampler = lvnImplVksDestroySampler;
-    graphicsctx->implCreateTexture = lvnImplVksCreateTexture;
-    graphicsctx->implDestroyTexture = lvnImplVksDestroyTexture;
-    graphicsctx->implAllocateCommandBuffers = lvnImplVkAllocateCommandBuffers;
+    graphicsctx->implCreateBuffer = lvnImplVkCreateBuffer;
+    graphicsctx->implDestroyBuffer = lvnImplVkDestroyBuffer;
+    graphicsctx->implCreateSampler = lvnImplVkCreateSampler;
+    graphicsctx->implDestroySampler = lvnImplVkDestroySampler;
+    graphicsctx->implCreateTexture = lvnImplVkCreateTexture;
+    graphicsctx->implDestroyTexture = lvnImplVkDestroyTexture;
+    graphicsctx->implCreateCommandBuffer = lvnImplVkCreateCommandBuffer;
+    graphicsctx->implDestroyCommandBuffer = lvnImplVkDestroyCommandBuffer;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplVkSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplVkSurfaceGetSupportedPresentModes;
     graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
@@ -1863,14 +1878,12 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vmaDestroyAllocator(vkBackends->vmaAllocator);
-    vkBackends->vkDestroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     vkBackends->vkDestroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
     lvnImplVkTerminate(graphicsctx);
-    return Lvn_Result_Failure;
+    return errResult;
 }
 
 void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
@@ -1880,6 +1893,8 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    lvn_memArenaDestroy(&vkBackends->frameArena);
 
     if (vkBackends->vmaAllocator)
         vmaDestroyAllocator(vkBackends->vmaAllocator);
@@ -2843,7 +2858,7 @@ void lvnImplVkDestroySemaphore(LvnSemaphore* semaphore)
     vkBackends->vkDestroySemaphore(vkBackends->device, vkSemaphore, NULL);
 }
 
-LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
+LvnResult lvnImplVkCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
 
@@ -2949,7 +2964,7 @@ fail_cleanup:
     return errResult;
 }
 
-void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
+void lvnImplVkDestroyBuffer(LvnBuffer* buffer)
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
 
@@ -2970,7 +2985,7 @@ void lvnImplVksDestroyBuffer(LvnBuffer* buffer)
     buffer->bufferData = NULL;
 }
 
-LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
+LvnResult lvnImplVkCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && sampler && createInfo, "graphicsctx, sampler, and createInfo cannot be null");
 
@@ -3025,7 +3040,7 @@ LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSamp
     return Lvn_Result_Success;
 }
 
-void lvnImplVksDestroySampler(LvnSampler* sampler)
+void lvnImplVkDestroySampler(LvnSampler* sampler)
 {
     LVN_ASSERT(sampler, "sampler cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) sampler->graphicsctx->implData;
@@ -3034,7 +3049,7 @@ void lvnImplVksDestroySampler(LvnSampler* sampler)
     vkBackends->vkDestroySampler(vkBackends->device, textureSampler, NULL);
 }
 
-LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
+LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
@@ -3139,7 +3154,7 @@ fail_cleanup:
     return errResult;
 }
 
-void lvnImplVksDestroyTexture(LvnTexture* texture)
+void lvnImplVkDestroyTexture(LvnTexture* texture)
 {
     LVN_ASSERT(texture, "texture cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) texture->graphicsctx->implData;
@@ -3157,45 +3172,42 @@ void lvnImplVksDestroyTexture(LvnTexture* texture)
     texture->textureData = NULL;
 }
 
-LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
+LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer)
 {
-    LVN_ASSERT(graphicsctx && allocInfo && pCommandBuffers, "graphicsctx, allocInfo, and pCommandBuffers cannot be null");
+    LVN_ASSERT(graphicsctx && commandBuffer, "graphicsctx and commandBuffer cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-
-    LvnResult errResult = Lvn_Result_Failure;
 
     VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = allocInfo->count,
+        .commandBufferCount = 1,
         .commandPool = vkBackends->commandPool,
     };
 
-    VkCommandBuffer* commandBuffers = lvn_calloc(allocInfo->count * sizeof(VkCommandBuffer));
-    if (!commandBuffers)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for command buffers array when allocating command buffers");
-        errResult = Lvn_Result_OutOfMemory;
-        goto fail_cleanup;
-    }
-
-    if (vkBackends->vkAllocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, commandBuffers) != VK_SUCCESS)
+    VkCommandBuffer vkCommandBuffer;
+    if (vkBackends->vkAllocateCommandBuffers(vkBackends->device, &cmdBufferAllocInfo, &vkCommandBuffer) != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate command buffer");
-        goto fail_cleanup;
+        return Lvn_Result_Failure;
     }
 
-    for (uint32_t i = 0; i < allocInfo->count; i++)
-        pCommandBuffers[i]->commandbufferData = commandBuffers[i];
-
-    lvn_free(commandBuffers);
+    commandBuffer->commandbufferData = vkCommandBuffer;
 
     return Lvn_Result_Success;
+}
 
-fail_cleanup:
-    lvn_free(commandBuffers);
-    return errResult;
+void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    VkCommandBuffer vkCommandBuffer = (VkCommandBuffer) commandBuffer->commandbufferData;
+    vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &vkCommandBuffer);
+
+    commandBuffer->commandbufferData = NULL;
 }
 
 void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
@@ -3465,13 +3477,15 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
     VkRenderPass renderPass = (VkRenderPass) beginInfo->renderPass->renderpassData;
     VkFramebuffer framebuffer = (VkFramebuffer) beginInfo->framebuffer->framebufferData;
 
+    LvnArenaMark mark = lvn_memArenaMark(&commandBuffer->frameArena);
+
     VkRect2D renderArea = {
         .offset = { beginInfo->renderArea.offset.x, beginInfo->renderArea.offset.y },
         .extent = { beginInfo->renderArea.extent.width, beginInfo->renderArea.extent.height },
     };
 
-    VkClearValue* clearColors =
-        lvn_memArenaAlloc(graphicsctx->frameArena, beginInfo->clearValueCount * sizeof(VkClearValue));
+    VkClearValue* clearColors = (VkClearValue*)
+        lvn_memArenaAlloc(&commandBuffer->frameArena, beginInfo->clearValueCount * sizeof(VkClearValue));
 
     for (uint32_t i = 0; i < beginInfo->clearValueCount; i++)
         memcpy(&clearColors[i], &beginInfo->pClearValues[i], sizeof(VkClearValue));
@@ -3487,7 +3501,7 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
 
     vkBackends->vkCmdBeginRenderPass(cmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    lvn_memArenaReset(graphicsctx->frameArena);
+    lvn_memArenaMarkRevert(&commandBuffer->frameArena, &mark);
 }
 
 void lvnImplVkCmdEndRenderPass(LvnCommandBuffer* commandBuffer)
@@ -3515,11 +3529,16 @@ void lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firs
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
 
-    VkBuffer* buffers = lvn_memArenaAlloc(graphicsctx->frameArena, bindingCount * sizeof(VkBuffer));
+    LvnArenaMark mark = lvn_memArenaMark(&commandBuffer->frameArena);
+
+    VkBuffer* buffers = (VkBuffer*)
+        lvn_memArenaAlloc(&commandBuffer->frameArena, bindingCount * sizeof(VkBuffer));
     for (uint32_t i = 0; i < bindingCount; i++)
         buffers[i] = ((LvnVkBufferData*)pBuffers[i]->bufferData)->buffer;
 
     vkBackends->vkCmdBindVertexBuffers(cmdBuff, firstBinding, bindingCount, buffers, pOffsets);
+
+    lvn_memArenaMarkRevert(&commandBuffer->frameArena, &mark);
 }
 
 void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset)
@@ -3585,9 +3604,11 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
 {
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
 
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
     VkFence vkFence = fence ? (VkFence)fence->fenceData : VK_NULL_HANDLE;
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    LvnArenaMark mark = lvn_memArenaMark(&vkBackends->frameArena);
 
     // get count of all semaphores and command buffers
     uint32_t waitSemaphoreCount = 0, signalSemaphoreCount = 0, commandBufferCount = 0;
@@ -3599,13 +3620,17 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     }
 
     // arrays to store semaphores and command buffers for submit infos
-    VkSemaphore* waitSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena, waitSemaphoreCount * sizeof(VkSemaphore));
-    VkSemaphore* signalSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena, signalSemaphoreCount * sizeof(VkSemaphore));
-    VkCommandBuffer* commandBuffers = lvn_memArenaAlloc(graphicsctx->frameArena, commandBufferCount * sizeof(VkCommandBuffer));
-    uint32_t waitSemaphoreOffset = 0, signalSemaphoreOffset = 0, commandBufferOffset = 0;
-
-    VkSubmitInfo* submitInfos = lvn_memArenaAlloc(graphicsctx->frameArena, submitCount * sizeof(VkSubmitInfo));
+    VkSemaphore* waitSemaphores = (VkSemaphore*)
+        lvn_memArenaAlloc(&vkBackends->frameArena, waitSemaphoreCount * sizeof(VkSemaphore));
+    VkSemaphore* signalSemaphores = (VkSemaphore*)
+        lvn_memArenaAlloc(&vkBackends->frameArena, signalSemaphoreCount * sizeof(VkSemaphore));
+    VkCommandBuffer* commandBuffers = (VkCommandBuffer*)
+        lvn_memArenaAlloc(&vkBackends->frameArena, commandBufferCount * sizeof(VkCommandBuffer));
+    VkSubmitInfo* submitInfos = (VkSubmitInfo*)
+        lvn_memArenaAlloc(&vkBackends->frameArena, submitCount * sizeof(VkSubmitInfo));
     memset(submitInfos, 0, submitCount * sizeof(VkSubmitInfo));
+
+    uint32_t waitSemaphoreOffset = 0, signalSemaphoreOffset = 0, commandBufferOffset = 0;
 
     for (uint32_t i = 0; i < submitCount; i++)
     {
@@ -3642,7 +3667,7 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
         return Lvn_Result_Failure;
     }
 
-    lvn_memArenaReset(graphicsctx->frameArena);
+    lvn_memArenaMarkRevert(&vkBackends->frameArena, &mark);
 
     return Lvn_Result_Success;
 }
@@ -3651,14 +3676,16 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
 {
     LVN_ASSERT(graphicsctx && presentInfo, "graphicsctx and presentInfo cannot be null");
 
-    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
-    VkSemaphore* waitSemaphores = lvn_memArenaAlloc(graphicsctx->frameArena,
+    LvnArenaMark mark = lvn_memArenaMark(&vkBackends->frameArena);
+
+    VkSemaphore* waitSemaphores = lvn_memArenaAlloc(&vkBackends->frameArena,
                                                     presentInfo->waitSemaphoreCount * sizeof(VkSemaphore));
     for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
         waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreData;
 
-    VkSwapchainKHR* swapchains = lvn_memArenaAlloc(graphicsctx->frameArena,
+    VkSwapchainKHR* swapchains = lvn_memArenaAlloc(&vkBackends->frameArena,
                                                    presentInfo->swapchainCount * sizeof(VkSwapchainKHR));
     for (uint32_t i = 0; i < presentInfo->swapchainCount; i++)
         swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSwapchains[i]->swapchainData)->swapchain;
@@ -3684,7 +3711,7 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
         return Lvn_Result_Failure;
     }
 
-    lvn_memArenaReset(graphicsctx->frameArena);
+    lvn_memArenaMarkRevert(&vkBackends->frameArena, &mark);
 
     return Lvn_Result_Success;
 }

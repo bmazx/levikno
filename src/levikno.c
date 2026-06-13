@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdarg.h>
 
+
 // ansi color terminal logging support on windows
 #ifdef LVN_PLATFORM_WINDOWS
 #include <windows.h>
@@ -982,109 +983,208 @@ bool lvn_ptrInBlock(uint8_t* block, size_t size, void* ptr)
     return (uint8_t*)ptr >= start && (uint8_t*)ptr < end;
 }
 
-LvnMemoryPool* lvn_memPoolCreate(size_t count, size_t stride, size_t align)
+LvnResult lvn_memBlockCreate(LvnMemoryBlock** memBlock, const LvnMemoryBlockCreateInfo* createInfo)
 {
-    LVN_ASSERT(stride == 0 || count <= SIZE_MAX / stride, "overflow on creating memory size (count * stride)");
-    LVN_ASSERT(align != 0 && (align & (align - 1)) == 0, "align cannot be zero or a non power of two");
-    LVN_ASSERT(align >= LVN_ALIGNOF(void*), "align must be >= pointer alignment");
+    LVN_ASSERT(memBlock && createInfo, "memBlock and createInfo cannot be null");
+    LVN_ASSERT(createInfo->align != 0 && (createInfo->align & (createInfo->align - 1)) == 0, "align cannot be zero or a non power of two");
+    LVN_ASSERT(createInfo->align >= LVN_ALIGNOF(void*), "align must be >= default alignment");
+    LVN_ASSERT(createInfo->size <= SIZE_MAX - createInfo->align - sizeof(LvnMemoryBlock), "size overflow, size + align + sizeof(LvnMemoryBlock) must be <= SIZE_MAX");
 
-    LvnMemoryPool* memPool = (LvnMemoryPool*) lvn_calloc(sizeof(LvnMemoryPool));
-    if (!memPool) { return NULL; }
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlockPtr = NULL;
 
-    // set min stride
-    const size_t minStride = sizeof(void*);
-    stride = stride < minStride ? minStride : stride;
-
-    // align stride
-    size_t strideAligned = LVN_ALIGN_UP(stride, align);
-
-    LVN_ASSERT(strideAligned % align == 0, "stride must be multiple of align");
-
-    size_t memSize = count * strideAligned;
-    memPool->memBlock.block = lvn_calloc(memSize + align);
-    if (!memPool->memBlock.block)
+    *memBlock = (LvnMemoryBlock*) lvn_calloc(sizeof(LvnMemoryBlock) + createInfo->size + createInfo->align);
+    if (!*memBlock)
     {
-        lvn_free(memPool);
-        return NULL;
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
+    memset(*memBlock, 0, sizeof(LvnMemoryBlock) + createInfo->size + createInfo->align);
+    memBlockPtr = *memBlock;
+
+    memBlockPtr->allocation = (uint8_t*) memBlockPtr + sizeof(LvnMemoryBlock);
+    memBlockPtr->allocation = (uint8_t*) LVN_ALIGN_UP((uintptr_t)memBlockPtr->allocation, createInfo->align);
+
+    memBlockPtr->size = createInfo->size;
+    memBlockPtr->currIndex = memBlockPtr->allocation;
+    memBlockPtr->next = createInfo->next;
+
 #ifdef LVN_CONFIG_DEBUG
-    memset(memPool->memBlock.block, LVN_DEBUG_ALLOC_VALUE, memSize + align);
-    memPool->d_AllocCount = 0;
+    memset(memBlockPtr->allocation, LVN_DEBUG_FREE_VALUE, createInfo->size + createInfo->align);
 #endif
 
-    memPool->memBlock.blockAligned = (uint8_t*)LVN_ALIGN_UP((uintptr_t)memPool->memBlock.block, align);
-    memPool->memBlock.size = memSize + align;
+    return Lvn_Result_Success;
 
-    memPool->currIndex = 0;
-    memPool->capacity = count;
-    memPool->stride = stride;
-    memPool->align = align;
-    memPool->strideAligned = strideAligned;
-    memPool->freeList = NULL;
-    memPool->next = NULL;
-
-    return memPool;
-}
-
-LvnMemoryPool* lvn_memPoolPush(LvnMemoryPool* headPool, size_t count)
-{
-    LVN_ASSERT(headPool, "headPool cannot be null");
-
-    LvnMemoryPool* memPool = lvn_memPoolCreate(count, headPool->stride, headPool->align);
-    if (!memPool) { return NULL; }
-
-    while (headPool->next)
-        headPool = headPool->next;
-
-    headPool->next = memPool;
-    return memPool;
-}
-
-void lvn_memPoolDestroy(LvnMemoryPool* headPool)
-{
-    while (headPool)
+fail_cleanup:
+    if (*memBlock)
     {
-        LvnMemoryPool* temp = headPool;
-        headPool = headPool->next;
-        lvn_free(temp->memBlock.block);
+        lvn_free(*memBlock);
+        *memBlock = NULL;
+    }
+    return errResult;
+}
+
+void lvn_memBlockDestroy(LvnMemoryBlock* memBlock)
+{
+    if (!memBlock) { return; }
+    lvn_free(memBlock);
+}
+
+void lvn_memBlockDestroyChain(LvnMemoryBlock* memBlock)
+{
+    while (memBlock)
+    {
+        LvnMemoryBlock* temp = memBlock;
+        memBlock = memBlock->next;
         lvn_free(temp);
     }
 }
 
+size_t lvn_memBlockGetSize(LvnMemoryBlock* memBlock)
+{
+    LVN_ASSERT(memBlock, "memBlock cannot be null");
+    return memBlock->size;
+}
+
+size_t lvn_memBlockGetOffset(LvnMemoryBlock* memBlock)
+{
+    LVN_ASSERT(memBlock, "memBlock cannot be null");
+    return (uintptr_t)(memBlock->currIndex - memBlock->allocation);
+}
+
+LvnResult lvn_memPoolCreate(LvnMemoryPool* memPool, const LvnMemoryPoolCreateInfo* createInfo)
+{
+    LVN_ASSERT(memPool && createInfo, "memPool and createInfo cannot be null");
+    LVN_ASSERT(createInfo->stride == 0 || createInfo->count <= SIZE_MAX / createInfo->stride, "overflow on creating memory size (count * stride)");
+    LVN_ASSERT(createInfo->align != 0 && (createInfo->align & (createInfo->align - 1)) == 0, "align cannot be zero or a non power of two");
+    LVN_ASSERT(createInfo->align >= LVN_ALIGNOF(void*), "align must be >= pointer alignment");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
+
+    // set min stride
+    const size_t minStride = sizeof(void*);
+    size_t stride = createInfo->stride < minStride ? minStride : createInfo->stride;
+
+    // align stride
+    size_t strideAligned = LVN_ALIGN_UP(stride, createInfo->align);
+
+    LVN_ASSERT(strideAligned % createInfo->align == 0, "stride must be multiple of align");
+    LVN_ASSERT(createInfo->count <= SIZE_MAX / strideAligned, "memory size overflow, count * strideAligned must be <= SIZE_MAX");
+
+    // create memory block
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = createInfo->count * strideAligned,
+        .align = createInfo->align,
+        .next = NULL,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    // fill memory pool info
+    *memPool = (LvnMemoryPool){
+        .blocks = memBlock,
+        .freeList = NULL,
+        .stride = createInfo->stride,
+        .strideAligned = strideAligned,
+        .align = createInfo->align,
+        .allocCount = 0,
+    };
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
+}
+
+void lvn_memPoolDestroy(LvnMemoryPool* memPool)
+{
+    if (!memPool) { return; }
+
+    lvn_memBlockDestroyChain(memPool->blocks);
+
+    memPool->blocks = NULL;
+    memPool->freeList = NULL;
+    memPool->stride = 0;
+    memPool->strideAligned = 0;
+    memPool->align = 0;
+    memPool->allocCount = 0;
+}
+
+LvnResult lvn_memPoolPushBlock(LvnMemoryPool* memPool, size_t count)
+{
+    LVN_ASSERT(memPool, "memPool cannot be null");
+    LVN_ASSERT(count <= SIZE_MAX / memPool->strideAligned, "memory size overflow, count * strideAligned must be <= SIZE_MAX");
+
+    if (!count)
+        return Lvn_Result_Success;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
+
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = count * memPool->strideAligned,
+        .align = memPool->align,
+        .next = memPool->blocks,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    memPool->blocks = memBlock;
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
+}
+
 void* lvn_memPoolAlloc(LvnMemoryPool* memPool)
 {
+    LVN_ASSERT(memPool, "memPool cannot be null");
+
     void* ptr = NULL;
 
-    while (memPool)
+    // check free list
+    if (memPool->freeList)
     {
-        // check free list
-        if (memPool->freeList)
+        ptr = memPool->freeList;
+        memPool->freeList = memPool->freeList->next;
+        goto alloc_success;
+    }
+
+    // get next memory block index in pool if available
+    for (LvnMemoryBlock* currBlock = memPool->blocks; currBlock; currBlock = currBlock->next)
+    {
+        if ((currBlock->currIndex + memPool->strideAligned) <= (currBlock->allocation + currBlock->size))
         {
-            ptr = memPool->freeList;
-            memPool->freeList = memPool->freeList->next;
+            ptr = currBlock->currIndex;
+            currBlock->currIndex += memPool->strideAligned;
             goto alloc_success;
         }
+    }
 
-        // get pool next memory block index
-        if (memPool->currIndex < memPool->capacity)
-        {
-            ptr = &memPool->memBlock.blockAligned[memPool->currIndex++ * memPool->strideAligned];
-            goto alloc_success;
-        }
+    // create new memory block if no space left
+    if (lvn_memPoolPushBlock(memPool, lvn_memPoolGetTotalCapacity(memPool)) != Lvn_Result_Success)
+        return NULL;
 
-        // create next pool if possible
-        if (!memPool->next)
-        {
-            LVN_ASSERT(LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER != 0, "memory pool multiplier cannot be zero");
-            memPool->next = lvn_memPoolCreate(memPool->capacity * LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER,
-                                              memPool->stride,
-                                              memPool->align);
-            if (!memPool->next) { return NULL; }
-        }
-
-        // pool is full, alloc in next pool
-        memPool = memPool->next;
+    if ((memPool->blocks->currIndex + memPool->strideAligned) <= (memPool->blocks->allocation + memPool->blocks->size))
+    {
+        ptr = memPool->blocks->currIndex;
+        memPool->blocks->currIndex += memPool->strideAligned;
+        goto alloc_success;
     }
 
     // unable to find next block index
@@ -1092,36 +1192,43 @@ void* lvn_memPoolAlloc(LvnMemoryPool* memPool)
 
 alloc_success:
 #ifdef LVN_CONFIG_DEBUG
-    memPool->d_AllocCount++;
+    memset(ptr, LVN_DEBUG_ALLOC_VALUE, memPool->strideAligned);
 #endif
+    memPool->allocCount++;
     return ptr;
 }
 
 void lvn_memPoolFree(LvnMemoryPool* memPool, void* ptr)
 {
-    LVN_ASSERT(memPool && ptr, "memPool and ptr cannot be null");
+    LVN_ASSERT(memPool, "memPool cannot be null");
 
-    // find which pool ptr was allocated from
-    // NOTE: only checks if ptr is within capacity * strideAligned of the block rather than the full block size,
-    //       this is to ensure the ptr is a valid ptr that came from pool alloc
-    while (memPool && !lvn_ptrInBlock(memPool->memBlock.blockAligned, memPool->capacity * memPool->strideAligned, ptr))
-        memPool = memPool->next;
-    LVN_ASSERT(memPool, "ptr not found within pool chain memory boundaries");
-
-    // check alignment of pointer
-    size_t offset = (uint8_t*)ptr - (uint8_t*)memPool->memBlock.blockAligned;
-    LVN_ASSERT(offset % memPool->strideAligned == 0, "invalid pool pointer, pointer not aligned to pool stride align");
+    if (!ptr) { return; }
 
 #ifdef LVN_CONFIG_DEBUG
+    // find block the ptr was allocated from
+    LvnMemoryBlock* currBlock = NULL;
+    for (currBlock = memPool->blocks; currBlock; currBlock = currBlock->next)
+    {
+        if (lvn_ptrInBlock(currBlock->allocation, currBlock->size, ptr))
+            break;
+    }
+    LVN_ASSERT(currBlock, "ptr not found within memory pool blocks");
+
+    // check alignment of pointer
+    size_t offset = (uint8_t*)ptr - (uint8_t*)currBlock->allocation;
+    LVN_ASSERT(offset % memPool->strideAligned == 0, "invalid pool pointer, pointer not aligned to pool stride align");
+
     // checks if ptr was already freed (double free)
     for (LvnFreeNode* node = memPool->freeList; node; node = node->next)
     {
         LVN_ASSERT(node != ptr, "double free in memory pool");
     }
-    // check if ptr is trying to be freed after pool reset/create
-    LVN_ASSERT(memPool->d_AllocCount > 0, "cannot free ptr to pool, pool was probably reset or just created");
-    memPool->d_AllocCount--;
+    memset(ptr, LVN_DEBUG_FREE_VALUE, memPool->strideAligned);
 #endif
+
+    // check if ptr is trying to be freed after pool reset/create
+    LVN_ASSERT(memPool->allocCount > 0, "cannot free ptr to pool, pool was probably reset or just created");
+    memPool->allocCount--;
 
     // free ptr, add to free list
     LvnFreeNode* node = (LvnFreeNode*) ptr;
@@ -1129,148 +1236,161 @@ void lvn_memPoolFree(LvnMemoryPool* memPool, void* ptr)
     memPool->freeList = node;
 }
 
-void lvn_memPoolReset(LvnMemoryPool* headPool)
+void lvn_memPoolReset(LvnMemoryPool* memPool)
 {
-    LVN_ASSERT(headPool, "headPool cannot be null");
+    LVN_ASSERT(memPool, "memPool cannot be null");
 
-    for (LvnMemoryPool* memPool = headPool; memPool; memPool = memPool->next)
+    for (LvnMemoryBlock* currBlock = memPool->blocks; currBlock; currBlock = currBlock->next)
     {
-        memPool->currIndex = 0;
-        memPool->freeList = NULL;
+        currBlock->currIndex = currBlock->allocation;
 #ifdef LVN_CONFIG_DEBUG
-        memset(memPool->memBlock.blockAligned, LVN_DEBUG_FREE_VALUE, memPool->capacity * memPool->strideAligned);
-        memPool->d_AllocCount = 0;
+        memset(currBlock->allocation, LVN_DEBUG_FREE_VALUE, currBlock->size);
 #endif
     }
+
+    memPool->freeList = NULL;
+    memPool->allocCount = 0;
 }
 
-LvnMemoryPool* lvn_memPoolRebuild(LvnMemoryPool* headPool)
+LvnResult lvn_memPoolResetMergeBlocks(LvnMemoryPool* memPool)
 {
-    LVN_ASSERT(headPool, "headPool cannot be null");
+    LVN_ASSERT(memPool, "memPool cannot be null");
 
-    // clear values only if there is only one pool in the chain (head pool)
-    if (!headPool->next)
-    {
-        lvn_memPoolReset(headPool);
-        return headPool;
-    }
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
 
     size_t totalSize = 0;
-    LvnMemoryPool* head = headPool;
-    while (head)
+    for (LvnMemoryBlock* currBlock = memPool->blocks; currBlock; currBlock = currBlock->next)
+        totalSize += currBlock->size;
+
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = totalSize,
+        .align = memPool->align,
+        .next = NULL,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
     {
-        totalSize += head->capacity;
-        head = head->next;
+        errResult = result;
+        goto fail_cleanup;
     }
 
-    LvnMemoryPool* memPool = lvn_memPoolCreate(totalSize, headPool->stride, headPool->align);
-    if (!memPool) { return NULL; }
+    lvn_memBlockDestroyChain(memPool->blocks);
 
-    head = headPool;
-    while (head)
-    {
-        LvnMemoryPool* temp = head;
-        head = head->next;
-        lvn_free(temp->memBlock.block);
-        lvn_free(temp);
-    }
+    memPool->blocks = memBlock;
+    memPool->freeList = NULL;
+    memPool->allocCount = 0;
 
-    return memPool;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
 }
 
-LvnMemoryArena* lvn_memArenaCreate(size_t size, size_t align)
+size_t lvn_memPoolGetTotalCapacity(LvnMemoryPool* memPool)
 {
-    LVN_ASSERT(size <= SIZE_MAX, "arena size overflow");
-    LVN_ASSERT(align != 0 && (align & (align - 1)) == 0, "align cannot be zero or a non power of two");
-    LVN_ASSERT(align >= LVN_ALIGNOF(void*), "align must be >= pointer alignment");
+    LVN_ASSERT(memPool, "memPool cannot be null");
 
-    LvnMemoryArena* memArena = (LvnMemoryArena*) lvn_calloc(sizeof(LvnMemoryArena));
-    if (!memArena) { return NULL; }
+    size_t count = 0;
 
-    memArena->memBlock.block = lvn_calloc(size + align);
-    if (!memArena->memBlock.block)
-    {
-        lvn_free(memArena);
-        return NULL;
-    }
+    for (LvnMemoryBlock* currBlock = memPool->blocks; currBlock; currBlock = currBlock->next)
+        count += currBlock->size / memPool->strideAligned;
 
-#ifdef LVN_CONFIG_DEBUG
-    memset(memArena->memBlock.block, LVN_DEBUG_ALLOC_VALUE, size);
-    memArena->d_AllocCount = 0;
-#endif
-
-    memArena->memBlock.blockAligned = (uint8_t*)LVN_ALIGN_UP((uintptr_t)memArena->memBlock.block, align);
-    memArena->memBlock.size = size + align;
-
-    memArena->currIndex = 0;
-    memArena->capacity = size;
-    memArena->align = align;
-    memArena->next = NULL;
-
-    return memArena;
+    return count;
 }
 
-LvnMemoryArena* lvn_memArenaPush(LvnMemoryArena* headArena, size_t size)
+size_t lvn_memPoolGetAllocCount(LvnMemoryPool* memPool)
 {
-    LVN_ASSERT(headArena, "headArena cannot be null");
-
-    LvnMemoryArena* memArena = lvn_memArenaCreate(size, headArena->align);
-    if (!memArena) { return NULL; }
-
-    while (headArena->next)
-        headArena = headArena->next;
-
-    headArena->next = memArena;
-    return memArena;
+    LVN_ASSERT(memPool, "memPool cannot be null");
+    return memPool->allocCount;
 }
 
-void lvn_memArenaDestroy(LvnMemoryArena* headArena)
+LvnResult lvn_memArenaCreate(LvnMemoryArena* memArena, const LvnMemoryArenaCreateInfo* createInfo)
 {
-    while (headArena)
+    LVN_ASSERT(memArena && createInfo, "memArena and createInfo cannot be null");
+    LVN_ASSERT(createInfo->size <= SIZE_MAX, "arena size overflow");
+    LVN_ASSERT(createInfo->align != 0 && (createInfo->align & (createInfo->align - 1)) == 0, "align cannot be zero or a non power of two");
+    LVN_ASSERT(createInfo->align >= LVN_ALIGNOF(lvn_max_align_t), "align must be >= max align");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
+
+    // create memory block
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = createInfo->size,
+        .align = createInfo->align,
+        .next = NULL,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
     {
-        LvnMemoryArena* temp = headArena;
-        headArena = headArena->next;
-        lvn_free(temp->memBlock.block);
-        lvn_free(temp);
+        errResult = result;
+        goto fail_cleanup;
     }
+
+    // fill memory arena info
+    *memArena = (LvnMemoryArena){
+        .blocks = memBlock,
+        .align = createInfo->align,
+        .generation = 0,
+    };
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
+}
+
+void lvn_memArenaDestroy(LvnMemoryArena* memArena)
+{
+    if (!memArena) { return; }
+
+    lvn_memBlockDestroyChain(memArena->blocks);
+
+    memArena->blocks = NULL;
+    memArena->align = 0;
+}
+
+LvnResult lvn_memArenaPushBlock(LvnMemoryArena* memArena, size_t size)
+{
+    LVN_ASSERT(memArena, "memArena cannot be null");
+
+    if (!size)
+        return Lvn_Result_Success;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
+
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = size,
+        .align = memArena->align,
+        .next = memArena->blocks,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    memArena->blocks = memBlock;
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
 }
 
 void* lvn_memArenaAlloc(LvnMemoryArena* memArena, size_t size)
 {
     LVN_ASSERT(memArena, "memArena cannot be null");
-
-    while (memArena)
-    {
-        // get arena next memory block index
-        uintptr_t base = (uintptr_t)memArena->memBlock.blockAligned;
-        uintptr_t aligned = LVN_ALIGN_UP(base + memArena->currIndex, memArena->align);
-        size_t newIndex = aligned - base;
-        if (newIndex + size <= memArena->capacity)
-        {
-            void* ptr = &(memArena->memBlock.blockAligned)[memArena->currIndex];
-            memArena->currIndex = newIndex + size;
-#ifdef LVN_CONFIG_DEBUG
-            memArena->d_AllocCount++;
-#endif
-            return ptr;
-        }
-
-        // create next arena if possible
-        if (!memArena->next)
-        {
-            LVN_ASSERT(LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER != 0, "memory arena multiplier cannot be zero");
-            size_t nextSize = memArena->capacity * LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER;
-            nextSize = (size > nextSize) ? size : nextSize;
-            memArena->next = lvn_memArenaCreate(nextSize, memArena->align);
-            if (!memArena->next) { return NULL; }
-        }
-
-        // arena is full, get alloc in next arena
-        memArena = memArena->next;
-    }
-
-    // unable to find next block index
-    return NULL;
+    return lvn_memArenaAllocAligned(memArena, size, memArena->align);
 }
 
 void* lvn_memArenaAllocAligned(LvnMemoryArena* memArena, size_t size, size_t align)
@@ -1278,86 +1398,143 @@ void* lvn_memArenaAllocAligned(LvnMemoryArena* memArena, size_t size, size_t ali
     LVN_ASSERT(memArena, "memArena cannot be null");
     LVN_ASSERT(align != 0 && (align & (align - 1)) == 0, "align cannot be zero or a non power of two");
 
-    while (memArena)
+    if (!size)
+        return NULL;
+
+    void* ptr = NULL;
+    size_t newSize = 0;
+
+    // get alloc from first block in arena if available
+    uint8_t* alignedIndex = (uint8_t*) LVN_ALIGN_UP((uintptr_t)memArena->blocks->currIndex, align);
+    if ((alignedIndex + size) <= (memArena->blocks->allocation + memArena->blocks->size))
     {
-        // get arena next memory block index
-        uintptr_t base = (uintptr_t)memArena->memBlock.blockAligned;
-        uintptr_t aligned = LVN_ALIGN_UP(base + memArena->currIndex, align);
-        size_t newIndex = aligned - base;
-        if (newIndex + size <= memArena->capacity)
-        {
-            void* ptr = &(memArena->memBlock.blockAligned)[newIndex];
-            memArena->currIndex = newIndex + size;
-#ifdef LVN_CONFIG_DEBUG
-            memArena->d_AllocCount++;
-#endif
-            return ptr;
-        }
+        ptr = alignedIndex;
+        memArena->blocks->currIndex = alignedIndex + size;
+        goto alloc_success;
+    }
 
-        // create next arena if possible
-        if (!memArena->next)
-        {
-            LVN_ASSERT(LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER != 0, "memory arena multiplier cannot be zero");
-            size_t nextSize = memArena->capacity * LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER;
-            nextSize = (size > nextSize) ? size : nextSize;
-            memArena->next = lvn_memArenaCreate(nextSize, memArena->align);
-            if (!memArena->next) { return NULL; }
-        }
+    // create new memory block if no space left
+    LVN_ASSERT(memArena->blocks->size <= SIZE_MAX / 2, "arena size growth overflow");
+    newSize = memArena->blocks->size * 2;
+    newSize = (newSize < size) ? size : newSize;
 
-        // arena is full, get alloc in next arena
-        memArena = memArena->next;
+    // check if align is greater than arena align, add to newSize if larger
+    LVN_ASSERT(newSize <= SIZE_MAX - (align > memArena->align ? align : 0), "new size growth overflow on align");
+    newSize += (align > memArena->align) ? align : 0;
+
+    if (lvn_memArenaPushBlock(memArena, newSize) != Lvn_Result_Success)
+        return NULL;
+
+    alignedIndex = (uint8_t*) LVN_ALIGN_UP((uintptr_t)memArena->blocks->currIndex, align);
+    if ((alignedIndex + size) <= (memArena->blocks->allocation + memArena->blocks->size))
+    {
+        ptr = alignedIndex;
+        memArena->blocks->currIndex = alignedIndex + size;
+        goto alloc_success;
     }
 
     // unable to find next block index
     return NULL;
-}
 
-void lvn_memArenaReset(LvnMemoryArena* headArena)
-{
-    LVN_ASSERT(headArena, "memArena cannot be null");
-
-    for (LvnMemoryArena* memArena = headArena; memArena; memArena = memArena->next)
-    {
-        memArena->currIndex = 0;
+alloc_success:
 #ifdef LVN_CONFIG_DEBUG
-        memset(memArena->memBlock.blockAligned, LVN_DEBUG_FREE_VALUE, memArena->capacity);
-        memArena->d_AllocCount = 0;
+    memset(ptr, LVN_DEBUG_ALLOC_VALUE, size);
 #endif
-    }
+    return ptr;
 }
 
-LvnMemoryArena* lvn_memArenaRebuild(LvnMemoryArena* headArena)
+LvnArenaMark lvn_memArenaMark(LvnMemoryArena* memArena)
 {
-    LVN_ASSERT(headArena, "memArena cannot be null");
+    LVN_ASSERT(memArena, "memArena cannot be null");
+    return (LvnArenaMark){
+        .block = memArena->blocks,
+        .next = NULL,
+        .offset = (uintptr_t)(memArena->blocks->currIndex - memArena->blocks->allocation),
+        .generation = memArena->generation,
+    };
+}
 
-    // clear values only if there is only one arena in the chain (head arena)
-    if (!headArena->next)
+void lvn_memArenaMarkRevert(LvnMemoryArena* memArena, const LvnArenaMark* mark)
+{
+    LVN_ASSERT(memArena && mark, "memArena and mark cannot be null");
+    LVN_ASSERT(mark->block, "mark block cannot be null");
+    LVN_ASSERT(mark->offset <= mark->block->size, "mark offset must be <= block size");
+    LVN_ASSERT(mark->offset <= (uintptr_t)(mark->block->currIndex - mark->block->allocation), "mark offset must be <= block current index");
+    LVN_ASSERT(mark->generation == memArena->generation, "mark generation must be the same to memArena generation");
+
+    LvnMemoryBlock* currBlock = NULL;
+
+#ifdef LVN_CONFIG_DEBUG
+    for (currBlock = memArena->blocks; currBlock; currBlock = currBlock->next)
     {
-        lvn_memArenaReset(headArena);
-        return headArena;
+        if (currBlock == mark->block)
+            break;
     }
+    LVN_ASSERT(currBlock, "mark not found within memory arena");
+#endif
+
+    currBlock = memArena->blocks;
+    while (currBlock != mark->block)
+    {
+        LvnMemoryBlock* temp = currBlock;
+        currBlock = currBlock->next;
+        lvn_memBlockDestroy(temp);
+    }
+
+    memArena->blocks = mark->block;
+    memArena->blocks->currIndex = memArena->blocks->allocation + mark->offset;
+
+#ifdef LVN_CONFIG_DEBUG
+    memset(memArena->blocks->allocation + mark->offset, LVN_DEBUG_FREE_VALUE, memArena->blocks->size - mark->offset);
+#endif
+}
+
+LvnResult lvn_memArenaResetMergeBlocks(LvnMemoryArena* memArena)
+{
+    LVN_ASSERT(memArena, "memArena cannot be null");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnMemoryBlock* memBlock = NULL;
 
     size_t totalSize = 0;
-    LvnMemoryArena* head = headArena;
-    while (head)
+    for (LvnMemoryBlock* currBlock = memArena->blocks; currBlock; currBlock = currBlock->next)
+        totalSize += currBlock->size;
+
+    LvnMemoryBlockCreateInfo memBlockCreateInfo = {
+        .size = totalSize,
+        .align = memArena->align,
+        .next = NULL,
+    };
+
+    LvnResult result = lvn_memBlockCreate(&memBlock, &memBlockCreateInfo);
+    if (result != Lvn_Result_Success)
     {
-        totalSize += head->capacity;
-        head = head->next;
+        errResult = result;
+        goto fail_cleanup;
     }
 
-    LvnMemoryArena* memArena = lvn_memArenaCreate(totalSize, headArena->align);
-    if (!memArena) { return NULL; }
+    lvn_memBlockDestroyChain(memArena->blocks);
 
-    head = headArena;
-    while (head)
-    {
-        LvnMemoryArena* temp = head;
-        head = head->next;
-        lvn_free(temp->memBlock.block);
-        lvn_free(temp);
-    }
+    memArena->blocks = memBlock;
+    memArena->generation++;
 
-    return memArena;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (memBlock) { lvn_memBlockDestroy(memBlock); }
+    return errResult;
+}
+
+size_t lvn_memArenaGetTotalSize(LvnMemoryArena* memArena)
+{
+    LVN_ASSERT(memArena, "memArena cannot be null");
+
+    size_t size = 0;
+
+    for (LvnMemoryBlock* currBlock = memArena->blocks; currBlock; currBlock = currBlock->next)
+        size += currBlock->size;
+
+    return size;
 }
 
 void lvn_getWindowPlatform(LvnWindowPlatformSupport* windowPlatformSupport)

@@ -72,8 +72,6 @@ typedef struct LvnVkTextureData
 
 typedef struct LvnVulkanBackends
 {
-    void*                                            handle;
-
     const LvnGraphicsContext*                        graphicsctx;
     uint32_t                                         versionMajor;
     uint32_t                                         versionMinor;
@@ -87,6 +85,7 @@ typedef struct LvnVulkanBackends
     VkQueue                                          presentQueue;
     VkCommandPool                                    commandPool;
     VmaAllocator                                     vmaAllocator;
+    LvnMemoryArena                                   frameArena;
 
     struct
     {
@@ -99,6 +98,8 @@ typedef struct LvnVulkanBackends
         bool                                         KHR_wayland_surface;
         bool                                         EXT_headless_surface;
     } ext;
+
+    void*                                            handle;
 
     PFN_vkGetInstanceProcAddr                        vkGetInstanceProcAddr;
     PFN_vkEnumerateInstanceVersion                   vkEnumerateInstanceVersion;

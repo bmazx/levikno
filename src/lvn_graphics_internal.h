@@ -78,6 +78,7 @@ struct LvnCommandBuffer
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        commandbufferData;
+    LvnMemoryArena               frameArena;
 };
 
 struct LvnFence
@@ -99,9 +100,6 @@ struct LvnGraphicsContext
     const LvnLogger*            coreLogger;
     LvnPresentationModeFlags    presentModeFlags;
     bool                        enableGraphicsApiDebugLogging;
-
-    LvnMemoryPool*              cmdBuffPool;
-    LvnMemoryArena*             frameArena;
 
     // graphics implementation
     void*                       implData;
@@ -127,7 +125,8 @@ struct LvnGraphicsContext
     void                        (*implDestroySampler)(LvnSampler*);
     LvnResult                   (*implCreateTexture)(const LvnGraphicsContext*, LvnTexture*, const LvnTextureCreateInfo*);
     void                        (*implDestroyTexture)(LvnTexture*);
-    LvnResult                   (*implAllocateCommandBuffers)(const LvnGraphicsContext*, const LvnCommandBufferAllocInfo*, LvnCommandBuffer**);
+    LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*);
+    void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
 
     void                        (*implSurfaceGetSupportedFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
     void                        (*implSurfaceGetSupportedPresentModes)(const LvnSurface*, uint32_t*, LvnPresentMode*);

@@ -371,12 +371,8 @@ int main(int argc, char** argv)
     lvnUnloadFile(&vertfile);
     lvnUnloadFile(&fragfile);
 
-    LvnCommandBufferAllocInfo cmdBuffAllocInfo = {
-        .count = 1,
-    };
-
     LvnCommandBuffer* cmdBuff;
-    lvnAllocateCommandBuffers(graphicsctx, &cmdBuffAllocInfo, &cmdBuff);
+    lvnCreateCommandBuffer(graphicsctx, &cmdBuff);
 
     LvnFence* fence;
     lvnCreateFence(graphicsctx, &fence, true);
@@ -542,6 +538,7 @@ int main(int argc, char** argv)
 
     lvnUnloadImage(&image);
 
+    lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyTexture(texture);
     lvnDestroySampler(sampler);
     lvnDestroyBuffer(vertexBuffer);

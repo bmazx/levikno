@@ -516,11 +516,6 @@ typedef struct LvnTextureCreateInfo
     uint32_t               height;
 } LvnTextureCreateInfo;
 
-typedef struct LvnCommandBufferAllocInfo
-{
-    uint32_t                 count;
-} LvnCommandBufferAllocInfo;
-
 typedef union LvnClearColorValue
 {
     float       float32[4];
@@ -632,7 +627,8 @@ LVN_API LvnResult                   lvnCreateSampler(const LvnGraphicsContext* g
 LVN_API void                        lvnDestroySampler(LvnSampler* sampler);
 LVN_API LvnResult                   lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** texture, const LvnTextureCreateInfo* createInfo);
 LVN_API void                        lvnDestroyTexture(LvnTexture* texture);
-LVN_API LvnResult                   lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
+LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer);
+LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 LVN_API void                        lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 LVN_API void                        lvnSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);

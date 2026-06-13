@@ -41,10 +41,9 @@
     #endif
 #endif
 
+// asserts
 #ifdef LVN_CONFIG_DEBUG
     #define LVN_ENABLE_ASSERTS
-    #define LVN_DEBUG_ALLOC_VALUE (0xDD)
-    #define LVN_DEBUG_FREE_VALUE (0xEE)
 #endif
 
 #if defined(LVN_DISABLE_ASSERTS)
@@ -61,27 +60,36 @@
     typedef enum bool { false = 0, true = !false } bool;
 #endif
 
-// alignment
-#if defined(__cplusplus) || (__STDC_VERSION__ >= 202000)
-    #define LVN_ALIGNOF(T) alignof(T)
-#elif defined(__STDC__) && (__STDC_VERSION__ >= 201112L)
-    #define LVN_ALIGNOF(T) _Alignof(T)
-#else
-    #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
+// memory
+#ifdef LVN_CONFIG_DEBUG
+    #ifndef LVN_DEBUG_ALLOC_VALUE
+        #define LVN_DEBUG_ALLOC_VALUE (0xCD)
+    #endif
+    #ifndef LVN_DEBUG_FREE_VALUE
+        #define LVN_DEBUG_FREE_VALUE (0xDD)
+    #endif
 #endif
 
-#define LVN_DEFAULT_ALIGN (LVN_ALIGNOF(void*))
+// alignment
+#if defined(__cplusplus) || (defined(__STDC__) && (__STDC_VERSION__ >= 202311L))
+    #define LVN_ALIGNOF(T) alignof(T)
+    typedef max_align_t lvn_max_align_t;
+#elif defined(__STDC__) && (__STDC_VERSION__ >= 201112L)
+    #define LVN_ALIGNOF(T) _Alignof(T)
+    typedef max_align_t lvn_max_align_t;
+#else
+    #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
+    typedef union {
+        long long ll;
+        long double ld;
+        void* p;
+    } lvn_max_align_t;
+#endif
+
+#define LVN_DEFAULT_ALIGN (LVN_ALIGNOF(lvn_max_align_t))
 #define LVN_ALIGN_UP(x, a) (((x) + ((a) - 1)) & ~((a) - 1))
 #define LVN_ALIGN_DOWN(x, a) ((x) & ~((a) - 1))
 #define LVN_ALIGNED(x, a) (((x) & ((a) - 1)) == 0)
-
-// memory growth mutipler
-#ifndef LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER
-    #define LVN_MEMPOOL_NEXT_MALLOC_MULTIPLIER (2)
-#endif
-#ifndef LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER
-    #define LVN_MEMARENA_NEXT_MALLOC_MULTIPLIER (2)
-#endif
 
 // logging
 #ifndef LVN_DISABLE_LOGGING
@@ -90,7 +98,6 @@
 
 // misc
 #define LVN_ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
-
 
 #include <stdint.h>
 #include <stddef.h>

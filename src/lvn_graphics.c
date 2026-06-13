@@ -44,7 +44,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
 
     if (!*graphicsctx)
     {
-        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for graphics context at %p", graphicsctx);
+        LVN_LOG_ERROR(&ctx->coreLogger, "failed to allocate memory for graphics context");
         result = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
@@ -55,20 +55,6 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->coreLogger = &ctx->coreLogger;
     gctxPtr->presentModeFlags = createInfo->presentationModeFlags;
     gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
-
-    // memory
-    // frame arena
-    size_t frameArenaSize = (createInfo->memory.baseFrameArenaAllocSize > 0)
-        ? createInfo->memory.baseFrameArenaAllocSize
-        : 16e+3; // 16 KB
-    gctxPtr->frameArena = lvn_memArenaCreate(frameArenaSize, LVN_DEFAULT_ALIGN);
-
-    // cmdBuff pool
-    size_t cmdBufPoolSize = (createInfo->memory.baseCmdBuffPoolAllocSize > 0)
-        ? createInfo->memory.baseCmdBuffPoolAllocSize
-        : 1024;
-    gctxPtr->cmdBuffPool = lvn_memPoolCreate(cmdBufPoolSize, sizeof(LvnCommandBuffer), LVN_ALIGNOF(LvnCommandBuffer));
-
 
     // setup graphics api
     switch (createInfo->graphicsapi)
@@ -89,20 +75,25 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
 
     if (result != Lvn_Result_Success)
     {
-        LVN_LOG_ERROR(gctxPtr->coreLogger, "failed to create graphics context, graphics api: %s",
+        LVN_LOG_ERROR(gctxPtr->coreLogger,
+                      "failed to create graphics context, graphics api: %s",
                       lvn_getGraphicsApiEnumName(createInfo->graphicsapi));
-        goto fail_cleanup_setapi;
+        goto fail_cleanup;
     }
 
-    LVN_LOG_TRACE(gctxPtr->coreLogger, "graphics context created: (%p), graphics api: %s",
+    LVN_LOG_TRACE(gctxPtr->coreLogger,
+                  "graphics context created: (%p), graphics api: %s",
                   *graphicsctx,
                   lvn_getGraphicsApiEnumName(createInfo->graphicsapi));
 
     return Lvn_Result_Success;
 
-fail_cleanup_setapi:
-    lvn_free(*graphicsctx);
 fail_cleanup:
+    if (*graphicsctx)
+    {
+        lvn_free(*graphicsctx);
+        *graphicsctx = NULL;
+    }
     return result;
 }
 
@@ -127,9 +118,6 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
     }
 
     LVN_LOG_TRACE(graphicsctx->coreLogger, "graphics context terminated: (%p)", graphicsctx);
-
-    lvn_memPoolDestroy(graphicsctx->cmdBuffPool);
-    lvn_memArenaDestroy(graphicsctx->frameArena);
 
     lvn_free(graphicsctx);
 }
@@ -532,38 +520,63 @@ void lvnDestroyTexture(LvnTexture* texture)
     lvn_free(texture);
 }
 
-LvnResult lvnAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers)
+LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer)
 {
-    LVN_ASSERT(graphicsctx && allocInfo && pCommandBuffers, "graphicsctx, allocInfo, and pCommandBuffers cannot be null");
+    LVN_ASSERT(graphicsctx && commandBuffer, "graphicsctx and commandBuffers cannot be null");
 
-    for (uint32_t i = 0; i < allocInfo->count; i++)
+    LvnResult errResult = Lvn_Result_Failure;
+
+    // allocate commandBuffer
+    *commandBuffer = (LvnCommandBuffer*) lvn_calloc(sizeof(LvnCommandBuffer));
+    if (!*commandBuffer)
     {
-        pCommandBuffers[i] = (LvnCommandBuffer*) lvn_memPoolAlloc(graphicsctx->cmdBuffPool);
-        if (!pCommandBuffers[i])
-        {
-            LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate pCommandBuffers[%u] of array size %u",
-                          i, allocInfo->count);
-            goto fail_cleanup;
-        }
-
-        memset(pCommandBuffers[i], 0, sizeof(LvnCommandBuffer));
-        pCommandBuffers[i]->graphicsctx = graphicsctx;
-    }
-
-    LvnResult result = graphicsctx->implAllocateCommandBuffers(graphicsctx, allocInfo, pCommandBuffers);
-    if (result != Lvn_Result_Success)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate graphics side command buffers");
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at %p", commandBuffer);
+        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
-    return result;
+    LvnCommandBuffer* commandBufferPtr = *commandBuffer;
+    commandBufferPtr->graphicsctx = graphicsctx;
+
+    // frame arena
+    LvnMemoryArenaCreateInfo arenaCreateInfo = {
+        .size = 16e+3, // 16 KB
+        .align = LVN_DEFAULT_ALIGN,
+    };
+
+    LvnResult result = lvn_memArenaCreate(&commandBufferPtr->frameArena, &arenaCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create memory arena for command buffer at %p", commandBuffer);
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    result = graphicsctx->implCreateCommandBuffer(graphicsctx, commandBufferPtr);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate graphics api impl command buffers");
+        goto fail_cleanup;
+    }
+
+    return Lvn_Result_Success;
 
 fail_cleanup:
-    for (uint32_t i = 0; i < allocInfo->count; i++)
-        lvn_memPoolFree(graphicsctx->cmdBuffPool, pCommandBuffers[i]);
+    if (*commandBuffer)
+    {
+        lvn_memArenaDestroy(&(*commandBuffer)->frameArena);
+        lvn_free(*commandBuffer);
+    }
+    return errResult;
+}
 
-    return Lvn_Result_Failure;
+void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implDestroyCommandBuffer(commandBuffer);
+    lvn_memArenaDestroy(&commandBuffer->frameArena);
+    lvn_free(commandBuffer);
 }
 
 void lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)

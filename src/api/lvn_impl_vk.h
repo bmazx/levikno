@@ -23,13 +23,14 @@ LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* 
 void      lvnImplVkDestroyFence(LvnFence* fence);
 LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
 void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
-LvnResult lvnImplVksCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
-void      lvnImplVksDestroyBuffer(LvnBuffer* buffer);
-LvnResult lvnImplVksCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
-void      lvnImplVksDestroySampler(LvnSampler* sampler);
-LvnResult lvnImplVksCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
-void      lvnImplVksDestroyTexture(LvnTexture* texture);
-LvnResult lvnImplVkAllocateCommandBuffers(const LvnGraphicsContext* graphicsctx, const LvnCommandBufferAllocInfo* allocInfo, LvnCommandBuffer** pCommandBuffers);
+LvnResult lvnImplVkCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
+void      lvnImplVkDestroyBuffer(LvnBuffer* buffer);
+LvnResult lvnImplVkCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
+void      lvnImplVkDestroySampler(LvnSampler* sampler);
+LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
+void      lvnImplVkDestroyTexture(LvnTexture* texture);
+LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
+void      lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
 void      lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 void      lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
