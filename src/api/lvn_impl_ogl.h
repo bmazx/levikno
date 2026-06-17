@@ -287,6 +287,10 @@ typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
 typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
 typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+typedef void (GLAPIENTRY *PFNGLCLEARBUFFERIVPROC)(GLenum buffer, GLint drawbuffer, const GLint *value);
+typedef void (GLAPIENTRY *PFNGLCLEARBUFFERUIVPROC)(GLenum buffer, GLint drawbuffer, const GLuint *value);
+typedef void (GLAPIENTRY *PFNGLCLEARBUFFERFVPROC)(GLenum buffer, GLint drawbuffer, const GLfloat *value);
+typedef void (GLAPIENTRY *PFNGLCLEARBUFFERFIPROC)(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount);
 
@@ -392,6 +396,76 @@ typedef struct LvnOglFenceData
     bool      pending;
 } LvnOglFenceData;
 
+typedef struct LvnOglCmdHeader
+{
+    void        (*callbackFn)(void);
+    uint64_t    offset;
+} LvnOglCmdHeader;
+
+typedef struct LvnOglCmdBuffBeginRenderPassData
+{
+    LvnCommandBuffer*          commandBuffer;
+    LvnRenderPassBeginInfo*    beginInfo;
+} LvnOglCmdBuffBeginRenderPassData;
+
+typedef struct LvnOglCmdBuffEndRenderPassData
+{
+    LvnCommandBuffer*    commandBuffer;
+} LvnOglCmdBuffEndRenderPassData;
+
+typedef struct LvnOglCmdBuffBindPipelineData
+{
+    LvnCommandBuffer*    commandBuffer;
+    LvnPipeline*         pipeline;
+} LvnOglCmdBuffBindPipelineData;
+
+typedef struct LvnOglCmdBuffBindVertexBufferData
+{
+    LvnCommandBuffer*    commandBuffer;
+    LvnBuffer**          pBuffers;
+    uint64_t*            pOffsets;
+    uint32_t             firstBinding;
+    uint32_t             bindingCount;
+} LvnOglCmdBuffBindVertexBufferData;
+
+typedef struct LvnOglCmdBuffBindIndexBufferData
+{
+    LvnCommandBuffer*    commandBuffer;
+    LvnBuffer*           buffer;
+    uint64_t             offset;
+} LvnOglCmdBuffBindIndexBufferData;
+
+typedef struct LvnOglCmdBuffSetViewportData
+{
+    LvnCommandBuffer*     commandBuffer;
+    const LvnViewport*    viewport;
+} LvnOglCmdBuffSetViewportData;
+
+typedef struct LvnOglCmdBuffSetScissorData
+{
+    LvnCommandBuffer*       commandBuffer;
+    const LvnRenderArea*    scissor;
+} LvnOglCmdBuffSetScissorData;
+
+typedef struct LvnOglCmdBuffDrawData
+{
+    LvnCommandBuffer*    commandBuffer;
+    uint32_t             vertexCount;
+    uint32_t             instanceCount;
+    uint32_t             firstVertex;
+    uint32_t             firstInstance;
+} LvnOglCmdBuffDrawData;
+
+typedef struct LvnOglCmdBuffDrawIndexedData
+{
+    LvnCommandBuffer*    commandBuffer;
+    uint32_t             indexCount;
+    uint32_t             instanceCount;
+    uint32_t             firstIndex;
+    int32_t              vertexOffset;
+    uint32_t             firstInstance;
+} LvnOglCmdBuffDrawIndexedData;
+
 typedef struct LvnOpenglBackends
 {
     const LvnGraphicsContext*               graphicsctx;
@@ -463,6 +537,10 @@ typedef struct LvnOpenglBackends
     PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;
     PFNGLCLEARPROC                          glClear;
     PFNGLCLEARCOLORPROC                     glClearColor;
+    PFNGLCLEARBUFFERIVPROC                  glClearBufferiv;
+    PFNGLCLEARBUFFERUIVPROC                 glClearBufferuiv;
+    PFNGLCLEARBUFFERFVPROC                  glClearBufferfv;
+    PFNGLCLEARBUFFERFIPROC                  glClearBufferfi;
     PFNGLDRAWARRAYSINSTANCEDPROC            glDrawArraysInstanced;
     PFNGLDRAWELEMENTSINSTANCEDPROC          glDrawElementsInstanced;
 } LvnOpenglBackends;
@@ -520,5 +598,15 @@ void      lvnImplOglCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCoun
 void      lvnImplOglCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
 LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
+
+void      lvnCmdBuffImplOglCmdBeginRenderPass(void* data);
+void      lvnCmdBuffImplOglCmdEndRenderPass(void* data);
+void      lvnCmdBuffImplOglCmdBindPipeline(void* data);
+void      lvnCmdBuffImplOglCmdBindVertexBuffer(void* data);
+void      lvnCmdBuffImplOglCmdBindIndexBuffer(void* data);
+void      lvnCmdBuffImplOglCmdSetViewport(void* data);
+void      lvnCmdBuffImplOglCmdSetScissor(void* data);
+void      lvnCmdBuffImplOglCmdDraw(void* data);
+void      lvnCmdBuffImplOglCmdDrawIndexed(void* data);
 
 #endif // !HG_LVN_IMPL_OGL_H

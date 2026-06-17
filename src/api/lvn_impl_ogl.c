@@ -473,6 +473,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glBindVertexArray ||
         !oglBackends->glClear ||
         !oglBackends->glClearColor ||
+        !oglBackends->glClearBufferiv ||
+        !oglBackends->glClearBufferuiv ||
+        !oglBackends->glClearBufferfv ||
+        !oglBackends->glClearBufferfi ||
         !oglBackends->glDrawArraysInstanced ||
         !oglBackends->glDrawElementsInstanced)
     {
@@ -1391,12 +1395,14 @@ void lvnImplOglDestroyTexture(LvnTexture* texture)
 
 LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer)
 {
+    LVN_ASSERT(graphicsctx && commandBuffer, "graphicsctx and commandBuffer cannot be null");
+
     return Lvn_Result_Success;
 }
 
 void lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
-
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 }
 
 void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
@@ -1571,4 +1577,58 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
 LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
 {
     return Lvn_Result_Success;
+}
+
+void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdEndRenderPass(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdBindPipeline(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdBindVertexBuffer(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdBindIndexBuffer(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdSetViewport(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdSetScissor(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdDraw(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+}
+
+void lvnCmdBuffImplOglCmdDrawIndexed(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
 }
