@@ -186,19 +186,21 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
 {
     LVN_ASSERT(graphicsctx && renderpass && createInfo, "graphicsctx, renderpass, and createInfo cannot be null");
 
+    LvnResult errResult = Lvn_Result_Failure;
+
     if (createInfo->colorAttachmentCount > 0 && !createInfo->pColorAttachments)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create renderpass at (%p), createInfo->colorAttachmentCount is greater than zero (%u) but createInfo->pColorAttachments is null",
                       renderpass, createInfo->colorAttachmentCount);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
     if (createInfo->colorAttachmentCount == 0 && !createInfo->depthStencilAttachment)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create renderpass at (%p), createInfo->colorAttachmentCount is zero and createInfo->depthStencilAttachment is null; cannot create renderpass with no attachments",
                       renderpass);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
     for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
@@ -216,7 +218,7 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
                 LVN_LOG_ERROR(graphicsctx->coreLogger,
                               "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].format does not have the same format to createInfo->pColorAttachments.resolveAttachment->format; the formats of the color attachment and resolve attachment must be the same",
                               renderpass, i);
-                return Lvn_Result_Failure;
+                goto fail_cleanup;
             }
         }
         if (createInfo->pColorAttachments[i].samples != createInfo->pColorAttachments[(i + 1) % createInfo->colorAttachmentCount].samples)
@@ -224,7 +226,7 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "failed to create renderpass at (%p), misaligned sample count, all color attachments must have the same sample count, createInfo->pColorAttachments[%u] and createInfo->pColorAttachments[%u]",
                           renderpass, i, (i + 1) % createInfo->colorAttachmentCount);
-            return Lvn_Result_Failure;
+            goto fail_cleanup;
         }
         if (createInfo->depthStencilAttachment)
         {
@@ -233,7 +235,7 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
                 LVN_LOG_ERROR(graphicsctx->coreLogger,
                               "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].samples does not have the same sample count to createInfo->depthStencilAttachment->samples; the depthStencilAttachment must have the same sample count to the color attachments",
                               renderpass, i);
-                return Lvn_Result_Failure;
+                goto fail_cleanup;
             }
         }
     }
@@ -243,17 +245,27 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
     if (!*renderpass)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for renderpass at %p", renderpass);
-        return Lvn_Result_OutOfMemory;
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnRenderPass* renderpassPtr = *renderpass;
     renderpassPtr->graphicsctx = graphicsctx;
 
+    // create api renderpass
     LvnResult result = graphicsctx->implCreateRenderPass(graphicsctx, *renderpass, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*renderpass);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create renderpass at %p", renderpass);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*renderpass) { lvn_free(*renderpass); }
+    return errResult;
 }
 
 void lvnDestroyRenderPass(LvnRenderPass* renderpass)

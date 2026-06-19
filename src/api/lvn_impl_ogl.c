@@ -473,10 +473,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glBindVertexArray ||
         !oglBackends->glClear ||
         !oglBackends->glClearColor ||
-        !oglBackends->glClearBufferiv ||
-        !oglBackends->glClearBufferuiv ||
-        !oglBackends->glClearBufferfv ||
-        !oglBackends->glClearBufferfi ||
+        !oglBackends->glClearNamedFramebufferiv ||
+        !oglBackends->glClearNamedFramebufferuiv ||
+        !oglBackends->glClearNamedFramebufferfv ||
+        !oglBackends->glClearNamedFramebufferfi ||
         !oglBackends->glDrawArraysInstanced ||
         !oglBackends->glDrawElementsInstanced)
     {
@@ -1582,6 +1582,17 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
 void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
+
+    LvnOglCmdBuffBeginRenderPassData* cmdData = (LvnOglCmdBuffBeginRenderPassData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    const LvnRenderPassBeginInfo* beginInfo = (const LvnRenderPassBeginInfo*) cmdData->beginInfo;
+    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) beginInfo->renderPass->renderpassData;
+    const LvnOglFramebufferData* framebufferData = (const LvnOglFramebufferData*) beginInfo->framebuffer->framebufferData;
+
+    for (uint32_t i = 0; i < beginInfo->clearColorValueCount; i++)
+    {
+        oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo->pClearColorValues[i].float32);
+    }
 
 }
 

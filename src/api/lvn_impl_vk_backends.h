@@ -39,6 +39,12 @@ typedef struct LvnVkSwapchainData
     VkImageView*        swapchainImageViews;
 } LvnVkSwapchainData;
 
+typedef struct LvnVkRenderpassData
+{
+    VkRenderPass    renderPass;
+    bool            hasDepthStencil;
+} LvnVkRenderpassData;
+
 typedef struct LvnVkShaderData
 {
     VkShaderModule        shaderModule;

@@ -2089,6 +2089,17 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
     VkAttachmentDescription* attachments = NULL;
     VkAttachmentReference* colorAttachmentRefs = NULL;
     VkAttachmentReference* resolveAttachmentRefs = NULL;
+    LvnVkRenderpassData* renderpassData = NULL;
+
+    renderpassData = (LvnVkRenderpassData*) lvn_calloc(sizeof(LvnVkRenderpassData));
+    if (!renderpassData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for renderpassData in renderpass %p",
+                      renderpass);
+        result = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
 
     uint32_t attachmentCount = createInfo->colorAttachmentCount;
     uint32_t resolveCount = 0;
@@ -2105,7 +2116,9 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
     attachments = (VkAttachmentDescription*) lvn_calloc(attachmentCount * sizeof(VkAttachmentDescription));
     if (!attachments)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for (VkAttachmentDescription) attachments array");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for attachment descriptions array in renderpass %p",
+                      renderpass);
         result = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
@@ -2116,7 +2129,9 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
         colorAttachmentRefs = (VkAttachmentReference*) lvn_calloc(createInfo->colorAttachmentCount * sizeof(VkAttachmentReference));
         if (!colorAttachmentRefs)
         {
-            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for (VkAttachmentReference) colorAttachmentRefs array");
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to allocate memory for color attachment references array in renderpass %p",
+                          renderpass);
             result = Lvn_Result_OutOfMemory;
             goto fail_cleanup;
         }
@@ -2126,7 +2141,9 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
         resolveAttachmentRefs = (VkAttachmentReference*) lvn_calloc(createInfo->colorAttachmentCount * sizeof(VkAttachmentReference));
         if (!resolveAttachmentRefs)
         {
-            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for (VkAttachmentReference) resolveAttachmentRefs array");
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[vulkan] failed to allocate memory for resolve attachment reference array in renderpass %p",
+                          renderpass);
             result = Lvn_Result_OutOfMemory;
             goto fail_cleanup;
         }
@@ -2223,11 +2240,16 @@ LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRe
     VkRenderPass vkRenderPass;
     if (vkBackends->vkCreateRenderPass(vkBackends->device, &renderPassInfo, NULL, &vkRenderPass) != VK_SUCCESS)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create render pass");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create vulkan renderpass in renderpass %p",
+                      renderpass);
         goto fail_cleanup;
     }
 
-    renderpass->renderpassData = vkRenderPass;
+    renderpassData->renderPass = vkRenderPass;
+    renderpassData->hasDepthStencil = (createInfo->depthStencilAttachment) ? true : false;
+
+    renderpass->renderpassData = renderpassData;
 
     lvn_free(resolveAttachmentRefs);
     lvn_free(colorAttachmentRefs);
@@ -2239,6 +2261,7 @@ fail_cleanup:
     lvn_free(resolveAttachmentRefs);
     lvn_free(colorAttachmentRefs);
     lvn_free(attachments);
+    lvn_free(renderpassData);
     return result;
 }
 
@@ -2247,11 +2270,13 @@ void lvnImplVkDestroyRenderPass(LvnRenderPass* renderpass)
     LVN_ASSERT(renderpass, "renderpass cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) renderpass->graphicsctx->implData;
-    VkRenderPass vkRenderPass = (VkRenderPass) renderpass->renderpassData;
+    LvnVkRenderpassData* renderpassData = (LvnVkRenderpassData*) renderpass->renderpassData;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    vkBackends->vkDestroyRenderPass(vkBackends->device, vkRenderPass, NULL);
+    vkBackends->vkDestroyRenderPass(vkBackends->device, renderpassData->renderPass, NULL);
+
+    lvn_free(renderpassData);
     renderpass->renderpassData = NULL;
 }
 
@@ -2260,7 +2285,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
     LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
-    VkRenderPass vkRenderPass = (VkRenderPass) createInfo->renderPass->renderpassData;
+    LvnVkRenderpassData* renderpassData = (LvnVkRenderpassData*) createInfo->renderPass->renderpassData;
     LvnResult result = Lvn_Result_Failure;
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
@@ -2303,7 +2328,7 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
 
     VkFramebufferCreateInfo framebufferInfo = {
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .renderPass = vkRenderPass,
+        .renderPass = renderpassData->renderPass,
         .attachmentCount = attachmentCount,
         .pAttachments = attachments,
         .width = createInfo->width,
@@ -2723,7 +2748,7 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         goto fail_cleanup;
     }
 
-    VkRenderPass renderPass = (VkRenderPass) createInfo->renderPass->renderpassData;
+    LvnVkRenderpassData* renderpassData = (LvnVkRenderpassData*) createInfo->renderPass->renderpassData;
 
     // pipeline create info
     VkGraphicsPipelineCreateInfo pipelineInfo = {
@@ -2742,7 +2767,7 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,
-        .renderPass = renderPass,
+        .renderPass = renderpassData->renderPass,
     };
 
     if (vkBackends->vkCreateGraphicsPipelines(vkBackends->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelineData->pipeline) != VK_SUCCESS)
@@ -3474,7 +3499,7 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
     const LvnGraphicsContext* graphicsctx = (const LvnGraphicsContext*) commandBuffer->graphicsctx;
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
-    VkRenderPass renderPass = (VkRenderPass) beginInfo->renderPass->renderpassData;
+    LvnVkRenderpassData* renderpassData = (LvnVkRenderpassData*) beginInfo->renderPass->renderpassData;
     VkFramebuffer framebuffer = (VkFramebuffer) beginInfo->framebuffer->framebufferData;
 
     LvnArenaMark mark = lvn_memArenaMark(&commandBuffer->frameArena);
@@ -3484,18 +3509,25 @@ void lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassB
         .extent = { beginInfo->renderArea.extent.width, beginInfo->renderArea.extent.height },
     };
 
+    uint32_t clearValueCount = beginInfo->clearColorValueCount + (renderpassData->hasDepthStencil ? 1 : 0);
     VkClearValue* clearColors = (VkClearValue*)
-        lvn_memArenaAlloc(&commandBuffer->frameArena, beginInfo->clearValueCount * sizeof(VkClearValue));
+        lvn_memArenaAlloc(&commandBuffer->frameArena, clearValueCount * sizeof(VkClearValue));
 
-    for (uint32_t i = 0; i < beginInfo->clearValueCount; i++)
-        memcpy(&clearColors[i], &beginInfo->pClearValues[i], sizeof(VkClearValue));
+    for (uint32_t i = 0; i < beginInfo->clearColorValueCount; i++)
+        memcpy(&clearColors[i], &beginInfo->pClearColorValues[i], sizeof(VkClearValue));
+
+    if (renderpassData->hasDepthStencil)
+    {
+        clearColors[clearValueCount - 1].depthStencil =
+            (VkClearDepthStencilValue){ beginInfo->clearDepthStencilValue.depth, beginInfo->clearDepthStencilValue.stencil };
+    }
 
     VkRenderPassBeginInfo renderPassInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = renderPass,
+        .renderPass = renderpassData->renderPass,
         .framebuffer = framebuffer,
         .renderArea = renderArea,
-        .clearValueCount = beginInfo->clearValueCount,
+        .clearValueCount = clearValueCount,
         .pClearValues = clearColors,
     };
 

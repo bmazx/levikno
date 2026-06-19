@@ -462,16 +462,16 @@ int main(int argc, char** argv)
 
         lvnBeginCommandBuffer(cmdBuff);
 
-        LvnClearValue clearValues[] = {
-            {{{0.0f, 0.0f, 0.0f}}},
+        LvnClearColorValue clearValues[] = {
+            {{0.0f, 0.1f, 0.2f, 1.0f }},
         };
 
         LvnRenderPassBeginInfo beginInfo = {
             .renderPass = renderPass,
             .framebuffer = swapchainFramebuffers[imageIndex],
             .renderArea = {{extent.width, extent.height}, {0, 0}},
-            .pClearValues = clearValues,
-            .clearValueCount = 1,
+            .clearColorValueCount = 1,
+            .pClearColorValues = clearValues,
         };
 
         lvnCmdBeginRenderPass(cmdBuff, &beginInfo);

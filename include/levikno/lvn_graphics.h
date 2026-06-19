@@ -529,12 +529,6 @@ typedef struct LvnClearDepthStencilValue
     uint32_t    stencil;
 } LvnClearDepthStencilValue;
 
-typedef union LvnClearValue
-{
-    LvnClearColorValue           color;
-    LvnClearDepthStencilValue    depthStencil;
-} LvnClearValue;
-
 typedef struct LvnExtent2D
 {
     uint32_t width, height;
@@ -558,11 +552,12 @@ typedef struct LvnViewport
 
 typedef struct LvnRenderPassBeginInfo
 {
-    LvnRenderPass*          renderPass;
-    LvnFramebuffer*         framebuffer;
-    LvnRenderArea           renderArea;
-    const LvnClearValue*    pClearValues;
-    uint32_t                clearValueCount;
+    LvnRenderPass*                     renderPass;
+    LvnFramebuffer*                    framebuffer;
+    LvnRenderArea                      renderArea;
+    uint32_t                           clearColorValueCount;
+    const LvnClearColorValue*          pClearColorValues;
+    const LvnClearDepthStencilValue    clearDepthStencilValue;
 } LvnRenderPassBeginInfo;
 
 typedef struct LvnSubmitInfo

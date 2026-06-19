@@ -74,6 +74,10 @@
 #define GL_OUT_OF_MEMORY 0x0505
 #define GL_CW 0x0900
 #define GL_CCW 0x0901
+#define GL_COLOR 0x1800
+#define GL_DEPTH 0x1801
+#define GL_STENCIL 0x1802
+#define GL_DEPTH_STENCIL 0x84F9
 #define GL_CONTEXT_FLAGS 0x821E
 #define GL_CONTEXT_FLAG_DEBUG_BIT 0x00000002
 #define GL_DEBUG_SOURCE_API 0x8246
@@ -287,10 +291,10 @@ typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
 typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
 typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-typedef void (GLAPIENTRY *PFNGLCLEARBUFFERIVPROC)(GLenum buffer, GLint drawbuffer, const GLint *value);
-typedef void (GLAPIENTRY *PFNGLCLEARBUFFERUIVPROC)(GLenum buffer, GLint drawbuffer, const GLuint *value);
-typedef void (GLAPIENTRY *PFNGLCLEARBUFFERFVPROC)(GLenum buffer, GLint drawbuffer, const GLfloat *value);
-typedef void (GLAPIENTRY *PFNGLCLEARBUFFERFIPROC)(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
+typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value);
+typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value);
+typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERFVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value);
+typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERFIPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
 typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount);
 
@@ -537,10 +541,10 @@ typedef struct LvnOpenglBackends
     PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;
     PFNGLCLEARPROC                          glClear;
     PFNGLCLEARCOLORPROC                     glClearColor;
-    PFNGLCLEARBUFFERIVPROC                  glClearBufferiv;
-    PFNGLCLEARBUFFERUIVPROC                 glClearBufferuiv;
-    PFNGLCLEARBUFFERFVPROC                  glClearBufferfv;
-    PFNGLCLEARBUFFERFIPROC                  glClearBufferfi;
+    PFNGLCLEARNAMEDFRAMEBUFFERIVPROC        glClearNamedFramebufferiv;
+    PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC       glClearNamedFramebufferuiv;
+    PFNGLCLEARNAMEDFRAMEBUFFERFVPROC        glClearNamedFramebufferfv;
+    PFNGLCLEARNAMEDFRAMEBUFFERFIPROC        glClearNamedFramebufferfi;
     PFNGLDRAWARRAYSINSTANCEDPROC            glDrawArraysInstanced;
     PFNGLDRAWELEMENTSINSTANCEDPROC          glDrawElementsInstanced;
 } LvnOpenglBackends;

@@ -311,14 +311,14 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glClear");
     oglBackends->glClearColor = (PFNGLCLEARCOLORPROC)
         eglLoader->eglGetProcAddress("glClearColor");
-    oglBackends->glClearBufferiv = (PFNGLCLEARBUFFERIVPROC)
-        eglLoader->eglGetProcAddress("glClearBufferiv");
-    oglBackends->glClearBufferuiv = (PFNGLCLEARBUFFERUIVPROC)
-        eglLoader->eglGetProcAddress("glClearBufferuiv");
-    oglBackends->glClearBufferfv = (PFNGLCLEARBUFFERFVPROC)
-        eglLoader->eglGetProcAddress("glClearBufferufv");
-    oglBackends->glClearBufferiv = (PFNGLCLEARBUFFERIVPROC)
-        eglLoader->eglGetProcAddress("glClearBufferuiv");
+    oglBackends->glClearNamedFramebufferiv = (PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferiv");
+    oglBackends->glClearNamedFramebufferuiv = (PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC)
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferuiv");
+    oglBackends->glClearNamedFramebufferfv = (PFNGLCLEARNAMEDFRAMEBUFFERFVPROC)
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferufv");
+    oglBackends->glClearNamedFramebufferiv = (PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferuiv");
     oglBackends->glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)
         eglLoader->eglGetProcAddress("glDrawArraysInstanced");
     oglBackends->glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)
