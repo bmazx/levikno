@@ -1594,6 +1594,13 @@ void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
         oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo->pClearColorValues[i].float32);
     }
 
+    if (renderpassData->hasDepth)
+    {
+        if (renderpassData->depthStencilAttachment.format == Lvn_Format_D32_FLOAT)
+            oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_DEPTH, 0, &beginInfo->clearDepthStencilValue.depth);
+        else if (renderpassData->depthStencilAttachment.format == Lvn_Format_D24_UNORM_S8_UINT)
+            oglBackends->glClearNamedFramebufferfi(framebufferData->fboId, GL_DEPTH_STENCIL, 0, beginInfo->clearDepthStencilValue.depth, beginInfo->clearDepthStencilValue.stencil);
+    }
 }
 
 void lvnCmdBuffImplOglCmdEndRenderPass(void* data)
