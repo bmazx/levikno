@@ -348,6 +348,7 @@ typedef struct LvnOglColorBlendAttachment
 typedef struct LvnOglPipelineData
 {
     uint32_t pipelineId;
+    uint32_t vaoId;
 
     struct
     {

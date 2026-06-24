@@ -1002,6 +1002,10 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
         goto fail_cleanup;
     }
 
+    // create vao
+    oglBackends->glCreateVertexArrays(1, &pipelineData->vaoId);
+
+    // create pipeline/program
     pipelineData->pipelineId = oglBackends->glCreateProgram();
 
     // link shaders
@@ -1126,6 +1130,7 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
 fail_cleanup:
     if (pipelineData)
     {
+        oglBackends->glDeleteVertexArrays(1, &pipelineData->vaoId);
         oglBackends->glDeleteProgram(pipelineData->pipelineId);
         lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
         lvn_free(pipelineData);
@@ -1141,6 +1146,7 @@ void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)
 
     LvnOglPipelineData* pipelineData = (LvnOglPipelineData*) pipeline->pipelineData;
 
+    oglBackends->glDeleteVertexArrays(1, &pipelineData->vaoId);
     oglBackends->glDeleteProgram(pipelineData->pipelineId);
 
     lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
@@ -1583,7 +1589,7 @@ void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
-    LvnOglCmdBuffBeginRenderPassData* cmdData = (LvnOglCmdBuffBeginRenderPassData*) data;
+    const LvnOglCmdBuffBeginRenderPassData* cmdData = (const LvnOglCmdBuffBeginRenderPassData*) data;
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
     const LvnRenderPassBeginInfo* beginInfo = (const LvnRenderPassBeginInfo*) cmdData->beginInfo;
     const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) beginInfo->renderPass->renderpassData;
@@ -1606,13 +1612,17 @@ void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
 void lvnCmdBuffImplOglCmdEndRenderPass(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
-
 }
 
 void lvnCmdBuffImplOglCmdBindPipeline(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffBindPipelineData* cmdData = (const LvnOglCmdBuffBindPipelineData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    const LvnOglPipelineData* pipelineData = (const LvnOglPipelineData*) cmdData->pipeline->pipelineData;
+
+    oglBackends->glUseProgram(pipelineData->pipelineId);
 }
 
 void lvnCmdBuffImplOglCmdBindVertexBuffer(void* data)
