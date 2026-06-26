@@ -301,6 +301,16 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glMapNamedBufferRange");
     oglBackends->glUnmapNamedBuffer = (PFNGLUNMAPNAMEDBUFFERPROC)
         eglLoader->eglGetProcAddress("glUnmapNamedBuffer");
+    oglBackends->glEnableVertexArrayAttrib = (PFNGLENABLEVERTEXARRAYATTRIBPROC)
+        eglLoader->eglGetProcAddress("glEnableVertexArrayAttrib");
+    oglBackends->glVertexArrayAttribBinding = (PFNGLVERTEXARRAYATTRIBBINDINGPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayAttribBinding");
+    oglBackends->glVertexArrayAttribFormat = (PFNGLVERTEXARRAYATTRIBFORMATPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayAttribFormat");
+    oglBackends->glVertexArrayVertexBuffer = (PFNGLVERTEXARRAYVERTEXBUFFERPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayVertexBuffer");
+    oglBackends->glVertexArrayVertexBuffers = (PFNGLVERTEXARRAYVERTEXBUFFERSPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayVertexBuffers");
     oglBackends->glUseProgram = (PFNGLUSEPROGRAMPROC)
         eglLoader->eglGetProcAddress("glUseProgram");
     oglBackends->glBindBuffer = (PFNGLBINDBUFFERPROC)

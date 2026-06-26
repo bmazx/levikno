@@ -215,18 +215,55 @@ typedef enum LvnShaderStage
 typedef enum LvnFormat
 {
     Lvn_Format_Undefined = 0,
+
     Lvn_Format_R8_UNORM,
+    Lvn_Format_R8_SNORM,
+    Lvn_Format_R8_UINT,
+    Lvn_Format_R8_SINT,
+
+    Lvn_Format_R16_UNORM,
+    Lvn_Format_R16_SNORM,
+    Lvn_Format_R16_UINT,
+    Lvn_Format_R16_SINT,
     Lvn_Format_R16_FLOAT,
+
+    Lvn_Format_R32_UINT,
+    Lvn_Format_R32_SINT,
     Lvn_Format_R32_FLOAT,
-    Lvn_Format_RG8_UNORM,
-    Lvn_Format_RG16_FLOAT,
-    Lvn_Format_RG32_FLOAT,
-    Lvn_Format_RGBA8_UNORM,
-    Lvn_Format_RGBA8_SRGB,
-    Lvn_Format_RGBA16_FLOAT,
-    Lvn_Format_RGBA32_FLOAT,
-    Lvn_Format_BGRA8_UNORM,
-    Lvn_Format_BGRA8_SRGB,
+
+    Lvn_Format_R8G8_UNORM,
+    Lvn_Format_R8G8_SNORM,
+    Lvn_Format_R8G8_UINT,
+    Lvn_Format_R8G8_SINT,
+
+    Lvn_Format_R16G16_FLOAT,
+    Lvn_Format_R32G32_FLOAT,
+    Lvn_Format_R32G32_UINT,
+    Lvn_Format_R32G32_SINT,
+
+    Lvn_Format_R32G32B32_FLOAT,
+    Lvn_Format_R32G32B32_UINT,
+    Lvn_Format_R32G32B32_SINT,
+
+    Lvn_Format_R8G8B8A8_UNORM,
+    Lvn_Format_R8G8B8A8_SNORM,
+    Lvn_Format_R8G8B8A8_UINT,
+    Lvn_Format_R8G8B8A8_SINT,
+    Lvn_Format_R8G8B8A8_SRGB,
+
+    Lvn_Format_R16G16B16A16_FLOAT,
+
+    Lvn_Format_R32G32B32A32_FLOAT,
+    Lvn_Format_R32G32B32A32_UINT,
+    Lvn_Format_R32G32B32A32_SINT,
+
+    Lvn_Format_B8G8R8A8_UNORM,
+    Lvn_Format_B8G8R8A8_SRGB,
+
+    Lvn_Format_A2B10G10R10_UNORM,
+    Lvn_Format_A2B10G10R10_UINT,
+
+    Lvn_Format_D16_UNORM,
     Lvn_Format_D24_UNORM_S8_UINT,
     Lvn_Format_D32_FLOAT,
 } LvnFormat;

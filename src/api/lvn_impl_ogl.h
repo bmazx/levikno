@@ -164,6 +164,7 @@
 #define GL_FLOAT 0x1406
 #define GL_HALF_FLOAT 0x140B
 #define GL_UNSIGNED_INT_24_8 0x84FA
+#define GL_UNSIGNED_INT_2_10_10_10_REV 0x8368
 #define GL_NONE 0
 #define GL_RED 0x1903
 #define GL_RG 0x8227
@@ -171,6 +172,12 @@
 #define GL_RGBA 0x1908
 #define GL_BGR 0x80E0
 #define GL_BGRA 0x80E1
+#define GL_RED_INTEGER 0x8D94
+#define GL_RG_INTEGER 0x8228
+#define GL_RGB_INTEGER 0x8D98
+#define GL_RGBA_INTEGER 0x8D99
+#define GL_BGR_INTEGER 0x8D9A
+#define GL_BGRA_INTEGER 0x8D9B
 #define GL_DEPTH_COMPONENT 0x1902
 #define GL_DEPTH_STENCIL 0x84F9
 #define GL_R8 0x8229
@@ -191,8 +198,37 @@
 #define GL_SRGB8 0x8C41
 #define GL_SRGB_ALPHA 0x8C42
 #define GL_SRGB8_ALPHA8 0x8C43
+#define GL_R8I 0x8231
+#define GL_R8UI 0x8232
+#define GL_R16I 0x8233
+#define GL_R16UI 0x8234
+#define GL_R32I 0x8235
+#define GL_R32UI 0x8236
+#define GL_RG8I 0x8237
+#define GL_RG8UI 0x8238
+#define GL_RG16I 0x8239
+#define GL_RG16UI 0x823A
+#define GL_RG32I 0x823B
+#define GL_RG32UI 0x823C
+#define GL_RGB32UI 0x8D71
+#define GL_RGB32I 0x8D83
+#define GL_RGBA8UI 0x8D7C
+#define GL_RGBA8I 0x8D8E
+#define GL_RGBA32UI 0x8D70
+#define GL_RGBA32I 0x8D82
+#define GL_R8_SNORM 0x8F94
+#define GL_RG8_SNORM 0x8F95
+#define GL_RGB8_SNORM 0x8F96
+#define GL_RGBA8_SNORM 0x8F97
+#define GL_R16_SNORM 0x8F98
+#define GL_RG16_SNORM 0x8F99
+#define GL_RGB16_SNORM 0x8F9A
+#define GL_RGBA16_SNORM 0x8F9B
+#define GL_DEPTH_COMPONENT16 0x81A5
 #define GL_DEPTH_COMPONENT32F 0x8CAC
 #define GL_DEPTH24_STENCIL8 0x88F0
+#define GL_RGB10_A2 0x8059
+#define GL_RGB10_A2UI 0x906F
 #define GL_FRAGMENT_SHADER 0x8B30
 #define GL_VERTEX_SHADER 0x8B31
 #define GL_COMPILE_STATUS 0x8B81
@@ -286,6 +322,11 @@ typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERSTORAGEPROC)(GLuint buffer, GLsizeiptr
 typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERDATAPROC)(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage);
 typedef void* (GLAPIENTRY *PFNGLMAPNAMEDBUFFERRANGEPROC)(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
 typedef GLboolean (GLAPIENTRY *PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
+typedef void (GLAPIENTRY *PFNGLENABLEVERTEXARRAYATTRIBPROC)(GLuint vaobj, GLuint index);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBBINDINGPROC)(GLuint vaobj, GLuint attribindex, GLuint bindingindex);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBFORMATPROC)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYVERTEXBUFFERPROC)(GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYVERTEXBUFFERSPROC)(GLuint vaobj, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 typedef void (GLAPIENTRY *PFNGLUSEPROGRAMPROC)(GLuint program);
 typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
@@ -537,6 +578,11 @@ typedef struct LvnOpenglBackends
     PFNGLNAMEDBUFFERDATAPROC                glNamedBufferData;
     PFNGLMAPNAMEDBUFFERRANGEPROC            glMapNamedBufferRange;
     PFNGLUNMAPNAMEDBUFFERPROC               glUnmapNamedBuffer;
+    PFNGLENABLEVERTEXARRAYATTRIBPROC        glEnableVertexArrayAttrib;
+    PFNGLVERTEXARRAYATTRIBBINDINGPROC       glVertexArrayAttribBinding;
+    PFNGLVERTEXARRAYATTRIBFORMATPROC        glVertexArrayAttribFormat;
+    PFNGLVERTEXARRAYVERTEXBUFFERPROC        glVertexArrayVertexBuffer;
+    PFNGLVERTEXARRAYVERTEXBUFFERSPROC       glVertexArrayVertexBuffers;
     PFNGLUSEPROGRAMPROC                     glUseProgram;
     PFNGLBINDBUFFERPROC                     glBindBuffer;
     PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;

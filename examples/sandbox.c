@@ -237,7 +237,7 @@ int main(int argc, char** argv)
     LvnFormat selFormat = formats[0];
     for (uint32_t i = 0; i < formatCount; i++)
     {
-        if (formats[i] == Lvn_Format_BGRA8_SRGB)
+        if (formats[i] == Lvn_Format_B8G8R8A8_SRGB)
         {
             selFormat = formats[i];
             printf("found surface format\n");
@@ -278,7 +278,7 @@ int main(int argc, char** argv)
 
     LvnColorAttachment colorAttachment = {
         .usage = Lvn_AttachmentUsage_PresentSrc,
-        .format = Lvn_Format_BGRA8_SRGB,
+        .format = Lvn_Format_B8G8R8A8_SRGB,
         .samples = Lvn_SampleCountFlag_1_Bit,
         .loadOp = Lvn_AttachmentLoadOp_Clear,
         .storeOp = Lvn_AttachmentStoreOp_Store,
@@ -421,7 +421,7 @@ int main(int argc, char** argv)
     LvnImage image = lvnLoadImageEx("/home/bma/Documents/textures/woodBox.jpg", 4, false);
 
     LvnTextureCreateInfo textureCreateInfo = {
-        .format = Lvn_Format_RGBA8_SRGB,
+        .format = Lvn_Format_R8G8B8A8_SRGB,
         .image = &image,
         .sampler = sampler,
         .samples = Lvn_SampleCountFlag_1_Bit,
