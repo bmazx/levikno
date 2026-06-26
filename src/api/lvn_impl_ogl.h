@@ -371,6 +371,13 @@ typedef struct LvnOglFramebufferData
     bool                    multisample;
 } LvnOglFramebufferData;
 
+typedef struct LvnOglFormatData
+{
+    GLenum    internalFormat;
+    GLenum    dataFormat;
+    GLenum    dataType;
+} LvnOglFormatData;
+
 typedef struct LvnOglColorBlendAttachment
 {
     GLenum    srcRGB;
