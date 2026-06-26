@@ -337,8 +337,8 @@ int main(int argc, char** argv)
 
     LvnVertexAttribute attributes[2] =
     {
-        { 0, 0, Lvn_AttributeFormat_Vec2_f32, 0 },
-        { 0, 1, Lvn_AttributeFormat_Vec3_f32, (2 * sizeof(float)) },
+        { 0, 0, Lvn_Format_R32G32_FLOAT, 0 },
+        { 0, 1, Lvn_Format_R32G32B32_FLOAT, (2 * sizeof(float)) },
     };
 
     LvnVertexBindingDescription vertexBindingDescription = {

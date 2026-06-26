@@ -167,45 +167,6 @@ typedef enum LvnLogicOperation
     Lvn_LogicOp_Set,
 } LvnLogicOperation;
 
-typedef enum LvnAttributeFormat
-{
-    Lvn_AttributeFormat_Undefined = 0,
-    Lvn_AttributeFormat_Scalar_f32,
-    Lvn_AttributeFormat_Scalar_f64,
-    Lvn_AttributeFormat_Scalar_i32,
-    Lvn_AttributeFormat_Scalar_ui32,
-    Lvn_AttributeFormat_Scalar_i8,
-    Lvn_AttributeFormat_Scalar_ui8,
-    Lvn_AttributeFormat_Vec2_f32,
-    Lvn_AttributeFormat_Vec3_f32,
-    Lvn_AttributeFormat_Vec4_f32,
-    Lvn_AttributeFormat_Vec2_f64,
-    Lvn_AttributeFormat_Vec3_f64,
-    Lvn_AttributeFormat_Vec4_f64,
-    Lvn_AttributeFormat_Vec2_i32,
-    Lvn_AttributeFormat_Vec3_i32,
-    Lvn_AttributeFormat_Vec4_i32,
-    Lvn_AttributeFormat_Vec2_ui32,
-    Lvn_AttributeFormat_Vec3_ui32,
-    Lvn_AttributeFormat_Vec4_ui32,
-    Lvn_AttributeFormat_Vec2_i8,
-    Lvn_AttributeFormat_Vec3_i8,
-    Lvn_AttributeFormat_Vec4_i8,
-    Lvn_AttributeFormat_Vec2_ui8,
-    Lvn_AttributeFormat_Vec3_ui8,
-    Lvn_AttributeFormat_Vec4_ui8,
-    Lvn_AttributeFormat_Vec2_n8,
-    Lvn_AttributeFormat_Vec3_n8,
-    Lvn_AttributeFormat_Vec4_n8,
-    Lvn_AttributeFormat_Vec2_un8,
-    Lvn_AttributeFormat_Vec3_un8,
-    Lvn_AttributeFormat_Vec4_un8,
-    Lvn_AttributeFormat_2_10_10_10_ile,
-    Lvn_AttributeFormat_2_10_10_10_uile,
-    Lvn_AttributeFormat_2_10_10_10_nle,
-    Lvn_AttributeFormat_2_10_10_10_unle,
-} LvnAttributeFormat;
-
 typedef enum LvnShaderStage
 {
     Lvn_ShaderStage_Vertex,
@@ -502,10 +463,10 @@ typedef struct LvnVertexBindingDescription
 
 typedef struct LvnVertexAttribute
 {
-    uint32_t              binding;
-    uint32_t              layout;
-    LvnAttributeFormat    format;
-    uint64_t              offset;
+    uint32_t     binding;
+    uint32_t     layout;
+    LvnFormat    format;
+    uint64_t     offset;
 } LvnVertexAttribute;
 
 typedef struct LvnPipelineCreateInfo
