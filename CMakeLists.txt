@@ -77,6 +77,7 @@ set(LVN_SRC
     include/levikno/levikno.h
     src/levikno.c
     src/levikno_internal.h
+    src/lvn_cma.h
     src/lvn_platform.c
 )
 

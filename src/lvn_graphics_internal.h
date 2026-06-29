@@ -2,7 +2,9 @@
 #define HG_LVN_GRAPHICS_INTERNAL_H
 
 #include "lvn_graphics.h"
+
 #include "levikno_internal.h"
+#include "lvn_cma.h"
 
 
 struct LvnBuffer
