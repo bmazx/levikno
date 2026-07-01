@@ -3619,6 +3619,8 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     VkFence vkFence = fence ? (VkFence)fence->fenceData : VK_NULL_HANDLE;
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
+    LvnResult retResult = Lvn_Result_Success;
+
     LvnArenaMark mark = lvn_memArenaMark(&vkBackends->frameArena);
 
     // get count of all semaphores and command buffers
@@ -3675,12 +3677,13 @@ LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lvn
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to submit command buffers to queue");
-        return Lvn_Result_Failure;
+        retResult = Lvn_Result_Failure;
+        goto submit_return;
     }
 
+submit_return:
     lvn_memArenaMarkRevert(&vkBackends->frameArena, &mark);
-
-    return Lvn_Result_Success;
+    return retResult;
 }
 
 LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
@@ -3689,6 +3692,8 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
 
+    LvnResult retResult = Lvn_Result_Success;
+
     LvnArenaMark mark = lvn_memArenaMark(&vkBackends->frameArena);
 
     VkSemaphore* waitSemaphores = lvn_memArenaAlloc(&vkBackends->frameArena,
@@ -3696,8 +3701,7 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
     for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
         waitSemaphores[i] = (VkSemaphore) presentInfo->pWaitSemaphores[i]->semaphoreData;
 
-    VkSwapchainKHR* swapchains = lvn_memArenaAlloc(&vkBackends->frameArena,
-                                                   presentInfo->swapchainCount * sizeof(VkSwapchainKHR));
+    VkSwapchainKHR* swapchains = lvn_memArenaAlloc(&vkBackends->frameArena, presentInfo->swapchainCount * sizeof(VkSwapchainKHR));
     for (uint32_t i = 0; i < presentInfo->swapchainCount; i++)
         swapchains[i] = ((LvnVkSwapchainData*)presentInfo->pSwapchains[i]->swapchainData)->swapchain;
 
@@ -3714,15 +3718,19 @@ LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const Lv
     VkResult result = vkBackends->vkQueuePresentKHR(vkBackends->presentQueue, &vkPresentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-        return Lvn_Result_OutOfDate;
+    {
+        retResult = Lvn_Result_OutOfDate;
+        goto present_return;
+    }
     else if (result != VK_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[vulkan] failed to present swapchain image");
-        return Lvn_Result_Failure;
+        retResult = Lvn_Result_Failure;
+        goto present_return;
     }
 
+present_return:
     lvn_memArenaMarkRevert(&vkBackends->frameArena, &mark);
-
-    return Lvn_Result_Success;
+    return retResult;
 }
