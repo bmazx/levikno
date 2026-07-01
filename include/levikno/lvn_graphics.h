@@ -555,7 +555,7 @@ typedef struct LvnRenderPassBeginInfo
     LvnRenderArea                      renderArea;
     uint32_t                           clearColorValueCount;
     const LvnClearColorValue*          pClearColorValues;
-    const LvnClearDepthStencilValue    clearDepthStencilValue;
+    LvnClearDepthStencilValue          clearDepthStencilValue;
 } LvnRenderPassBeginInfo;
 
 typedef struct LvnSubmitInfo

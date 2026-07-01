@@ -126,12 +126,17 @@ LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** s
 {
     LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
 
-    *surface = (LvnSurface*) lvn_calloc(sizeof(LvnSurface));
+    LvnResult errResult = Lvn_Result_Failure;
+    *surface = NULL;
 
+    *surface = (LvnSurface*) lvn_calloc(sizeof(LvnSurface));
     if (!*surface)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for surface at %p", surface);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for surface at %p",
+                      surface);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnSurface* surfacePtr = *surface;
@@ -139,9 +144,23 @@ LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** s
 
     LvnResult result = graphicsctx->implCreateSurface(graphicsctx, *surface, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*surface);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create surface at %p",
+                      surface);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*surface)
+    {
+        lvn_free(*surface);
+        *surface = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroySurface(LvnSurface* surface)
@@ -186,21 +205,19 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
 {
     LVN_ASSERT(graphicsctx && renderpass && createInfo, "graphicsctx, renderpass, and createInfo cannot be null");
 
-    LvnResult errResult = Lvn_Result_Failure;
-
     if (createInfo->colorAttachmentCount > 0 && !createInfo->pColorAttachments)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create renderpass at (%p), createInfo->colorAttachmentCount is greater than zero (%u) but createInfo->pColorAttachments is null",
                       renderpass, createInfo->colorAttachmentCount);
-        goto fail_cleanup;
+        return Lvn_Result_Failure;
     }
     if (createInfo->colorAttachmentCount == 0 && !createInfo->depthStencilAttachment)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create renderpass at (%p), createInfo->colorAttachmentCount is zero and createInfo->depthStencilAttachment is null; cannot create renderpass with no attachments",
                       renderpass);
-        goto fail_cleanup;
+        return Lvn_Result_Failure;
     }
 
     for (uint32_t i = 0; i < createInfo->colorAttachmentCount; i++)
@@ -218,7 +235,7 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
                 LVN_LOG_ERROR(graphicsctx->coreLogger,
                               "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].format does not have the same format to createInfo->pColorAttachments.resolveAttachment->format; the formats of the color attachment and resolve attachment must be the same",
                               renderpass, i);
-                goto fail_cleanup;
+                return Lvn_Result_Failure;
             }
         }
         if (createInfo->pColorAttachments[i].samples != createInfo->pColorAttachments[(i + 1) % createInfo->colorAttachmentCount].samples)
@@ -226,7 +243,7 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "failed to create renderpass at (%p), misaligned sample count, all color attachments must have the same sample count, createInfo->pColorAttachments[%u] and createInfo->pColorAttachments[%u]",
                           renderpass, i, (i + 1) % createInfo->colorAttachmentCount);
-            goto fail_cleanup;
+            return Lvn_Result_Failure;
         }
         if (createInfo->depthStencilAttachment)
         {
@@ -235,16 +252,20 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
                 LVN_LOG_ERROR(graphicsctx->coreLogger,
                               "failed to create renderpass at (%p), createInfo->pColorAttachments[%u].samples does not have the same sample count to createInfo->depthStencilAttachment->samples; the depthStencilAttachment must have the same sample count to the color attachments",
                               renderpass, i);
-                goto fail_cleanup;
+                return Lvn_Result_Failure;
             }
         }
     }
 
-    *renderpass = (LvnRenderPass*) lvn_calloc(sizeof(LvnRenderPass));
+    LvnResult errResult = Lvn_Result_Failure;
+    *renderpass = NULL;
 
+    *renderpass = (LvnRenderPass*) lvn_calloc(sizeof(LvnRenderPass));
     if (!*renderpass)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for renderpass at %p", renderpass);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for renderpass at %p",
+                      renderpass);
         errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
@@ -256,7 +277,9 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
     LvnResult result = graphicsctx->implCreateRenderPass(graphicsctx, *renderpass, createInfo);
     if (result != Lvn_Result_Success)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create renderpass at %p", renderpass);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create renderpass at %p",
+                      renderpass);
         errResult = result;
         goto fail_cleanup;
     }
@@ -264,7 +287,11 @@ LvnResult lvnCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPa
     return Lvn_Result_Success;
 
 fail_cleanup:
-    if (*renderpass) { lvn_free(*renderpass); }
+    if (*renderpass)
+    {
+        lvn_free(*renderpass);
+        *renderpass = NULL;
+    }
     return errResult;
 }
 
@@ -280,12 +307,17 @@ LvnResult lvnCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebu
 {
     LVN_ASSERT(graphicsctx && framebuffer && createInfo, "graphicsctx, framebuffer, and createInfo cannot be null");
 
-    *framebuffer = (LvnFramebuffer*) lvn_calloc(sizeof(LvnFramebuffer));
+    LvnResult errResult = Lvn_Result_Failure;
+    *framebuffer = NULL;
 
+    *framebuffer = (LvnFramebuffer*) lvn_calloc(sizeof(LvnFramebuffer));
     if (!*framebuffer)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for framebuffer at %p", framebuffer);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for framebuffer at %p",
+                      framebuffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnFramebuffer* framebufferPtr = *framebuffer;
@@ -293,9 +325,23 @@ LvnResult lvnCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebu
 
     LvnResult result = graphicsctx->implCreateFramebuffer(graphicsctx, *framebuffer, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*framebuffer);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create framebuffer at %p",
+                      framebuffer);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*framebuffer)
+    {
+        lvn_free(*framebuffer);
+        *framebuffer = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyFramebuffer(LvnFramebuffer* framebuffer)
@@ -310,12 +356,17 @@ LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** sha
 {
     LVN_ASSERT(graphicsctx && shader && createInfo, "graphicsctx, shader, and createInfo cannot be null");
 
-    *shader = (LvnShader*) lvn_calloc(sizeof(LvnShader));
+    LvnResult errResult = Lvn_Result_Failure;
+    *shader = NULL;
 
+    *shader = (LvnShader*) lvn_calloc(sizeof(LvnShader));
     if (!*shader)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for shader at %p", shader);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for shader at %p",
+                      shader);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnShader* shaderPtr = *shader;
@@ -323,9 +374,23 @@ LvnResult lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** sha
 
     LvnResult result = graphicsctx->implCreateShader(graphicsctx, *shader, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*shader);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create shader at %p",
+                      shader);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*shader)
+    {
+        lvn_free(*shader);
+        *shader = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyShader(LvnShader* shader)
@@ -340,12 +405,17 @@ LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline**
 {
     LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
 
-    *pipeline = (LvnPipeline*) lvn_calloc(sizeof(LvnPipeline));
+    LvnResult errResult = Lvn_Result_Failure;
+    *pipeline = NULL;
 
+    *pipeline = (LvnPipeline*) lvn_calloc(sizeof(LvnPipeline));
     if (!*pipeline)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for pipeline at %p", pipeline);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for pipeline at %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnPipeline* pipelinePtr = *pipeline;
@@ -353,9 +423,23 @@ LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline**
 
     LvnResult result = graphicsctx->implCreatePipeline(graphicsctx, *pipeline, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*pipeline);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create pipeline at %p",
+                      pipeline);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*pipeline)
+    {
+        lvn_free(*pipeline);
+        *pipeline = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyPipeline(LvnPipeline* pipeline)
@@ -370,12 +454,17 @@ LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence
 {
     LVN_ASSERT(graphicsctx && fence, "graphicsctx and fence cannot be null");
 
-    *fence = (LvnFence*) lvn_calloc(sizeof(LvnFence));
+    LvnResult errResult = Lvn_Result_Failure;
+    *fence = NULL;
 
+    *fence = (LvnFence*) lvn_calloc(sizeof(LvnFence));
     if (!*fence)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", fence);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for fence at %p",
+                      fence);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnFence* fencePtr = *fence;
@@ -383,9 +472,23 @@ LvnResult lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence
 
     LvnResult result = graphicsctx->implCreateFence(graphicsctx, *fence, signaled);
     if (result != Lvn_Result_Success)
-        lvn_free(*fence);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create fence at %p",
+                      fence);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*fence)
+    {
+        lvn_free(*fence);
+        *fence = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyFence(LvnFence* fence)
@@ -400,12 +503,17 @@ LvnResult lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore
 {
     LVN_ASSERT(graphicsctx && semaphore, "graphicsctx and semaphore cannot be null");
 
-    *semaphore = (LvnSemaphore*) lvn_calloc(sizeof(LvnSemaphore));
+    LvnResult errResult = Lvn_Result_Failure;
+    *semaphore = NULL;
 
+    *semaphore = (LvnSemaphore*) lvn_calloc(sizeof(LvnSemaphore));
     if (!*semaphore)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for fence at %p", semaphore);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for fence at %p",
+                      semaphore);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnSemaphore* semaphorePtr = *semaphore;
@@ -413,9 +521,23 @@ LvnResult lvnCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore
 
     LvnResult result = graphicsctx->implCreateSemaphore(graphicsctx, *semaphore);
     if (result != Lvn_Result_Success)
-        lvn_free(*semaphore);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create semaphore at %p",
+                      semaphore);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*semaphore)
+    {
+        lvn_free(*semaphore);
+        *semaphore = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroySemaphore(LvnSemaphore* semaphore)
@@ -430,12 +552,17 @@ LvnResult lvnCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer** buf
 {
     LVN_ASSERT(graphicsctx && buffer && createInfo, "graphicsctx, buffer, and createInfo cannot be null");
 
-    *buffer = (LvnBuffer*) lvn_calloc(sizeof(LvnBuffer));
+    LvnResult errResult = Lvn_Result_Failure;
+    *buffer = NULL;
 
+    *buffer = (LvnBuffer*) lvn_calloc(sizeof(LvnBuffer));
     if (!*buffer)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for buffer at %p", buffer);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for buffer at %p",
+                      buffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnBuffer* bufferPtr = *buffer;
@@ -446,9 +573,23 @@ LvnResult lvnCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer** buf
 
     LvnResult result = graphicsctx->implCreateBuffer(graphicsctx, *buffer, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*buffer);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create buffer at %p",
+                      buffer);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*buffer)
+    {
+        lvn_free(*buffer);
+        *buffer = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyBuffer(LvnBuffer* buffer)
@@ -463,12 +604,17 @@ LvnResult lvnCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler** s
 {
     LVN_ASSERT(graphicsctx && sampler && createInfo, "graphicsctx, sampler, and createInfo cannot be null");
 
-    *sampler = (LvnSampler*) lvn_calloc(sizeof(LvnSampler));
+    LvnResult errResult = Lvn_Result_Failure;
+    *sampler = NULL;
 
+    *sampler = (LvnSampler*) lvn_calloc(sizeof(LvnSampler));
     if (!*sampler)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for sampler at %p", sampler);
-        return Lvn_Result_OutOfMemory;
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for sampler at %p",
+                      sampler);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnSampler* samplerPtr = *sampler;
@@ -476,9 +622,23 @@ LvnResult lvnCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler** s
 
     LvnResult result = graphicsctx->implCreateSampler(graphicsctx, *sampler, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*sampler);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create sampler at %p",
+                      sampler);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*sampler)
+    {
+        lvn_free(*sampler);
+        *sampler = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroySampler(LvnSampler* sampler)
@@ -505,13 +665,16 @@ LvnResult lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** t
         return Lvn_Result_Failure;
     }
 
+    LvnResult errResult = Lvn_Result_Failure;
+    *texture = NULL;
+
     // allocate texture
     *texture = (LvnTexture*) lvn_calloc(sizeof(LvnTexture));
-
     if (!*texture)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for texture at %p", texture);
-        return Lvn_Result_OutOfMemory;
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
     LvnTexture* texturePtr = *texture;
@@ -519,9 +682,23 @@ LvnResult lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** t
 
     LvnResult result = graphicsctx->implCreateTexture(graphicsctx, *texture, createInfo);
     if (result != Lvn_Result_Success)
-        lvn_free(*texture);
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create texture at %p",
+                      texture);
+        errResult = result;
+        goto fail_cleanup;
+    }
 
-    return result;
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*texture)
+    {
+        lvn_free(*texture);
+        *texture = NULL;
+    }
+    return errResult;
 }
 
 void lvnDestroyTexture(LvnTexture* texture)
@@ -537,12 +714,15 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
     LVN_ASSERT(graphicsctx && commandBuffer, "graphicsctx and commandBuffers cannot be null");
 
     LvnResult errResult = Lvn_Result_Failure;
+    *commandBuffer = NULL;
 
     // allocate commandBuffer
     *commandBuffer = (LvnCommandBuffer*) lvn_calloc(sizeof(LvnCommandBuffer));
     if (!*commandBuffer)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate memory for commandBuffer at %p", commandBuffer);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for commandBuffer at %p",
+                      commandBuffer);
         errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
@@ -559,7 +739,9 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
     LvnResult result = lvn_memArenaCreate(&commandBufferPtr->frameArena, &arenaCreateInfo);
     if (result != Lvn_Result_Success)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create memory arena for command buffer at %p", commandBuffer);
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create memory arena for command buffer at %p",
+                      commandBuffer);
         errResult = result;
         goto fail_cleanup;
     }
@@ -567,7 +749,10 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
     result = graphicsctx->implCreateCommandBuffer(graphicsctx, commandBufferPtr);
     if (result != Lvn_Result_Success)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate graphics api impl command buffers");
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create commandBuffer at %p",
+                      commandBuffer);
+        errResult = result;
         goto fail_cleanup;
     }
 
@@ -578,6 +763,7 @@ fail_cleanup:
     {
         lvn_memArenaDestroy(&(*commandBuffer)->frameArena);
         lvn_free(*commandBuffer);
+        *commandBuffer = NULL;
     }
     return errResult;
 }
