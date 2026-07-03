@@ -307,6 +307,10 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glVertexArrayAttribBinding");
     oglBackends->glVertexArrayAttribFormat = (PFNGLVERTEXARRAYATTRIBFORMATPROC)
         eglLoader->eglGetProcAddress("glVertexArrayAttribFormat");
+    oglBackends->glVertexArrayAttribIFormat = (PFNGLVERTEXARRAYATTRIBIFORMATPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayAttribIFormat");
+    oglBackends->glVertexArrayAttribLFormat = (PFNGLVERTEXARRAYATTRIBLFORMATPROC)
+        eglLoader->eglGetProcAddress("glVertexArrayAttribLFormat");
     oglBackends->glVertexArrayVertexBuffer = (PFNGLVERTEXARRAYVERTEXBUFFERPROC)
         eglLoader->eglGetProcAddress("glVertexArrayVertexBuffer");
     oglBackends->glVertexArrayVertexBuffers = (PFNGLVERTEXARRAYVERTEXBUFFERSPROC)
@@ -315,8 +319,12 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glUseProgram");
     oglBackends->glBindBuffer = (PFNGLBINDBUFFERPROC)
         eglLoader->eglGetProcAddress("glBindBuffer");
+    oglBackends->glBindVertexBuffers = (PFNGLBINDVERTEXBUFFERSPROC)
+        eglLoader->eglGetProcAddress("glBindVertexBuffers");
     oglBackends->glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)
         eglLoader->eglGetProcAddress("glBindVertexArray");
+    oglBackends->glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)
+        eglLoader->eglGetProcAddress("glBindFramebuffer");
     oglBackends->glClear = (PFNGLCLEARPROC)
         eglLoader->eglGetProcAddress("glClear");
     oglBackends->glClearColor = (PFNGLCLEARCOLORPROC)
@@ -329,10 +337,16 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glClearNamedFramebufferufv");
     oglBackends->glClearNamedFramebufferiv = (PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)
         eglLoader->eglGetProcAddress("glClearNamedFramebufferuiv");
-    oglBackends->glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)
-        eglLoader->eglGetProcAddress("glDrawArraysInstanced");
-    oglBackends->glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)
-        eglLoader->eglGetProcAddress("glDrawElementsInstanced");
+    oglBackends->glDrawArraysInstancedBaseInstance = (PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC)
+        eglLoader->eglGetProcAddress("glDrawArraysInstancedBaseInstance");
+    oglBackends->glDrawElementsInstancedBaseVertexBaseInstance = (PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC)
+        eglLoader->eglGetProcAddress("glDrawElementsInstancedBaseVertexBaseInstance");
+    oglBackends->glDepthRange = (PFNGLDEPTHRANGEPROC)
+        eglLoader->eglGetProcAddress("glDepthRange");
+    oglBackends->glViewport = (PFNGLVIEWPORTPROC)
+        eglLoader->eglGetProcAddress("glViewport");
+    oglBackends->glScissor = (PFNGLSCISSORPROC)
+        eglLoader->eglGetProcAddress("glScissor");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

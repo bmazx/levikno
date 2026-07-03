@@ -102,6 +102,7 @@
 #define GL_MAJOR_VERSION 0x821B
 #define GL_MINOR_VERSION 0x821C
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
+#define GL_FRAMEBUFFER 0x8D40
 #define GL_MAX_COLOR_ATTACHMENTS 0x8CDF
 #define GL_MAX_DRAW_BUFFERS 0x8824
 #define GL_COLOR_ATTACHMENT0 0x8CE0
@@ -247,6 +248,15 @@
 #define GL_WAIT_FAILED 0x911D
 #define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFF
 #define GL_SYNC_FLUSH_COMMANDS_BIT 0x00000001
+#define GL_BUFFER 0x82E0
+#define GL_ELEMENT_ARRAY_BUFFER 0x8893
+#define GL_SHADER 0x82E1
+#define GL_PROGRAM 0x82E2
+#define GL_VERTEX_ARRAY 0x8074
+#define GL_SAMPLER 0x82E6
+#define GL_UNIFORM_BUFFER 0x8A11
+#define GL_MAX_VERTEX_ATTRIB_BINDINGS 0x82DA
+#define GL_MAX_VERTEX_ATTRIBS 0x8869
 
 typedef khronos_int8_t GLbyte;
 typedef khronos_uint8_t GLubyte;
@@ -325,20 +335,48 @@ typedef GLboolean (GLAPIENTRY *PFNGLUNMAPNAMEDBUFFERPROC)(GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLENABLEVERTEXARRAYATTRIBPROC)(GLuint vaobj, GLuint index);
 typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBBINDINGPROC)(GLuint vaobj, GLuint attribindex, GLuint bindingindex);
 typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBFORMATPROC)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBIFORMATPROC)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
+typedef void (GLAPIENTRY *PFNGLVERTEXARRAYATTRIBLFORMATPROC)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
 typedef void (GLAPIENTRY *PFNGLVERTEXARRAYVERTEXBUFFERPROC)(GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
 typedef void (GLAPIENTRY *PFNGLVERTEXARRAYVERTEXBUFFERSPROC)(GLuint vaobj, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 typedef void (GLAPIENTRY *PFNGLUSEPROGRAMPROC)(GLuint program);
 typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
+typedef void (GLAPIENTRY *PFNGLBINDVERTEXBUFFERSPROC)(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
+typedef void (GLAPIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
 typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
 typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value);
 typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value);
 typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERFVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value);
 typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERFIPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
-typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
-typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount);
+typedef void (GLAPIENTRY *PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
+typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
+typedef void (GLAPIENTRY *PFNGLDEPTHRANGEPROC)(GLdouble n, GLdouble f);
+typedef void (GLAPIENTRY *PFNGLVIEWPORTPROC)(GLint x, GLint y, GLsizei width, GLsizei height);
+typedef void (GLAPIENTRY *PFNGLSCISSORPROC)(GLint x, GLint y, GLsizei width, GLsizei height);
 
+typedef void (*LvnOglCmdBuffFnCallback)(void*);
+
+typedef enum LvnOglCmdBuffFnEnum
+{
+    Lvn_OglCmdBuffFunc_BeginRenderPass = 0,
+    Lvn_OglCmdBuffFunc_EndRenderPass,
+    Lvn_OglCmdBuffFunc_BindPipeline,
+    Lvn_OglCmdBuffFunc_BindVertexBuffer,
+    Lvn_OglCmdBuffFunc_BindIndexBuffer,
+    Lvn_OglCmdBuffFunc_SetViewport,
+    Lvn_OglCmdBuffFunc_SetScissor,
+    Lvn_OglCmdBuffFunc_Draw,
+    Lvn_OglCmdBuffFunc_DrawIndexed,
+} LvnOglCmdBuffFnEnum;
+
+typedef enum LvnOglVertexAttributeType
+{
+    Lvn_VertexAttribute_N,
+    Lvn_VertexAttribute_I,
+    Lvn_VertexAttribute_L,
+} LvnOglVertexAttributeType;
 
 typedef struct LvnOglSwapchainData
 {
@@ -373,9 +411,12 @@ typedef struct LvnOglFramebufferData
 
 typedef struct LvnOglFormatData
 {
-    GLenum    internalFormat;
-    GLenum    dataFormat;
-    GLenum    dataType;
+    GLenum                       internalFormat;
+    GLenum                       dataFormat;
+    GLenum                       dataType;
+    uint32_t                     componentCount;
+    LvnOglVertexAttributeType    attributeType;
+    bool                         normalized;
 } LvnOglFormatData;
 
 typedef struct LvnOglColorBlendAttachment
@@ -395,8 +436,10 @@ typedef struct LvnOglColorBlendAttachment
 
 typedef struct LvnOglPipelineData
 {
-    uint32_t pipelineId;
-    uint32_t vaoId;
+    uint32_t                           pipelineId;
+    uint32_t                           vaoId;
+    uint32_t                           vertexBindingCount;
+    LvnVertexBindingDescription*       pVertexBindings;
 
     struct
     {
@@ -443,6 +486,33 @@ typedef struct LvnOglSamplerData
     uint32_t    samplerId;
 } LvnOglSamplerData;
 
+typedef struct LvnOglCommandBufferData
+{
+    LvnMemoryArena                      cmdStream;
+
+    struct
+    {
+        uint32_t                        pipelineId, piplineIdOld;
+        uint32_t                        vaoId, vaoIdOld;
+        GLenum                          primitiveMode;
+    } pipeline;
+
+    struct
+    {
+        LvnBuffer**                     pBuffers;
+        uint64_t*                       pOffsets;
+        LvnVertexBindingDescription*    pVertexBindings;
+        uint32_t                        firstBinding;
+        uint32_t                        bindingCount;
+    } vbo;
+
+    struct
+    {
+        uint64_t                        offset;
+        uint32_t                        id, idOld;
+    } ibo;
+} LvnOglCommandBufferData;
+
 typedef struct LvnOglFenceData
 {
     GLsync    fenceId;
@@ -451,29 +521,33 @@ typedef struct LvnOglFenceData
 
 typedef struct LvnOglCmdHeader
 {
-    void        (*callbackFn)(void);
-    uint64_t    offset;
+    LvnOglCmdBuffFnEnum cmdBuffFnEnum;
+    uint32_t            size;
 } LvnOglCmdHeader;
 
 typedef struct LvnOglCmdBuffBeginRenderPassData
 {
-    LvnCommandBuffer*          commandBuffer;
-    LvnRenderPassBeginInfo*    beginInfo;
+    LvnOglCmdHeader                    header;
+    LvnCommandBuffer*                  commandBuffer;
+    LvnRenderPassBeginInfo             beginInfo;
 } LvnOglCmdBuffBeginRenderPassData;
 
 typedef struct LvnOglCmdBuffEndRenderPassData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
 } LvnOglCmdBuffEndRenderPassData;
 
 typedef struct LvnOglCmdBuffBindPipelineData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
     LvnPipeline*         pipeline;
 } LvnOglCmdBuffBindPipelineData;
 
 typedef struct LvnOglCmdBuffBindVertexBufferData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
     LvnBuffer**          pBuffers;
     uint64_t*            pOffsets;
@@ -483,6 +557,7 @@ typedef struct LvnOglCmdBuffBindVertexBufferData
 
 typedef struct LvnOglCmdBuffBindIndexBufferData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
     LvnBuffer*           buffer;
     uint64_t             offset;
@@ -490,18 +565,21 @@ typedef struct LvnOglCmdBuffBindIndexBufferData
 
 typedef struct LvnOglCmdBuffSetViewportData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*     commandBuffer;
     const LvnViewport*    viewport;
 } LvnOglCmdBuffSetViewportData;
 
 typedef struct LvnOglCmdBuffSetScissorData
 {
+    LvnOglCmdHeader         header;
     LvnCommandBuffer*       commandBuffer;
     const LvnRenderArea*    scissor;
 } LvnOglCmdBuffSetScissorData;
 
 typedef struct LvnOglCmdBuffDrawData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
     uint32_t             vertexCount;
     uint32_t             instanceCount;
@@ -511,6 +589,7 @@ typedef struct LvnOglCmdBuffDrawData
 
 typedef struct LvnOglCmdBuffDrawIndexedData
 {
+    LvnOglCmdHeader      header;
     LvnCommandBuffer*    commandBuffer;
     uint32_t             indexCount;
     uint32_t             instanceCount;
@@ -523,8 +602,14 @@ typedef struct LvnOpenglBackends
 {
     const LvnGraphicsContext*               graphicsctx;
     GLint                                   versionMajor, versionMinor;
-    GLint                                   maxColorAttachments;
-    GLint                                   maxDrawBuffers;
+
+    struct
+    {
+        GLint                               maxVertexAttribs;
+        GLint                               maxVertexBindings;
+        GLint                               maxColorAttachments;
+        GLint                               maxDrawBuffers;
+    } capabilities;
 
     void*                                   loaderHandle;
     void*                                   handle;
@@ -534,73 +619,80 @@ typedef struct LvnOpenglBackends
     void                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, LvnSurface*);
     void                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, LvnSurface*);
 
-    PFNGLGETSTRINGPROC                      glGetString;
-    PFNGLGETERRORPROC                       glGetError;
-    PFNGLDEBUGMESSAGECALLBACKPROC           glDebugMessageCallback;
-    PFNGLGETINTEGERVPROC                    glGetIntegerv;
-    PFNGLENABLEPROC                         glEnable;
-    PFNGLENABLEIPROC                        glEnablei;
-    PFNGLDISABLEPROC                        glDisable;
-    PFNGLDISABLEIPROC                       glDisablei;
-    PFNGLCREATEBUFFERSPROC                  glCreateBuffers;
-    PFNGLDELETEBUFFERSPROC                  glDeleteBuffers;
-    PFNGLCREATESAMPLERSPROC                 glCreateSamplers;
-    PFNGLDELETESAMPLERSPROC                 glDeleteSamplers;
-    PFNGLCREATETEXTURESPROC                 glCreateTextures;
-    PFNGLDELETETEXTURESPROC                 glDeleteTextures;
-    PFNGLCREATEFRAMEBUFFERSPROC             glCreateFramebuffers;
-    PFNGLDELETEFRAMEBUFFERSPROC             glDeleteFramebuffers;
-    PFNGLCREATEVERTEXARRAYSPROC             glCreateVertexArrays;
-    PFNGLDELETEVERTEXARRAYSPROC             glDeleteVertexArrays;
-    PFNGLCREATESHADERPROC                   glCreateShader;
-    PFNGLDELETESHADERPROC                   glDeleteShader;
-    PFNGLCREATEPROGRAMPROC                  glCreateProgram;
-    PFNGLDELETEPROGRAMPROC                  glDeleteProgram;
-    PFNGLFENCESYNCPROC                      glFenceSync;
-    PFNGLDELETESYNCPROC                     glDeleteSync;
-    PFNGLCLIENTWAITSYNCPROC                 glClientWaitSync;
-    PFNGLWAITSYNCPROC                       glWaitSync;
-    PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC    glCheckNamedFramebufferStatus;
-    PFNGLNAMEDFRAMEBUFFERTEXTUREPROC        glNamedFramebufferTexture;
-    PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC     glNamedFramebufferDrawBuffer;
-    PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC    glNamedFramebufferDrawBuffers;
-    PFNGLSAMPLERPARAMETERIPROC              glSamplerParameteri;
-    PFNGLTEXTUREPARAMETERIPROC              glTextureParameteri;
-    PFNGLTEXTURESTORAGE2DPROC               glTextureStorage2D;
-    PFNGLTEXTURESTORAGE2DMULTISAMPLEPROC    glTextureStorage2DMultisample;
-    PFNGLTEXTURESUBIMAGE2DPROC              glTextureSubImage2D;
-    PFNGLSHADERSOURCEPROC                   glShaderSource;
-    PFNGLCOMPILESHADERPROC                  glCompileShader;
-    PFNGLGETSHADERIVPROC                    glGetShaderiv;
-    PFNGLATTACHSHADERPROC                   glAttachShader;
-    PFNGLLINKPROGRAMPROC                    glLinkProgram;
-    PFNGLGETPROGRAMIVPROC                   glGetProgramiv;
-    PFNGLGETPROGRAMINFOLOGPROC              glGetProgramInfoLog;
-    PFNGLGETSHADERINFOLOGPROC               glGetShaderInfoLog;
-    PFNGLBLENDFUNCSEPARATEIPROC             glBlendFuncSeparatei;
-    PFNGLBLENDEQUATIONSEPARATEIPROC         glBlendEquationSeparatei;
-    PFNGLCOLORMASKIPROC                     glColorMaski;
-    PFNGLPOLYGONMODEPROC                    glPolygonMode;
-    PFNGLNAMEDBUFFERSTORAGEPROC             glNamedBufferStorage;
-    PFNGLNAMEDBUFFERDATAPROC                glNamedBufferData;
-    PFNGLMAPNAMEDBUFFERRANGEPROC            glMapNamedBufferRange;
-    PFNGLUNMAPNAMEDBUFFERPROC               glUnmapNamedBuffer;
-    PFNGLENABLEVERTEXARRAYATTRIBPROC        glEnableVertexArrayAttrib;
-    PFNGLVERTEXARRAYATTRIBBINDINGPROC       glVertexArrayAttribBinding;
-    PFNGLVERTEXARRAYATTRIBFORMATPROC        glVertexArrayAttribFormat;
-    PFNGLVERTEXARRAYVERTEXBUFFERPROC        glVertexArrayVertexBuffer;
-    PFNGLVERTEXARRAYVERTEXBUFFERSPROC       glVertexArrayVertexBuffers;
-    PFNGLUSEPROGRAMPROC                     glUseProgram;
-    PFNGLBINDBUFFERPROC                     glBindBuffer;
-    PFNGLBINDVERTEXARRAYPROC                glBindVertexArray;
-    PFNGLCLEARPROC                          glClear;
-    PFNGLCLEARCOLORPROC                     glClearColor;
-    PFNGLCLEARNAMEDFRAMEBUFFERIVPROC        glClearNamedFramebufferiv;
-    PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC       glClearNamedFramebufferuiv;
-    PFNGLCLEARNAMEDFRAMEBUFFERFVPROC        glClearNamedFramebufferfv;
-    PFNGLCLEARNAMEDFRAMEBUFFERFIPROC        glClearNamedFramebufferfi;
-    PFNGLDRAWARRAYSINSTANCEDPROC            glDrawArraysInstanced;
-    PFNGLDRAWELEMENTSINSTANCEDPROC          glDrawElementsInstanced;
+    PFNGLGETSTRINGPROC                                      glGetString;
+    PFNGLGETERRORPROC                                       glGetError;
+    PFNGLDEBUGMESSAGECALLBACKPROC                           glDebugMessageCallback;
+    PFNGLGETINTEGERVPROC                                    glGetIntegerv;
+    PFNGLENABLEPROC                                         glEnable;
+    PFNGLENABLEIPROC                                        glEnablei;
+    PFNGLDISABLEPROC                                        glDisable;
+    PFNGLDISABLEIPROC                                       glDisablei;
+    PFNGLCREATEBUFFERSPROC                                  glCreateBuffers;
+    PFNGLDELETEBUFFERSPROC                                  glDeleteBuffers;
+    PFNGLCREATESAMPLERSPROC                                 glCreateSamplers;
+    PFNGLDELETESAMPLERSPROC                                 glDeleteSamplers;
+    PFNGLCREATETEXTURESPROC                                 glCreateTextures;
+    PFNGLDELETETEXTURESPROC                                 glDeleteTextures;
+    PFNGLCREATEFRAMEBUFFERSPROC                             glCreateFramebuffers;
+    PFNGLDELETEFRAMEBUFFERSPROC                             glDeleteFramebuffers;
+    PFNGLCREATEVERTEXARRAYSPROC                             glCreateVertexArrays;
+    PFNGLDELETEVERTEXARRAYSPROC                             glDeleteVertexArrays;
+    PFNGLCREATESHADERPROC                                   glCreateShader;
+    PFNGLDELETESHADERPROC                                   glDeleteShader;
+    PFNGLCREATEPROGRAMPROC                                  glCreateProgram;
+    PFNGLDELETEPROGRAMPROC                                  glDeleteProgram;
+    PFNGLFENCESYNCPROC                                      glFenceSync;
+    PFNGLDELETESYNCPROC                                     glDeleteSync;
+    PFNGLCLIENTWAITSYNCPROC                                 glClientWaitSync;
+    PFNGLWAITSYNCPROC                                       glWaitSync;
+    PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC                    glCheckNamedFramebufferStatus;
+    PFNGLNAMEDFRAMEBUFFERTEXTUREPROC                        glNamedFramebufferTexture;
+    PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC                     glNamedFramebufferDrawBuffer;
+    PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC                    glNamedFramebufferDrawBuffers;
+    PFNGLSAMPLERPARAMETERIPROC                              glSamplerParameteri;
+    PFNGLTEXTUREPARAMETERIPROC                              glTextureParameteri;
+    PFNGLTEXTURESTORAGE2DPROC                               glTextureStorage2D;
+    PFNGLTEXTURESTORAGE2DMULTISAMPLEPROC                    glTextureStorage2DMultisample;
+    PFNGLTEXTURESUBIMAGE2DPROC                              glTextureSubImage2D;
+    PFNGLSHADERSOURCEPROC                                   glShaderSource;
+    PFNGLCOMPILESHADERPROC                                  glCompileShader;
+    PFNGLGETSHADERIVPROC                                    glGetShaderiv;
+    PFNGLATTACHSHADERPROC                                   glAttachShader;
+    PFNGLLINKPROGRAMPROC                                    glLinkProgram;
+    PFNGLGETPROGRAMIVPROC                                   glGetProgramiv;
+    PFNGLGETPROGRAMINFOLOGPROC                              glGetProgramInfoLog;
+    PFNGLGETSHADERINFOLOGPROC                               glGetShaderInfoLog;
+    PFNGLBLENDFUNCSEPARATEIPROC                             glBlendFuncSeparatei;
+    PFNGLBLENDEQUATIONSEPARATEIPROC                         glBlendEquationSeparatei;
+    PFNGLCOLORMASKIPROC                                     glColorMaski;
+    PFNGLPOLYGONMODEPROC                                    glPolygonMode;
+    PFNGLNAMEDBUFFERSTORAGEPROC                             glNamedBufferStorage;
+    PFNGLNAMEDBUFFERDATAPROC                                glNamedBufferData;
+    PFNGLMAPNAMEDBUFFERRANGEPROC                            glMapNamedBufferRange;
+    PFNGLUNMAPNAMEDBUFFERPROC                               glUnmapNamedBuffer;
+    PFNGLENABLEVERTEXARRAYATTRIBPROC                        glEnableVertexArrayAttrib;
+    PFNGLVERTEXARRAYATTRIBBINDINGPROC                       glVertexArrayAttribBinding;
+    PFNGLVERTEXARRAYATTRIBFORMATPROC                        glVertexArrayAttribFormat;
+    PFNGLVERTEXARRAYATTRIBIFORMATPROC                       glVertexArrayAttribIFormat;
+    PFNGLVERTEXARRAYATTRIBLFORMATPROC                       glVertexArrayAttribLFormat;
+    PFNGLVERTEXARRAYVERTEXBUFFERPROC                        glVertexArrayVertexBuffer;
+    PFNGLVERTEXARRAYVERTEXBUFFERSPROC                       glVertexArrayVertexBuffers;
+    PFNGLUSEPROGRAMPROC                                     glUseProgram;
+    PFNGLBINDBUFFERPROC                                     glBindBuffer;
+    PFNGLBINDVERTEXBUFFERSPROC                              glBindVertexBuffers;
+    PFNGLBINDVERTEXARRAYPROC                                glBindVertexArray;
+    PFNGLBINDFRAMEBUFFERPROC                                glBindFramebuffer;
+    PFNGLCLEARPROC                                          glClear;
+    PFNGLCLEARCOLORPROC                                     glClearColor;
+    PFNGLCLEARNAMEDFRAMEBUFFERIVPROC                        glClearNamedFramebufferiv;
+    PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC                       glClearNamedFramebufferuiv;
+    PFNGLCLEARNAMEDFRAMEBUFFERFVPROC                        glClearNamedFramebufferfv;
+    PFNGLCLEARNAMEDFRAMEBUFFERFIPROC                        glClearNamedFramebufferfi;
+    PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC                glDrawArraysInstancedBaseInstance;
+    PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC    glDrawElementsInstancedBaseVertexBaseInstance;
+    PFNGLDEPTHRANGEPROC                                     glDepthRange;
+    PFNGLVIEWPORTPROC                                       glViewport;
+    PFNGLSCISSORPROC                                        glScissor;
 } LvnOpenglBackends;
 
 LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);

@@ -1,5 +1,7 @@
 #include "lvn_impl_ogl.h"
 
+#include <string.h>
+
 #if defined(LVN_INCLUDE_EGL)
     #include "lvn_impl_egl_loader.h"
 #endif
@@ -14,46 +16,59 @@
 
 static const LvnOglFormatData s_OglFormatTypes[] =
 {
-    [Lvn_Format_Undefined] = { .internalFormat = GL_NONE, .dataFormat = GL_NONE, .dataType = GL_NONE, },
-    [Lvn_Format_R8_UNORM] = { .internalFormat = GL_R8, .dataFormat = GL_RED, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8_SNORM] = { .internalFormat = GL_R8_SNORM, .dataFormat = GL_RED, .dataType = GL_BYTE, },
-    [Lvn_Format_R8_UINT] = { .internalFormat = GL_R8UI, .dataFormat = GL_RED_INTEGER, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8_SINT] = { .internalFormat = GL_R8I, .dataFormat = GL_RED_INTEGER, .dataType = GL_BYTE, },
-    [Lvn_Format_R16_UNORM] = { .internalFormat = GL_R16, .dataFormat = GL_RED, .dataType = GL_UNSIGNED_SHORT, },
-    [Lvn_Format_R16_SNORM] = { .internalFormat = GL_R16_SNORM, .dataFormat = GL_RED, .dataType = GL_SHORT, },
-    [Lvn_Format_R16_UINT] = { .internalFormat = GL_R16UI, .dataFormat = GL_RED_INTEGER, .dataType = GL_UNSIGNED_SHORT, },
-    [Lvn_Format_R16_SINT] = { .internalFormat = GL_R16I, .dataFormat = GL_RED_INTEGER, .dataType = GL_SHORT, },
-    [Lvn_Format_R16_FLOAT] = { .internalFormat = GL_R16F, .dataFormat = GL_RED, .dataType = GL_HALF_FLOAT, },
-    [Lvn_Format_R32_UINT] = { .internalFormat = GL_R32UI, .dataFormat = GL_RED_INTEGER, .dataType = GL_UNSIGNED_INT, },
-    [Lvn_Format_R32_SINT] = { .internalFormat = GL_R32I, .dataFormat = GL_RED_INTEGER, .dataType = GL_INT, },
-    [Lvn_Format_R32_FLOAT] = { .internalFormat = GL_R32F, .dataFormat = GL_RED, .dataType = GL_FLOAT, },
-    [Lvn_Format_R8G8_UNORM] = { .internalFormat = GL_RG8, .dataFormat = GL_RG, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8G8_SNORM] = { .internalFormat = GL_RG8_SNORM, .dataFormat = GL_RG, .dataType = GL_BYTE, },
-    [Lvn_Format_R8G8_UINT] = { .internalFormat = GL_RG8UI, .dataFormat = GL_RG_INTEGER, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8G8_SINT] = { .internalFormat = GL_RG8I, .dataFormat = GL_RG_INTEGER, .dataType = GL_BYTE, },
-    [Lvn_Format_R16G16_FLOAT] = { .internalFormat = GL_RG16F, .dataFormat = GL_RG, .dataType = GL_HALF_FLOAT, },
-    [Lvn_Format_R32G32_FLOAT] = { .internalFormat = GL_RG32F, .dataFormat = GL_RG, .dataType = GL_FLOAT, },
-    [Lvn_Format_R32G32_UINT] = { .internalFormat = GL_RG32UI, .dataFormat = GL_RG_INTEGER, .dataType = GL_UNSIGNED_INT, },
-    [Lvn_Format_R32G32_SINT] = { .internalFormat = GL_RG32I, .dataFormat = GL_RG_INTEGER, .dataType = GL_INT, },
-    [Lvn_Format_R32G32B32_FLOAT] = { .internalFormat = GL_RGB32F, .dataFormat = GL_RGB, .dataType = GL_FLOAT, },
-    [Lvn_Format_R32G32B32_UINT] = { .internalFormat = GL_RGB32UI, .dataFormat = GL_RGB_INTEGER, .dataType = GL_UNSIGNED_INT, },
-    [Lvn_Format_R32G32B32_SINT] = { .internalFormat = GL_RGB32I, .dataFormat = GL_RGB_INTEGER, .dataType = GL_INT, },
-    [Lvn_Format_R8G8B8A8_UNORM] = { .internalFormat = GL_RGBA8, .dataFormat = GL_RGBA, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8G8B8A8_SNORM] = { .internalFormat = GL_RGBA8_SNORM, .dataFormat = GL_RGBA, .dataType = GL_BYTE, },
-    [Lvn_Format_R8G8B8A8_UINT] = { .internalFormat = GL_RGBA8UI, .dataFormat = GL_RGBA_INTEGER, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R8G8B8A8_SINT] = { .internalFormat = GL_RGBA8I, .dataFormat = GL_RGBA_INTEGER, .dataType = GL_BYTE, },
-    [Lvn_Format_R8G8B8A8_SRGB] = { .internalFormat = GL_SRGB8_ALPHA8, .dataFormat = GL_RGBA, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_R16G16B16A16_FLOAT] = { .internalFormat = GL_RGBA16F, .dataFormat = GL_RGBA, .dataType = GL_HALF_FLOAT, },
-    [Lvn_Format_R32G32B32A32_FLOAT] = { .internalFormat = GL_RGBA32F, .dataFormat = GL_RGBA, .dataType = GL_FLOAT, },
-    [Lvn_Format_R32G32B32A32_UINT] = { .internalFormat = GL_RGBA32UI, .dataFormat = GL_RGBA, .dataType = GL_UNSIGNED_INT, },
-    [Lvn_Format_R32G32B32A32_SINT] = { .internalFormat = GL_RGBA32I, .dataFormat = GL_RGBA, .dataType = GL_INT, },
-    [Lvn_Format_B8G8R8A8_UNORM] = { .internalFormat = GL_RGBA8, .dataFormat = GL_BGRA, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_B8G8R8A8_SRGB] = { .internalFormat = GL_SRGB8_ALPHA8, .dataFormat = GL_BGRA, .dataType = GL_UNSIGNED_BYTE, },
-    [Lvn_Format_A2B10G10R10_UNORM] = { .internalFormat = GL_RGB10_A2, .dataFormat = GL_RGBA, .dataType = GL_UNSIGNED_INT_2_10_10_10_REV, },
-    [Lvn_Format_A2B10G10R10_UINT] = { .internalFormat = GL_RGB10_A2, .dataFormat = GL_RGBA_INTEGER, .dataType = GL_UNSIGNED_INT_2_10_10_10_REV, },
-    [Lvn_Format_D16_UNORM] = { .internalFormat = GL_DEPTH_COMPONENT16, .dataFormat = GL_DEPTH_COMPONENT, .dataType = GL_UNSIGNED_SHORT, },
-    [Lvn_Format_D32_FLOAT] = { .internalFormat = GL_DEPTH_COMPONENT32F, .dataFormat = GL_DEPTH_COMPONENT, .dataType = GL_FLOAT, },
-    [Lvn_Format_D24_UNORM_S8_UINT] = { .internalFormat = GL_DEPTH24_STENCIL8, .dataFormat = GL_DEPTH_STENCIL, .dataType = GL_UNSIGNED_INT_24_8, },
+    [Lvn_Format_Undefined] = { GL_NONE, GL_NONE, GL_NONE, 0, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R8_UNORM] = { GL_R8, GL_RED, GL_UNSIGNED_BYTE, 1, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8_SNORM] = { GL_R8_SNORM, GL_RED, GL_BYTE, 1, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8_UINT] = { GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_BYTE, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R8_SINT] = { GL_R8I, GL_RED_INTEGER, GL_BYTE, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R16_UNORM] = { GL_R16, GL_RED, GL_UNSIGNED_SHORT, 1, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R16_SNORM] = { GL_R16_SNORM, GL_RED, GL_SHORT, 1, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R16_UINT] = { GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R16_SINT] = { GL_R16I, GL_RED_INTEGER, GL_SHORT, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R16_FLOAT] = { GL_R16F, GL_RED, GL_HALF_FLOAT, 1, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R32_UINT] = { GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32_SINT] = { GL_R32I, GL_RED_INTEGER, GL_INT, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32_FLOAT] = { GL_R32F, GL_RED, GL_FLOAT, 1, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R8G8_UNORM] = { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, 2, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8G8_SNORM] = { GL_RG8_SNORM, GL_RG, GL_BYTE, 2, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8G8_UINT] = { GL_RG8UI, GL_RG_INTEGER, GL_UNSIGNED_BYTE, 2, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R8G8_SINT] = { GL_RG8I, GL_RG_INTEGER, GL_BYTE, 2, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R16G16_FLOAT] = { GL_RG16F, GL_RG, GL_HALF_FLOAT, 2, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R32G32_FLOAT] = { GL_RG32F, GL_RG, GL_FLOAT, 2, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R32G32_UINT] = { GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, 2, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32G32_SINT] = { GL_RG32I, GL_RG_INTEGER, GL_INT, 2, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32G32B32_FLOAT] = { GL_RGB32F, GL_RGB, GL_FLOAT, 3, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R32G32B32_UINT] = { GL_RGB32UI, GL_RGB_INTEGER, GL_UNSIGNED_INT, 3, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32G32B32_SINT] = { GL_RGB32I, GL_RGB_INTEGER, GL_INT, 3, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R8G8B8A8_UNORM] = { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8G8B8A8_SNORM] = { GL_RGBA8_SNORM, GL_RGBA, GL_BYTE, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R8G8B8A8_UINT] = { GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, 4, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R8G8B8A8_SINT] = { GL_RGBA8I, GL_RGBA_INTEGER, GL_BYTE, 4, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R8G8B8A8_SRGB] = { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_R16G16B16A16_FLOAT] = { GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 4, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_R32G32B32A32_FLOAT] = { GL_RGBA32F, GL_RGBA, GL_FLOAT, 4, Lvn_VertexAttribute_N, false},
+    [Lvn_Format_R32G32B32A32_UINT] = { GL_RGBA32UI, GL_RGBA, GL_UNSIGNED_INT, 4, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_R32G32B32A32_SINT] = { GL_RGBA32I, GL_RGBA, GL_INT, 4, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_B8G8R8A8_UNORM] = { GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_B8G8R8A8_SRGB] = { GL_SRGB8_ALPHA8, GL_BGRA, GL_UNSIGNED_BYTE, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_A2B10G10R10_UNORM] = { GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV, 4, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_A2B10G10R10_UINT] = { GL_RGB10_A2, GL_RGBA_INTEGER, GL_UNSIGNED_INT_2_10_10_10_REV, 4, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_D16_UNORM] = { GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 1, Lvn_VertexAttribute_N, true },
+    [Lvn_Format_D32_FLOAT] = { GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, Lvn_VertexAttribute_N, false },
+    [Lvn_Format_D24_UNORM_S8_UINT] = { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 1, Lvn_VertexAttribute_I, false },
+};
+
+static const LvnOglCmdBuffFnCallback s_OglCmdBuffFuncTable[] =
+{
+    [Lvn_OglCmdBuffFunc_BeginRenderPass] = lvnCmdBuffImplOglCmdBeginRenderPass,
+    [Lvn_OglCmdBuffFunc_EndRenderPass] = lvnCmdBuffImplOglCmdEndRenderPass,
+    [Lvn_OglCmdBuffFunc_BindPipeline] = lvnCmdBuffImplOglCmdBindPipeline,
+    [Lvn_OglCmdBuffFunc_BindVertexBuffer] = lvnCmdBuffImplOglCmdBindVertexBuffer,
+    [Lvn_OglCmdBuffFunc_BindIndexBuffer] = lvnCmdBuffImplOglCmdBindIndexBuffer,
+    [Lvn_OglCmdBuffFunc_SetViewport] = lvnCmdBuffImplOglCmdSetViewport,
+    [Lvn_OglCmdBuffFunc_SetScissor] = lvnCmdBuffImplOglCmdSetScissor,
+    [Lvn_OglCmdBuffFunc_Draw] = lvnCmdBuffImplOglCmdDraw,
+    [Lvn_OglCmdBuffFunc_DrawIndexed] = lvnCmdBuffImplOglCmdDrawIndexed,
 };
 
 static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGraphicsContextCreateInfo* createInfo);
@@ -437,19 +452,26 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glEnableVertexArrayAttrib ||
         !oglBackends->glVertexArrayAttribBinding ||
         !oglBackends->glVertexArrayAttribFormat ||
+        !oglBackends->glVertexArrayAttribIFormat ||
+        !oglBackends->glVertexArrayAttribLFormat ||
         !oglBackends->glVertexArrayVertexBuffer ||
         !oglBackends->glVertexArrayVertexBuffers ||
         !oglBackends->glUseProgram ||
         !oglBackends->glBindBuffer ||
+        !oglBackends->glBindVertexBuffers ||
         !oglBackends->glBindVertexArray ||
+        !oglBackends->glBindFramebuffer ||
         !oglBackends->glClear ||
         !oglBackends->glClearColor ||
         !oglBackends->glClearNamedFramebufferiv ||
         !oglBackends->glClearNamedFramebufferuiv ||
         !oglBackends->glClearNamedFramebufferfv ||
         !oglBackends->glClearNamedFramebufferfi ||
-        !oglBackends->glDrawArraysInstanced ||
-        !oglBackends->glDrawElementsInstanced)
+        !oglBackends->glDrawArraysInstancedBaseInstance ||
+        !oglBackends->glDrawElementsInstancedBaseVertexBaseInstance ||
+        !oglBackends->glDepthRange ||
+        !oglBackends->glViewport ||
+        !oglBackends->glScissor)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -473,8 +495,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     oglBackends->glGetIntegerv(GL_MINOR_VERSION, &oglBackends->versionMinor);
 
     // get opengl capabilities info
-    oglBackends->glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &oglBackends->maxColorAttachments);
-    oglBackends->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &oglBackends->maxDrawBuffers);
+    oglBackends->glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &oglBackends->capabilities.maxVertexAttribs);
+    oglBackends->glGetIntegerv(GL_MAX_VERTEX_ATTRIB_BINDINGS, &oglBackends->capabilities.maxVertexBindings);
+    oglBackends->glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &oglBackends->capabilities.maxColorAttachments);
+    oglBackends->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &oglBackends->capabilities.maxDrawBuffers);
 
     // set opengl implementation function pointers
     graphicsctx->implCreateSurface = lvnImplOglCreateSurface;
@@ -819,9 +843,9 @@ LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, Lvn
     }
 
     // get min between maxColorAttachments and maxDrawBuffers
-    uint32_t maxColorAttachments = (oglBackends->maxColorAttachments > oglBackends->maxDrawBuffers)
-        ? oglBackends->maxDrawBuffers
-        : oglBackends->maxColorAttachments;
+    uint32_t maxColorAttachments = (oglBackends->capabilities.maxColorAttachments > oglBackends->capabilities.maxDrawBuffers)
+        ? oglBackends->capabilities.maxDrawBuffers
+        : oglBackends->capabilities.maxColorAttachments;
 
     if (createInfo->colorAttachmentCount > maxColorAttachments)
     {
@@ -976,6 +1000,43 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     // create vao
     oglBackends->glCreateVertexArrays(1, &pipelineData->vaoId);
 
+    // vao vertex attributes
+    for (uint32_t i = 0; i < createInfo->vertexAttributeCount; i++)
+    {
+        const LvnVertexAttribute attribute = createInfo->pVertexAttributes[i];
+        const LvnOglFormatData formatData = s_OglFormatTypes[attribute.format];
+
+        oglBackends->glEnableVertexArrayAttrib(pipelineData->vaoId, attribute.layout);
+        oglBackends->glVertexArrayAttribBinding(pipelineData->vaoId, attribute.layout, attribute.binding);
+
+        switch (formatData.attributeType)
+        {
+            case Lvn_VertexAttribute_N:
+                oglBackends->glVertexArrayAttribFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, formatData.normalized, attribute.offset);
+                break;
+            case Lvn_VertexAttribute_I:
+                oglBackends->glVertexArrayAttribIFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, attribute.offset);;
+                break;
+            case Lvn_VertexAttribute_L:
+                oglBackends->glVertexArrayAttribLFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, attribute.offset);
+                break;
+        }
+    }
+
+    // vao vertex bindings
+    pipelineData->vertexBindingCount = oglBackends->capabilities.maxVertexBindings; // NOTE: use max vertex bindings to asign binding index to each index in array
+    pipelineData->pVertexBindings = lvn_calloc(createInfo->vertexBindingDescriptionCount * sizeof(LvnVertexBindingDescription));
+    if (!pipelineData->pVertexBindings)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for vertex bindings array in pipeline %p",
+                      pipeline);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < createInfo->vertexBindingDescriptionCount; i++)
+        pipelineData->pVertexBindings[createInfo->pVertexBindingDescriptions[i].binding] = createInfo->pVertexBindingDescriptions[i];
 
     // create pipeline/program
     pipelineData->pipelineId = oglBackends->glCreateProgram();
@@ -1104,6 +1165,7 @@ fail_cleanup:
     {
         oglBackends->glDeleteVertexArrays(1, &pipelineData->vaoId);
         oglBackends->glDeleteProgram(pipelineData->pipelineId);
+        lvn_free(pipelineData->pVertexBindings);
         lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
         lvn_free(pipelineData);
     }
@@ -1121,6 +1183,7 @@ void lvnImplOglDestroyPipeline(LvnPipeline* pipeline)
     oglBackends->glDeleteVertexArrays(1, &pipelineData->vaoId);
     oglBackends->glDeleteProgram(pipelineData->pipelineId);
 
+    lvn_free(pipelineData->pVertexBindings);
     lvn_free(pipelineData->fixedFuncEnums.pColorBlendAttachments);
     lvn_free(pipelineData);
 
@@ -1375,12 +1438,55 @@ LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, L
 {
     LVN_ASSERT(graphicsctx && commandBuffer, "graphicsctx and commandBuffer cannot be null");
 
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglCommandBufferData* commandBufferData = NULL;
+
+    commandBufferData = (LvnOglCommandBufferData*) lvn_calloc(sizeof(LvnOglCommandBufferData));
+    if (!commandBufferData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for command buffer data in command buffer %p",
+                      commandBuffer);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    // cmdStream arena
+    LvnMemoryArenaCreateInfo arenaCreateInfo = {
+        .size = 16e+3, // 16 KB
+        .align = LVN_DEFAULT_ALIGN,
+    };
+
+    LvnResult result = lvn_memArenaCreate(&commandBufferData->cmdStream, &arenaCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create command stream arena for command buffer data in command buffer %p",
+                      commandBuffer);
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    commandBuffer->commandbufferData = commandBufferData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (commandBufferData)
+    {
+        lvn_memArenaDestroy(&commandBufferData->cmdStream);
+        lvn_free(commandBufferData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+    lvn_memArenaDestroy(&commandBufferData->cmdStream);
+    lvn_free(commandBufferData);
+    commandBuffer->commandbufferData = NULL;
 }
 
 void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
@@ -1482,57 +1588,208 @@ void lvnImplOglBufferResize(LvnBuffer* buffer, uint64_t size)
 
 void lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    lvn_memArenaResetMergeBlocks(&commandBuffer->frameArena);
+
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+    commandBufferData->pipeline.vaoId = 0;
+    commandBufferData->pipeline.pipelineId = 0;
+    memset(&commandBufferData->vbo, 0, sizeof(commandBufferData->vbo));
+    memset(&commandBufferData->ibo, 0, sizeof(commandBufferData->ibo));
+
+    lvn_memArenaResetMergeBlocks(&commandBufferData->cmdStream);
 }
 
 void lvnImplOglEndCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
-
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 }
 
 void lvnImplOglCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo)
 {
+    LVN_ASSERT(commandBuffer && beginInfo, "commandBuffer and beginInfo cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BeginRenderPass,
+        .size = sizeof(LvnOglCmdBuffBeginRenderPassData),
+    };
+
+    LvnClearColorValue* clearColorValues = lvn_memArenaAlloc(&commandBuffer->frameArena, beginInfo->clearColorValueCount * sizeof(LvnClearColorValue));
+    memcpy(clearColorValues, beginInfo->pClearColorValues, beginInfo->clearColorValueCount * sizeof(LvnClearColorValue));
+
+    LvnOglCmdBuffBeginRenderPassData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffBeginRenderPassData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->beginInfo = (LvnRenderPassBeginInfo){
+        .renderPass = beginInfo->renderPass,
+        .framebuffer = beginInfo->framebuffer,
+        .renderArea = beginInfo->renderArea,
+        .clearDepthStencilValue = beginInfo->clearDepthStencilValue,
+        .clearColorValueCount = beginInfo->clearColorValueCount,
+        .pClearColorValues = clearColorValues,
+    };
 }
 
 void lvnImplOglCmdEndRenderPass(LvnCommandBuffer* commandBuffer)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_EndRenderPass,
+        .size = sizeof(LvnOglCmdBuffEndRenderPassData),
+    };
+
+    LvnOglCmdBuffEndRenderPassData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffEndRenderPassData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
 }
 
 void lvnImplOglCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline)
 {
+    LVN_ASSERT(commandBuffer && pipeline, "commandBuffer and pipeline cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BindPipeline,
+        .size = sizeof(LvnOglCmdBuffBindPipelineData),
+    };
+
+    LvnOglCmdBuffBindPipelineData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffBindPipelineData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->pipeline = pipeline;
 }
 
 void lvnImplOglCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BindVertexBuffer,
+        .size = sizeof(LvnOglCmdBuffBindVertexBufferData),
+    };
+
+    LvnBuffer** buffers = (LvnBuffer**) lvn_memArenaAlloc(&commandBuffer->frameArena, bindingCount * sizeof(LvnBuffer*));
+    memcpy(buffers, &pBuffers[firstBinding], bindingCount * sizeof(LvnBuffer*));
+
+    uint64_t* offsets = (uint64_t*) lvn_memArenaAlloc(&commandBuffer->frameArena, bindingCount * sizeof(uint64_t));
+    memcpy(offsets, &pOffsets[firstBinding], bindingCount * sizeof(uint64_t));
+
+    LvnOglCmdBuffBindVertexBufferData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffBindVertexBufferData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->pBuffers = buffers;
+    cmdData->pOffsets = offsets;
+    cmdData->firstBinding = firstBinding;
+    cmdData->bindingCount = bindingCount;
 }
 
 void lvnImplOglCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BindIndexBuffer,
+        .size = sizeof(LvnOglCmdBuffBindIndexBufferData),
+    };
+
+    LvnOglCmdBuffBindIndexBufferData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffBindIndexBufferData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->buffer = buffer;
+    cmdData->offset = offset;
 }
 
 void lvnImplOglCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
 {
+    LVN_ASSERT(commandBuffer && viewport, "commandBuffer and viewport cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_SetViewport,
+        .size = sizeof(LvnOglCmdBuffSetViewportData),
+    };
+
+    LvnViewport* vp = (LvnViewport*) lvn_memArenaAlloc(&commandBuffer->frameArena, sizeof(LvnViewport));
+    *vp = *viewport;
+
+    LvnOglCmdBuffSetViewportData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffSetViewportData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->viewport = vp;
 }
 
 void lvnImplOglCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor)
 {
+    LVN_ASSERT(commandBuffer && scissor, "commandBuffer and scissor cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_SetScissor,
+        .size = sizeof(LvnOglCmdBuffSetScissorData),
+    };
+
+    LvnRenderArea* sc = (LvnRenderArea*) lvn_memArenaAlloc(&commandBuffer->frameArena, sizeof(LvnRenderArea));
+    *sc = *scissor;
+
+    LvnOglCmdBuffSetScissorData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffSetScissorData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->scissor = sc;
 }
 
 void lvnImplOglCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_Draw,
+        .size = sizeof(LvnOglCmdBuffDrawData),
+    };
+
+    LvnOglCmdBuffDrawData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffDrawData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->vertexCount = vertexCount;
+    cmdData->instanceCount = instanceCount;
+    cmdData->firstVertex = firstVertex;
+    cmdData->firstInstance = firstInstance;
 }
 
 void lvnImplOglCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_DrawIndexed,
+        .size = sizeof(LvnOglCmdBuffDrawIndexedData),
+    };
+
+    LvnOglCmdBuffDrawIndexedData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffDrawIndexedData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->indexCount = indexCount;
+    cmdData->instanceCount = instanceCount;
+    cmdData->firstIndex = firstIndex;
+    cmdData->vertexOffset = vertexOffset;
+    cmdData->firstInstance = firstInstance;
 }
 
 LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence)
@@ -1541,12 +1798,39 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
 
-    LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
-
-    if (fenceData->pending)
+    for (uint32_t i = 0; i < submitCount; i++)
     {
-        fenceData->pending = false;
-        fenceData->fenceId = oglBackends->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++)
+        {
+            LvnCommandBuffer* commandBuffer = pSubmits[i].pCommandBuffers[j];
+            const LvnOglCommandBufferData* commandBufferData = commandBuffer->commandbufferData;
+
+            lvn_memArenaResetMergeBlocks(&commandBuffer->frameArena);
+
+            for (LvnMemoryBlock* currBlock = commandBufferData->cmdStream.front; currBlock; currBlock = currBlock->next)
+            {
+                uint8_t* currIndex = currBlock->allocation;
+                currIndex = (uint8_t*) LVN_ALIGN_UP((uintptr_t)currIndex, LVN_DEFAULT_ALIGN);
+                while (currIndex < currBlock->currIndex)
+                {
+                    LvnOglCmdHeader* header = (LvnOglCmdHeader*) currIndex;
+                    s_OglCmdBuffFuncTable[header->cmdBuffFnEnum](header);
+                    currIndex += header->size;
+                    currIndex = (uint8_t*) LVN_ALIGN_UP((uintptr_t)currIndex, LVN_DEFAULT_ALIGN);
+                }
+            }
+        }
+    }
+
+    if (fence)
+    {
+        LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
+
+        if (fenceData->pending)
+        {
+            fenceData->pending = false;
+            fenceData->fenceId = oglBackends->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        }
     }
 
     return Lvn_Result_Success;
@@ -1563,27 +1847,36 @@ void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
 
     const LvnOglCmdBuffBeginRenderPassData* cmdData = (const LvnOglCmdBuffBeginRenderPassData*) data;
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
-    const LvnRenderPassBeginInfo* beginInfo = (const LvnRenderPassBeginInfo*) cmdData->beginInfo;
-    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) beginInfo->renderPass->renderpassData;
-    const LvnOglFramebufferData* framebufferData = (const LvnOglFramebufferData*) beginInfo->framebuffer->framebufferData;
+    const LvnRenderPassBeginInfo beginInfo = cmdData->beginInfo;
+    const LvnOglRenderpassData* renderpassData = (const LvnOglRenderpassData*) beginInfo.renderPass->renderpassData;
+    const LvnOglFramebufferData* framebufferData = (const LvnOglFramebufferData*) beginInfo.framebuffer->framebufferData;
 
-    for (uint32_t i = 0; i < beginInfo->clearColorValueCount; i++)
+    // set clear color/depth values
+    for (uint32_t i = 0; i < beginInfo.clearColorValueCount; i++)
     {
-        oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo->pClearColorValues[i].float32);
+        oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo.pClearColorValues[i].float32);
     }
 
     if (renderpassData->hasDepth)
     {
         if (renderpassData->depthStencilAttachment.format == Lvn_Format_D32_FLOAT)
-            oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_DEPTH, 0, &beginInfo->clearDepthStencilValue.depth);
+            oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_DEPTH, 0, &beginInfo.clearDepthStencilValue.depth);
         else if (renderpassData->depthStencilAttachment.format == Lvn_Format_D24_UNORM_S8_UINT)
-            oglBackends->glClearNamedFramebufferfi(framebufferData->fboId, GL_DEPTH_STENCIL, 0, beginInfo->clearDepthStencilValue.depth, beginInfo->clearDepthStencilValue.stencil);
+            oglBackends->glClearNamedFramebufferfi(framebufferData->fboId, GL_DEPTH_STENCIL, 0, beginInfo.clearDepthStencilValue.depth, beginInfo.clearDepthStencilValue.stencil);
     }
+
+    // begin framebuffer
+    oglBackends->glBindFramebuffer(GL_FRAMEBUFFER, framebufferData->fboId);
 }
 
 void lvnCmdBuffImplOglCmdEndRenderPass(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
+
+    const LvnOglCmdBuffEndRenderPassData* cmdData = (const LvnOglCmdBuffEndRenderPassData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+
+    oglBackends->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void lvnCmdBuffImplOglCmdBindPipeline(void* data)
@@ -1591,44 +1884,174 @@ void lvnCmdBuffImplOglCmdBindPipeline(void* data)
     LVN_ASSERT(data, "data cannot be null");
 
     const LvnOglCmdBuffBindPipelineData* cmdData = (const LvnOglCmdBuffBindPipelineData*) data;
-    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
     const LvnOglPipelineData* pipelineData = (const LvnOglPipelineData*) cmdData->pipeline->pipelineData;
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
 
-    oglBackends->glUseProgram(pipelineData->pipelineId);
+    commandBufferData->pipeline.pipelineId = pipelineData->pipelineId;
+    commandBufferData->pipeline.vaoId = pipelineData->vaoId;
+    commandBufferData->pipeline.primitiveMode = pipelineData->fixedFuncEnums.primitiveMode;
+    commandBufferData->vbo.pVertexBindings = pipelineData->pVertexBindings;
 }
 
 void lvnCmdBuffImplOglCmdBindVertexBuffer(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffBindVertexBufferData* cmdData = (const LvnOglCmdBuffBindVertexBufferData*) data;
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
+
+    commandBufferData->vbo.pBuffers = cmdData->pBuffers;
+    commandBufferData->vbo.pOffsets = cmdData->pOffsets;
+    commandBufferData->vbo.firstBinding = cmdData->firstBinding;
+    commandBufferData->vbo.bindingCount = cmdData->bindingCount;
 }
 
 void lvnCmdBuffImplOglCmdBindIndexBuffer(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffBindIndexBufferData* cmdData = (const LvnOglCmdBuffBindIndexBufferData*) data;
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
+
+    const LvnOglBufferData* bufferData = (const LvnOglBufferData*) cmdData->buffer->bufferData;
+    commandBufferData->ibo.id = bufferData->bufferId;
+    commandBufferData->ibo.offset = cmdData->offset;
 }
 
 void lvnCmdBuffImplOglCmdSetViewport(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffSetViewportData* cmdData = (const LvnOglCmdBuffSetViewportData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    const LvnViewport* vp = cmdData->viewport;
+
+    oglBackends->glViewport(vp->x, vp->y, vp->width, vp->height);
+    oglBackends->glDepthRange(vp->minDepth, vp->maxDepth);
 }
 
 void lvnCmdBuffImplOglCmdSetScissor(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffSetScissorData* cmdData = (const LvnOglCmdBuffSetScissorData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    const LvnRenderArea* sc = cmdData->scissor;
+
+    oglBackends->glScissor(sc->offset.x, sc->offset.y, sc->extent.width, sc->extent.height);
 }
 
 void lvnCmdBuffImplOglCmdDraw(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffDrawData* cmdData = (const LvnOglCmdBuffDrawData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
+
+    LvnArenaMark mark = lvn_memArenaMark(&cmdData->commandBuffer->frameArena);
+
+    // pipeline
+    if (commandBufferData->pipeline.pipelineId != commandBufferData->pipeline.piplineIdOld)
+    {
+        oglBackends->glUseProgram(commandBufferData->pipeline.pipelineId);
+        commandBufferData->pipeline.piplineIdOld = commandBufferData->pipeline.pipelineId;
+    }
+
+    // vao
+    if (commandBufferData->pipeline.vaoId != commandBufferData->pipeline.vaoIdOld)
+    {
+        oglBackends->glBindVertexArray(commandBufferData->pipeline.vaoId);
+        commandBufferData->pipeline.vaoIdOld = commandBufferData->pipeline.vaoId;
+    }
+
+    // vbo
+    uint32_t* vboIds = (uint32_t*) lvn_memArenaAlloc(&cmdData->commandBuffer->frameArena, commandBufferData->vbo.bindingCount * sizeof(uint32_t));
+    uint32_t* strides = (uint32_t*) lvn_memArenaAlloc(&cmdData->commandBuffer->frameArena, commandBufferData->vbo.bindingCount * sizeof(uint32_t));
+    for (uint32_t i = 0; i < commandBufferData->vbo.bindingCount; i++)
+    {
+        uint32_t bindingIndex = commandBufferData->vbo.firstBinding + i;
+        const LvnOglBufferData* bufferData = (const LvnOglBufferData*) commandBufferData->vbo.pBuffers[bindingIndex]->bufferData;
+        vboIds[i] = bufferData->bufferId;
+        strides[i] = commandBufferData->vbo.pVertexBindings[bindingIndex].stride;
+    }
+
+    oglBackends->glBindVertexBuffers(
+        commandBufferData->vbo.firstBinding,
+        commandBufferData->vbo.bindingCount,
+        vboIds,
+        (const GLintptr*)commandBufferData->vbo.pOffsets,
+        (const GLsizei*)strides);
+
+    // draw
+    oglBackends->glDrawArraysInstancedBaseInstance(
+        commandBufferData->pipeline.primitiveMode,
+        cmdData->firstVertex,
+        cmdData->vertexCount,
+        cmdData->instanceCount,
+        cmdData->firstInstance);
+
+    lvn_memArenaMarkRevert(&cmdData->commandBuffer->frameArena, &mark);
 }
 
 void lvnCmdBuffImplOglCmdDrawIndexed(void* data)
 {
     LVN_ASSERT(data, "data cannot be null");
 
+    const LvnOglCmdBuffDrawIndexedData* cmdData = (const LvnOglCmdBuffDrawIndexedData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
+
+    LvnArenaMark mark = lvn_memArenaMark(&cmdData->commandBuffer->frameArena);
+
+    // pipeline
+    if (commandBufferData->pipeline.pipelineId != commandBufferData->pipeline.piplineIdOld)
+    {
+        oglBackends->glUseProgram(commandBufferData->pipeline.pipelineId);
+        commandBufferData->pipeline.piplineIdOld = commandBufferData->pipeline.pipelineId;
+    }
+
+    // vao
+    if (commandBufferData->pipeline.vaoId != commandBufferData->pipeline.vaoIdOld)
+    {
+        oglBackends->glBindVertexArray(commandBufferData->pipeline.vaoId);
+        commandBufferData->pipeline.vaoIdOld = commandBufferData->pipeline.vaoId;
+    }
+
+    // ibo
+    if (commandBufferData->ibo.id != commandBufferData->ibo.idOld)
+    {
+        oglBackends->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, commandBufferData->ibo.id);
+        commandBufferData->ibo.idOld = commandBufferData->ibo.id;
+    }
+
+    // vbo
+    uint32_t* vboIds = (uint32_t*) lvn_memArenaAlloc(&cmdData->commandBuffer->frameArena, commandBufferData->vbo.bindingCount * sizeof(uint32_t));
+    uint32_t* strides = (uint32_t*) lvn_memArenaAlloc(&cmdData->commandBuffer->frameArena, commandBufferData->vbo.bindingCount * sizeof(uint32_t));
+    for (uint32_t i = 0; i < commandBufferData->vbo.bindingCount; i++)
+    {
+        uint32_t bindingIndex = commandBufferData->vbo.firstBinding + i;
+        const LvnOglBufferData* bufferData = (const LvnOglBufferData*) commandBufferData->vbo.pBuffers[bindingIndex]->bufferData;
+        vboIds[i] = bufferData->bufferId;
+        strides[i] = commandBufferData->vbo.pVertexBindings[bindingIndex].stride;
+    }
+
+    oglBackends->glBindVertexBuffers(
+        commandBufferData->vbo.firstBinding,
+        commandBufferData->vbo.bindingCount,
+        vboIds,
+        (const GLintptr*)commandBufferData->vbo.pOffsets,
+        (const GLsizei*)strides);
+
+    // draw
+    oglBackends->glDrawElementsInstancedBaseVertexBaseInstance(
+        commandBufferData->pipeline.primitiveMode,
+        cmdData->indexCount,
+        GL_UNSIGNED_INT,
+        (void*)commandBufferData->ibo.offset,
+        cmdData->instanceCount,
+        cmdData->vertexOffset,
+        cmdData->firstInstance);
+
+    lvn_memArenaMarkRevert(&cmdData->commandBuffer->frameArena, &mark);
 }
