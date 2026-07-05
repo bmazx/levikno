@@ -6,9 +6,9 @@
 
 typedef struct LvnWindowPlatformSupport
 {
-    bool win32Support;
-    bool waylandSupport;
-    bool x11Support;
+    bool win32;
+    bool wayland;
+    bool x11;
 } LvnWindowPlatformSupport;
 
 struct LvnLogger
@@ -36,16 +36,16 @@ struct LvnContext
 typedef void* (*LvnProc)(void);
 
 
-void*              lvn_calloc(size_t size);
-void               lvn_free(void* ptr);
-void*              lvn_realloc(void* ptr, size_t size);
+void*                    lvn_calloc(size_t size);
+void                     lvn_free(void* ptr);
+void*                    lvn_realloc(void* ptr, size_t size);
 
-char*              lvn_strdup(const char* str);
+char*                    lvn_strdup(const char* str);
 
-void               lvn_getWindowPlatform(LvnWindowPlatformSupport* windowPlatformSupport);
+LvnWindowPlatformSupport lvn_getWindowPlatform(void);
 
-void*              lvn_platformLoadModule(const char* path);
-void               lvn_platformFreeModule(void* handle);
-LvnProc            lvn_platformGetModuleSymbol(void* handle, const char* name);
+void*                    lvn_platformLoadModule(const char* path);
+void                     lvn_platformFreeModule(void* handle);
+LvnProc                  lvn_platformGetModuleSymbol(void* handle, const char* name);
 
 #endif // !HG_LVN_INTERNAL_H

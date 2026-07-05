@@ -985,35 +985,35 @@ char* lvn_strdup(const char* str)
     return result;
 }
 
-void lvn_getWindowPlatform(LvnWindowPlatformSupport* windowPlatformSupport)
+LvnWindowPlatformSupport lvn_getWindowPlatform(void)
 {
-    LVN_ASSERT(windowPlatformSupport, "windowPlatformSupport cannot be null");
+    LvnWindowPlatformSupport wps = {0};
 
 #if defined(LVN_INCLUDE_WIN32)
-    windowPlatformSupport->win32Support = true;
-#else
-    windowPlatformSupport->win32Support = false;
+    wps.win32 = true;
 #endif
 #if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
     const char* session = getenv("XDG_SESSION_TYPE");
     if (session && (strcmp(session, "wayland") == 0 || strcmp(session, "x11") == 0))
     {
         if (strcmp(session, "wayland") == 0)
-            windowPlatformSupport->waylandSupport = true;
+            wps.wayland = true;
         else if (strcmp(session, "x11") == 0)
-            windowPlatformSupport->x11Support = true;
+            wps.x11 = true;
     }
     else
     {
         const char* waylandenv = getenv("WAYLAND_DISPLAY");
         const char* x11env = getenv("DISPLAY");
         if (waylandenv)
-            windowPlatformSupport->waylandSupport = true;
+            wps.wayland = true;
         else if (x11env)
-            windowPlatformSupport->x11Support = true;
+            wps.x11 = true;
     }
 #else
-    windowPlatformSupport->waylandSupport = false;
-    windowPlatformSupport->x11Support = false;
+    wps.wayland = false;
+    wps.x11 = false;
 #endif
+
+    return wps;
 }

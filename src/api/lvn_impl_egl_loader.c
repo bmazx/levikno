@@ -24,11 +24,10 @@ static LvnResult lvn_eglCreateSurface(
 {
     LVN_ASSERT(eglLoader && surface, "eglLoader and surface cannot be null");
 
-    LvnWindowPlatformSupport windowSupport = {0};
-    lvn_getWindowPlatform(&windowSupport);
+    LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 
 #ifdef LVN_INCLUDE_X11
-    if (windowSupport.x11Support)
+    if (wps.x11)
     {
         *surface = eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)window, NULL);
         return Lvn_Result_Success;
@@ -109,13 +108,12 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     }
 
     // get platform display
-    LvnWindowPlatformSupport windowSupport = {0};
-    lvn_getWindowPlatform(&windowSupport);
+    LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 
     EGLenum platformEnum = 0;
-    if (windowSupport.waylandSupport)
+    if (wps.wayland)
         platformEnum = EGL_PLATFORM_WAYLAND_KHR;
-    else if (windowSupport.x11Support)
+    else if (wps.x11)
         platformEnum = EGL_PLATFORM_X11_KHR;
     else
     {

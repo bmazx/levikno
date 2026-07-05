@@ -112,14 +112,13 @@ static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBack
 {
     LVN_ASSERT(vkBackends, "vkBackends cannot be null");
 
-    LvnWindowPlatformSupport windowSupport = {0};
-    lvn_getWindowPlatform(&windowSupport);
+    LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 #if defined(LVN_INCLUDE_WAYLAND)
-    if (windowSupport.waylandSupport)
+    if (wps.wayland)
         return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
 #endif
 #if defined(LVN_INCLUDE_X11)
-    if (windowSupport.x11Support)
+    if (wps.x11)
         return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
 #endif
 
@@ -131,10 +130,9 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
     VkResult result = VK_ERROR_UNKNOWN;
 
 #if defined(LVN_INCLUDE_X11) || defined(LVN_INCLUDE_WAYLAND)
-    LvnWindowPlatformSupport windowSupport = {0};
-    lvn_getWindowPlatform(&windowSupport);
+    LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 
-    if (windowSupport.waylandSupport)
+    if (wps.wayland)
     {
         VkWaylandSurfaceCreateInfoKHR sci = {
             .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
@@ -145,7 +143,7 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
             (PFN_vkCreateWaylandSurfaceKHR) vkBackends->vkCreateSurfaceProc;
         result = vkCreateWaylandSurfaceKHR_PFN(vkBackends->instance, &sci, NULL, surface);
     }
-    else if (windowSupport.x11Support)
+    else if (wps.x11)
     {
         VkXlibSurfaceCreateInfoKHR sci = {
             .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
