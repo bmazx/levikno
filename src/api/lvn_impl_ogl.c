@@ -424,6 +424,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glDeleteSync ||
         !oglBackends->glClientWaitSync ||
         !oglBackends->glWaitSync ||
+        !oglBackends->glFlush ||
         !oglBackends->glCheckNamedFramebufferStatus ||
         !oglBackends->glNamedFramebufferTexture ||
         !oglBackends->glNamedFramebufferDrawBuffer ||
@@ -1231,7 +1232,7 @@ void lvnImplOglDestroyFence(LvnFence* fence)
 
     LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
 
-    oglBackends->glDeleteSync(fenceData->fenceId);
+    if (fenceData->fenceId) { oglBackends->glDeleteSync(fenceData->fenceId); }
     lvn_free(fenceData);
 
     fence->fenceData = NULL;
@@ -1241,12 +1242,47 @@ LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSe
 {
     LVN_ASSERT(graphicsctx && semaphore, "graphicsctx and semaphore cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglSemaphoreData* semaphoreData = NULL;
+
+    semaphoreData = (LvnOglSemaphoreData*) lvn_calloc(sizeof(LvnOglSemaphoreData));
+    if (!semaphoreData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for semaphore data in semaphore %p",
+                      semaphore);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    semaphore->semaphoreData = semaphoreData;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (semaphoreData)
+    {
+        if (semaphoreData->semaphoreId)
+            oglBackends->glDeleteSync(semaphoreData->semaphoreId);
+        lvn_free(semaphoreData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroySemaphore(LvnSemaphore* semaphore)
 {
     LVN_ASSERT(semaphore, "semaphore cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) semaphore->graphicsctx->implData;
+
+    LvnOglSemaphoreData* semaphoreData = (LvnOglSemaphoreData*) semaphore->semaphoreData;
+
+    if (semaphoreData->semaphoreId) {oglBackends->glDeleteSync(semaphoreData->semaphoreId); }
+    lvn_free(semaphoreData);
+
+    semaphore->semaphoreData = NULL;
 }
 
 LvnResult lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo)
@@ -1798,6 +1834,18 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
 
+    // wait semaphores
+    for (uint32_t i = 0; i < submitCount; i++)
+    {
+        for (uint32_t j = 0; j < pSubmits[i].waitSemaphoreCount; j++)
+        {
+            LvnOglSemaphoreData* semaphoreData = pSubmits[i].pWaitSemaphores[j]->semaphoreData;
+            if (semaphoreData->semaphoreId)
+                oglBackends->glWaitSync(semaphoreData->semaphoreId, 0, GL_TIMEOUT_IGNORED);
+        }
+    }
+
+    // render command buffers
     for (uint32_t i = 0; i < submitCount; i++)
     {
         for (uint32_t j = 0; j < pSubmits[i].commandBufferCount; j++)
@@ -1822,6 +1870,20 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
         }
     }
 
+    // signal semaphores
+    for (uint32_t i = 0; i < submitCount; i++)
+    {
+        for (uint32_t j = 0; j < pSubmits[i].signalSemaphoreCount; j++)
+        {
+            LvnOglSemaphoreData* semaphoreData = pSubmits[i].pSignalSemaphores[j]->semaphoreData;
+            if (semaphoreData->semaphoreId)
+                oglBackends->glDeleteSync(semaphoreData->semaphoreId);
+            semaphoreData->semaphoreId = oglBackends->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            oglBackends->glFlush();
+        }
+    }
+
+    // fence
     if (fence)
     {
         LvnOglFenceData* fenceData = (LvnOglFenceData*) fence->fenceData;
@@ -1838,6 +1900,18 @@ LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const Lv
 
 LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo)
 {
+    LVN_ASSERT(graphicsctx && presentInfo, "graphicsctx and presentInfo cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    // wait semaphores
+    for (uint32_t i = 0; i < presentInfo->waitSemaphoreCount; i++)
+    {
+        LvnOglSemaphoreData* semaphoreData = presentInfo->pWaitSemaphores[i]->semaphoreData;
+        if (semaphoreData->semaphoreId)
+            oglBackends->glWaitSync(semaphoreData->semaphoreId, 0, GL_TIMEOUT_IGNORED);
+    }
+
     return Lvn_Result_Success;
 }
 

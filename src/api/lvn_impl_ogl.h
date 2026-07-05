@@ -307,6 +307,7 @@ typedef GLsync (GLAPIENTRY *PFNGLFENCESYNCPROC)(GLenum condition, GLbitfield fla
 typedef void (GLAPIENTRY *PFNGLDELETESYNCPROC)(GLsync sync);
 typedef GLenum (GLAPIENTRY *PFNGLCLIENTWAITSYNCPROC)(GLsync sync, GLbitfield flags, GLuint64 timeout);
 typedef void (GLAPIENTRY *PFNGLWAITSYNCPROC)(GLsync sync, GLbitfield flags, GLuint64 timeout);
+typedef void (GLAPIENTRY *PFNGLFLUSHPROC)(void);
 typedef GLenum (GLAPIENTRY *PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)(GLuint framebuffer, GLenum target);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC)(GLuint framebuffer, GLenum buf);
@@ -519,6 +520,11 @@ typedef struct LvnOglFenceData
     bool      pending;
 } LvnOglFenceData;
 
+typedef struct LvnOglSemaphoreData
+{
+    GLsync    semaphoreId;
+} LvnOglSemaphoreData;
+
 typedef struct LvnOglCmdHeader
 {
     LvnOglCmdBuffFnEnum cmdBuffFnEnum;
@@ -645,6 +651,7 @@ typedef struct LvnOpenglBackends
     PFNGLDELETESYNCPROC                                     glDeleteSync;
     PFNGLCLIENTWAITSYNCPROC                                 glClientWaitSync;
     PFNGLWAITSYNCPROC                                       glWaitSync;
+    PFNGLFLUSHPROC                                          glFlush;
     PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC                    glCheckNamedFramebufferStatus;
     PFNGLNAMEDFRAMEBUFFERTEXTUREPROC                        glNamedFramebufferTexture;
     PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC                     glNamedFramebufferDrawBuffer;

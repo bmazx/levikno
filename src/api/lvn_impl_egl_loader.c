@@ -251,6 +251,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glClientWaitSync");
     oglBackends->glWaitSync = (PFNGLWAITSYNCPROC)
         eglLoader->eglGetProcAddress("glWaitSync");
+    oglBackends->glFlush = (PFNGLFLUSHPROC)
+        eglLoader->eglGetProcAddress("glFlush");
     oglBackends->glCheckNamedFramebufferStatus = (PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)
         eglLoader->eglGetProcAddress("glCheckNamedFramebufferStatus");
     oglBackends->glNamedFramebufferTexture = (PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)
