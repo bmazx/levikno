@@ -1,6 +1,8 @@
 #ifndef LVN_CUSTOM_MEMORY_ALLOCATOR_H
 #define LVN_CUSTOM_MEMORY_ALLOCATOR_H
 
+#include "lvn_config.h"
+
 // debug
 #ifdef LVN_CONFIG_DEBUG
     #ifndef LVN_DEBUG_ALLOC_VALUE
