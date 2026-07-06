@@ -334,9 +334,9 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     oglBackends->glClearNamedFramebufferuiv = (PFNGLCLEARNAMEDFRAMEBUFFERUIVPROC)
         eglLoader->eglGetProcAddress("glClearNamedFramebufferuiv");
     oglBackends->glClearNamedFramebufferfv = (PFNGLCLEARNAMEDFRAMEBUFFERFVPROC)
-        eglLoader->eglGetProcAddress("glClearNamedFramebufferufv");
-    oglBackends->glClearNamedFramebufferiv = (PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)
-        eglLoader->eglGetProcAddress("glClearNamedFramebufferuiv");
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferfv");
+    oglBackends->glClearNamedFramebufferfi = (PFNGLCLEARNAMEDFRAMEBUFFERFIPROC)
+        eglLoader->eglGetProcAddress("glClearNamedFramebufferfi");
     oglBackends->glDrawArraysInstancedBaseInstance = (PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC)
         eglLoader->eglGetProcAddress("glDrawArraysInstancedBaseInstance");
     oglBackends->glDrawElementsInstancedBaseVertexBaseInstance = (PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC)
