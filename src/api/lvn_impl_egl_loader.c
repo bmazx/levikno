@@ -37,9 +37,9 @@ static LvnResult lvn_eglCreateSurface(
     return Lvn_Result_Failure;
 }
 
-LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* window, uint32_t width, uint32_t height)
+LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
 {
-    LVN_ASSERT(oglBackends && display && window, "oglBackends, display, and window cannot be null");
+    LVN_ASSERT(oglBackends && display, "oglBackends, display, and window cannot be null");
 
     LvnEglLoader* eglLoader = (LvnEglLoader*) lvn_calloc(sizeof(LvnEglLoader));
 
@@ -70,6 +70,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglInitialize");
     eglLoader->eglChooseConfig = (PFNEGLCHOOSECONFIGPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglChooseConfig");
+    eglLoader->eglCreatePbufferSurface = (PFNEGLCREATEPBUFFERSURFACEPROC)
+        lvn_platformGetModuleSymbol(eglLoader->handle, "eglCreatePbufferSurface");
     eglLoader->eglCreateWindowSurface = (PFNEGLCREATEWINDOWSURFACEPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglCreateWindowSurface");
     eglLoader->eglCreateContext = (PFNEGLCREATECONTEXTPROC)
@@ -92,6 +94,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     if (!eglLoader->eglGetPlatformDisplay ||
         !eglLoader->eglInitialize ||
         !eglLoader->eglChooseConfig ||
+        !eglLoader->eglCreatePbufferSurface ||
         !eglLoader->eglCreateWindowSurface ||
         !eglLoader->eglCreateContext ||
         !eglLoader->eglMakeCurrent ||
@@ -146,7 +149,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     }
 
     // choose framebuffer config attributes
-    EGLint configAttributes[] =
+    EGLint configAttribs[] =
     {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
@@ -158,13 +161,21 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     };
 
     EGLint numConfigs;
-    eglLoader->eglChooseConfig(eglLoader->display, configAttributes, &eglLoader->config, 1, &numConfigs);
+    eglLoader->eglChooseConfig(eglLoader->display, configAttribs, &eglLoader->config, 1, &numConfigs);
 
     // create surface
-    if (lvn_eglCreateSurface(eglLoader, &eglLoader->surface, eglLoader->display, eglLoader->config, window, width, height) != Lvn_Result_Success)
+    EGLint pbufferAttribs[] =
+    {
+        EGL_WIDTH, 1,
+        EGL_HEIGHT, 1,
+        EGL_NONE
+    };
+
+    eglLoader->surface = eglLoader->eglCreatePbufferSurface(eglLoader->display, eglLoader->config, pbufferAttribs);
+    if (!eglLoader->surface)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
-                      "[egl] failed to create egl surface");
+                      "[egl] failed to create egl pbuffer surface");
         goto fail_cleanup;
     }
 
@@ -177,7 +188,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
     }
 
     // create context and attributes
-    EGLint ctxAttributes[] =
+    EGLint ctxAttribs[] =
     {
         EGL_CONTEXT_MAJOR_VERSION, 4,
         EGL_CONTEXT_MINOR_VERSION, 5,
@@ -188,7 +199,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         EGL_NONE,
     };
 
-    eglLoader->context = eglLoader->eglCreateContext(eglLoader->display, eglLoader->config, EGL_NO_CONTEXT, ctxAttributes);
+    eglLoader->context = eglLoader->eglCreateContext(eglLoader->display, eglLoader->config, EGL_NO_CONTEXT, ctxAttribs);
     if (!eglLoader->context)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
@@ -325,6 +336,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* 
         eglLoader->eglGetProcAddress("glBindVertexArray");
     oglBackends->glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)
         eglLoader->eglGetProcAddress("glBindFramebuffer");
+    oglBackends->glBlitFramebuffer = (PFNGLBLITFRAMEBUFFERPROC)
+        eglLoader->eglGetProcAddress("glBlitFramebuffer");
     oglBackends->glClear = (PFNGLCLEARPROC)
         eglLoader->eglGetProcAddress("glClear");
     oglBackends->glClearColor = (PFNGLCLEARCOLORPROC)
@@ -397,7 +410,7 @@ LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* 
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
 
     EGLSurface eglSurface;
-    if (lvn_eglCreateSurface(eglLoader, &eglSurface, eglLoader->display, eglLoader->config, createInfo->nativeWindowHandle, 1, 1) != Lvn_Result_Success)
+    if (lvn_eglCreateSurface(eglLoader, &eglSurface, eglLoader->display, eglLoader->config, createInfo->nwh, 1, 1) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
                       "[egl] failed to create egl surface for surface object at %p",

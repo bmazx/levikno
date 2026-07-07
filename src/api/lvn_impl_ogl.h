@@ -11,6 +11,9 @@
 
 #define GL_FALSE 0
 #define GL_TRUE 1
+#define GL_DEPTH_BUFFER_BIT 0x00000100
+#define GL_STENCIL_BUFFER_BIT 0x00000400
+#define GL_COLOR_BUFFER_BIT 0x00004000
 #define GL_POINTS 0x0000
 #define GL_LINES 0x0001
 #define GL_LINE_LOOP 0x0002
@@ -103,6 +106,8 @@
 #define GL_MINOR_VERSION 0x821C
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
 #define GL_FRAMEBUFFER 0x8D40
+#define GL_READ_FRAMEBUFFER 0x8CA8
+#define GL_DRAW_FRAMEBUFFER 0x8CA9
 #define GL_MAX_COLOR_ATTACHMENTS 0x8CDF
 #define GL_MAX_DRAW_BUFFERS 0x8824
 #define GL_COLOR_ATTACHMENT0 0x8CE0
@@ -345,6 +350,7 @@ typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXBUFFERSPROC)(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
 typedef void (GLAPIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
+typedef void (GLAPIENTRY *PFNGLBLITFRAMEBUFFERPROC)(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
 typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
 typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 typedef void (GLAPIENTRY *PFNGLCLEARNAMEDFRAMEBUFFERIVPROC)(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value);
@@ -381,9 +387,11 @@ typedef enum LvnOglVertexAttributeType
 
 typedef struct LvnOglSwapchainData
 {
-    GLuint*           images;
+    LvnSurface*       surface;
+    uint32_t*         images;
+    uint32_t*         fboIds;
     uint32_t          imageCount;
-    uint32_t          currImage;
+    uint32_t          imageIndex;
     uint32_t          width;
     uint32_t          height;
     LvnFormat         format;
@@ -689,6 +697,7 @@ typedef struct LvnOpenglBackends
     PFNGLBINDVERTEXBUFFERSPROC                              glBindVertexBuffers;
     PFNGLBINDVERTEXARRAYPROC                                glBindVertexArray;
     PFNGLBINDFRAMEBUFFERPROC                                glBindFramebuffer;
+    PFNGLBLITFRAMEBUFFERPROC                                glBlitFramebuffer;
     PFNGLCLEARPROC                                          glClear;
     PFNGLCLEARCOLORPROC                                     glClearColor;
     PFNGLCLEARNAMEDFRAMEBUFFERIVPROC                        glClearNamedFramebufferiv;

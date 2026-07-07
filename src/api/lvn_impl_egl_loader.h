@@ -10,28 +10,29 @@ typedef struct LvnEglLoader
 {
     void* handle;
 
-    PFNEGLGETPLATFORMDISPLAYPROC eglGetPlatformDisplay;
-    PFNEGLINITIALIZEPROC eglInitialize;
-    PFNEGLCHOOSECONFIGPROC eglChooseConfig;
-    PFNEGLCREATEWINDOWSURFACEPROC eglCreateWindowSurface;
-    PFNEGLCREATECONTEXTPROC eglCreateContext;
-    PFNEGLMAKECURRENTPROC eglMakeCurrent;
-    PFNEGLSWAPBUFFERSPROC eglSwapBuffers;
-    PFNEGLBINDAPIPROC eglBindAPI;
-    PFNEGLGETPROCADDRESSPROC eglGetProcAddress;
-    PFNEGLDESTROYSURFACEPROC eglDestroySurface;
-    PFNEGLDESTROYCONTEXTPROC eglDestroyContext;
-    PFNEGLTERMINATEPROC eglTerminate;
+    PFNEGLGETPLATFORMDISPLAYPROC      eglGetPlatformDisplay;
+    PFNEGLINITIALIZEPROC              eglInitialize;
+    PFNEGLCHOOSECONFIGPROC            eglChooseConfig;
+    PFNEGLCREATEPBUFFERSURFACEPROC    eglCreatePbufferSurface;
+    PFNEGLCREATEWINDOWSURFACEPROC     eglCreateWindowSurface;
+    PFNEGLCREATECONTEXTPROC           eglCreateContext;
+    PFNEGLMAKECURRENTPROC             eglMakeCurrent;
+    PFNEGLSWAPBUFFERSPROC             eglSwapBuffers;
+    PFNEGLBINDAPIPROC                 eglBindAPI;
+    PFNEGLGETPROCADDRESSPROC          eglGetProcAddress;
+    PFNEGLDESTROYSURFACEPROC          eglDestroySurface;
+    PFNEGLDESTROYCONTEXTPROC          eglDestroyContext;
+    PFNEGLTERMINATEPROC               eglTerminate;
 
-    EGLint versionMinor, versionMajor;
-    EGLDisplay display;
-    EGLConfig config;
-    EGLSurface surface;
-    EGLContext context;
+    EGLint                            versionMinor, versionMajor;
+    EGLDisplay                        display;
+    EGLConfig                         config;
+    EGLSurface                        surface;
+    EGLContext                        context;
 } LvnEglLoader;
 
 
-LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display, void* window, uint32_t width, uint32_t height);
+LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display);
 void      lvnEglLoaderTerminate(LvnOpenglBackends* oglBackends);
 LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
 void      lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface);

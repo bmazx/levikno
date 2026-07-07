@@ -31,7 +31,7 @@ void myPrint(const char* msg)
     printf("%s", msg);
 }
 
-char* myLogPattern(const LvnLogMessage* logmsg)
+char* myloggerPattern(const LvnLogMessage* logmsg)
 {
     return lvnLogCreateOneShotStrMsg(">>>");
 }
@@ -150,30 +150,33 @@ int main(int argc, char** argv)
 
     LvnLoggerCreateInfo logCreateInfo =
     {
-        .name = "myLog",
+        .name = "mylogger",
         .level = Lvn_LogLevel_None,
-        .format = "[%Y-%m-%d] [%T] [%#%l%^] %> %n: %v%$",
+        .format = "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$",
         .pSinks = &sink,
         .sinkCount = 1,
     };
 
-    LvnLogger* mylog;
-    lvnCreateLogger(ctx, &mylog, &logCreateInfo);
+    LvnLogger* mylogger;
+    lvnCreateLogger(ctx, &mylogger, &logCreateInfo);
+
+    lvnLogMessageTrace(mylogger, "this is a log message");
+    lvnLogMessageInfo(mylogger, "the value of pi is %f", 3.1415);
 
     LvnLogPattern logPattern =
     {
         .symbol = '>',
-        .func = myLogPattern,
+        .func = myloggerPattern,
     };
 
     lvnCtxAddLogPatterns(ctx, &logPattern, 1);
 
-    lvnLogParseLogPatternFormat(mylog, "[%Y-%m-%d] [%#%l%^] %> %n: %v%$");
+    lvnLogParseLogPatternFormat(mylogger, "[%Y-%m-%d] [%#%l%^] %> %n: %v%$");
 
-    lvnLogMessageDebug(mylog, "hello there %f", 3.1415);
-    lvnLogMessageError(mylog, "hello there %f", 3.1415);
+    lvnLogMessageTrace(mylogger, "this is a log message");
+    lvnLogMessageInfo(mylogger, "the value of pi is %f", 3.1415);
 
-    lvnDestroyLogger(mylog);
+    lvnDestroyLogger(mylogger);
 
 
 
@@ -194,9 +197,6 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
-
     WindowData winData = {0};
     glfwSetWindowUserPointer(window, &winData);
 
@@ -210,10 +210,10 @@ int main(int argc, char** argv)
 
     LvnPlatformData pd = {0};
     pd.ndh = nativeDisplay;
-    pd.nwh = &nativeWindow;
+    pd.nwh = (void*)nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -222,8 +222,8 @@ int main(int argc, char** argv)
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
     LvnSurfaceCreateInfo sci = {0};
-    sci.nativeDisplayHandle = nativeDisplay;
-    sci.nativeWindowHandle = &nativeWindow;
+    sci.ndh = nativeDisplay;
+    sci.nwh = (void*)nativeWindow;
 
     LvnSurface* surface;
     lvnCreateSurface(graphicsctx, &surface, &sci);
@@ -312,8 +312,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
-    LvnFile fragfile = lvnLoadFileBin("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
+    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.vert.glsl");
+    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.frag.glsl");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
@@ -459,7 +459,7 @@ int main(int argc, char** argv)
             continue;
         }
 
-
+        /*
         lvnBeginCommandBuffer(cmdBuff);
 
         LvnClearColorValue clearValues[] = {
@@ -511,6 +511,7 @@ int main(int argc, char** argv)
             .pCommandBuffers = &cmdBuff,
         };
         lvnRenderSubmit(graphicsctx, &submitInfo, 1, fence);
+        */
 
         LvnPresentInfo presentInfo = {
             .waitSemaphoreCount = 1,
@@ -532,7 +533,6 @@ int main(int argc, char** argv)
             imageCount = lvnSwapchainGetImageCount(swapchain);
             winData.framebufferResized = false;
         }
-
         glfwPollEvents();
     }
 

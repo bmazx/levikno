@@ -300,16 +300,16 @@ typedef struct LvnPlatformData
 
 typedef struct LvnImage
 {
-    uint8_t* data;
-    uint32_t width;
-    uint32_t height;
-    uint32_t channels;
+    uint8_t*    data;
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    channels;
 } LvnImage;
 
 typedef struct LvnSurfaceCreateInfo
 {
-    void*             nativeDisplayHandle;
-    void*             nativeWindowHandle;
+    void*    ndh;
+    void*    nwh;
 } LvnSurfaceCreateInfo;
 
 typedef struct LvnSwapchainCreateInfo

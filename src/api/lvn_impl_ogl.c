@@ -141,7 +141,7 @@ static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGrap
     LvnResult result = Lvn_Result_Failure;
 
 #if defined(LVN_INCLUDE_EGL)
-    result = lvnEglLoaderInit(oglBackends, createInfo->platformData->ndh, createInfo->platformData->nwh, 1, 1);
+    result = lvnEglLoaderInit(oglBackends, createInfo->platformData->ndh);
 #endif
 
     return result;
@@ -462,6 +462,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glBindVertexBuffers ||
         !oglBackends->glBindVertexArray ||
         !oglBackends->glBindFramebuffer ||
+        !oglBackends->glBlitFramebuffer ||
         !oglBackends->glClear ||
         !oglBackends->glClearColor ||
         !oglBackends->glClearNamedFramebufferiv ||
@@ -616,24 +617,48 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
         goto fail_cleanup;
     }
 
-    swapchainData->images = (GLuint*) lvn_calloc(createInfo->minImageCount * sizeof(GLuint));
+    // swapchainData images and framebuffers
+    swapchainData->images = (uint32_t*) lvn_calloc(createInfo->minImageCount * sizeof(uint32_t));
     if (!swapchainData->images)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[opengl] failed to allocate memory for swapchain images <GLuint> in swapchain %p",
+                      "[opengl] failed to allocate memory for swapchain images in swapchain %p",
+                      swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    // swapchainData framebuffers
+    swapchainData->fboIds = (uint32_t*) lvn_calloc(createInfo->minImageCount * sizeof(uint32_t));
+    if (!swapchainData->fboIds)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for swapchain fboIds in swapchain %p",
                       swapchain);
         errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
     oglBackends->glCreateTextures(GL_TEXTURE_2D, createInfo->minImageCount, swapchainData->images);
+    oglBackends->glCreateFramebuffers(createInfo->minImageCount, swapchainData->fboIds);
 
+    GLenum internalFormat = s_OglFormatTypes[createInfo->surfaceFormat].internalFormat;
+
+    for (uint32_t i = 0; i < createInfo->minImageCount; i++)
+    {
+        oglBackends->glTextureStorage2D(swapchainData->images[i], 1, internalFormat, createInfo->width, createInfo->height);
+        oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], GL_COLOR_ATTACHMENT0, swapchainData->images[i], 0);
+    }
+
+
+    swapchainData->surface = createInfo->surface;
     swapchainData->imageCount = createInfo->minImageCount;
     swapchainData->width = createInfo->width;
     swapchainData->height = createInfo->height;
     swapchainData->format = createInfo->surfaceFormat;
     swapchainData->presentMode = createInfo->presentMode;
 
+    // swapchain images
     swapchain->pSwapchainImages = (LvnTexture*) lvn_calloc(createInfo->minImageCount * sizeof(LvnTexture));
     if (!swapchain->pSwapchainImages)
     {
@@ -646,12 +671,6 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
 
     for (uint32_t i = 0; i < createInfo->minImageCount; i++)
     {
-        oglBackends->glTextureStorage2D(swapchainData->images[i],
-                                        1,
-                                        s_OglFormatTypes[createInfo->surfaceFormat].internalFormat,
-                                        createInfo->width,
-                                        createInfo->height);
-
         swapchain->pSwapchainImages[i].textureData = lvn_calloc(sizeof(LvnOglTextureData));
         LvnOglTextureData* textureData = (LvnOglTextureData*) swapchain->pSwapchainImages[i].textureData;
         textureData->textureId = swapchainData->images[i];
@@ -669,7 +688,9 @@ fail_cleanup:
         if (swapchainData->images)
         {
             oglBackends->glDeleteTextures(createInfo->minImageCount, swapchainData->images);
+            oglBackends->glDeleteFramebuffers(createInfo->minImageCount, swapchainData->fboIds);
             lvn_free(swapchainData->images);
+            lvn_free(swapchainData->fboIds);
         }
 
         lvn_free(swapchainData);
@@ -694,8 +715,15 @@ void lvnImplOglDestroySwapchain(LvnSwapchain* swapchain)
     oglBackends->glDeleteTextures(swapchainData->imageCount, swapchainData->images);
 
     lvn_free(swapchainData->images);
+    lvn_free(swapchainData->fboIds);
     lvn_free(swapchainData);
-    lvn_free(swapchain->pSwapchainImages);
+
+    if (swapchain->pSwapchainImages)
+    {
+        for (uint32_t i = 0; i < swapchain->swapchainImageCount; i++)
+            lvn_free(swapchain->pSwapchainImages[i].textureData);
+        lvn_free(swapchain->pSwapchainImages);
+    }
 
     swapchain->swapchainData = NULL;
     swapchain->pSwapchainImages = NULL;
@@ -1556,11 +1584,61 @@ void lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32
 
 LvnResult lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)
 {
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) swapchain->graphicsctx->implData;
+    LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
+
+    // recreate swapchain resources
+    oglBackends->glDeleteTextures(swapchainData->imageCount, swapchainData->images);
+    oglBackends->glCreateTextures(GL_TEXTURE_2D, swapchainData->imageCount, swapchainData->images);
+
+    GLenum internalFormat = s_OglFormatTypes[swapchainData->format].internalFormat;
+
+    for (uint32_t i = 0; i < swapchainData->imageCount; i++)
+    {
+        oglBackends->glTextureStorage2D(swapchainData->images[i], 1, internalFormat, width, height);
+        oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], GL_COLOR_ATTACHMENT0, swapchainData->images[i], 0);
+
+        LvnOglTextureData* textureData = (LvnOglTextureData*) swapchain->pSwapchainImages[i].textureData;
+        textureData->textureId = swapchainData->images[i];
+    }
+
+    // update extent
+    swapchainData->width = width;
+    swapchainData->height = height;
+
+    swapchain->extent.width = width;
+    swapchain->extent.height = height;
+
     return Lvn_Result_Success;
 }
 
 LvnResult lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex)
 {
+    LVN_ASSERT(swapchain && imageIndex, "swapchain and imageIndex cannot be null");
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) swapchain->graphicsctx->implData;
+    LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
+    LvnOglSemaphoreData* semaphoreData = (semaphore) ? (LvnOglSemaphoreData*)semaphore->semaphoreData : NULL;
+    LvnOglFenceData* fenceData = (fence) ? (LvnOglFenceData*)fence->fenceData : NULL;
+
+    // NOTE: set semaphore and fence to null since blitting the framebuffer will always make the image available
+
+    if (semaphoreData && semaphoreData->semaphoreId)
+    {
+        oglBackends->glDeleteSync(semaphoreData->semaphoreId);
+        semaphoreData->semaphoreId = NULL;
+    }
+    if (fenceData && fenceData->fenceId)
+    {
+        oglBackends->glDeleteSync(fenceData->fenceId);
+        fenceData->fenceId = NULL;
+    }
+
+    *imageIndex = swapchainData->imageIndex;
+    swapchainData->imageIndex = (swapchainData->imageIndex + 1) % swapchainData->imageCount;
+
     return Lvn_Result_Success;
 }
 
@@ -1910,6 +1988,19 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
         LvnOglSemaphoreData* semaphoreData = presentInfo->pWaitSemaphores[i]->semaphoreData;
         if (semaphoreData->semaphoreId)
             oglBackends->glWaitSync(semaphoreData->semaphoreId, 0, GL_TIMEOUT_IGNORED);
+    }
+
+    for (uint32_t i = 0; i < presentInfo->swapchainCount; i++)
+    {
+        const LvnOglSwapchainData* swapchainData = (const LvnOglSwapchainData*) presentInfo->pSwapchains[i]->swapchainData;
+
+        oglBackends->ogllMakeCurrent(oglBackends, swapchainData->surface);
+
+        oglBackends->glBindFramebuffer(GL_READ_FRAMEBUFFER, swapchainData->fboIds[presentInfo->pImageIndices[i]]);
+        oglBackends->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        oglBackends->glBlitFramebuffer(0, 0, swapchainData->width, swapchainData->height, 0, 0, swapchainData->width, swapchainData->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        oglBackends->ogllSwapBuffers(oglBackends, swapchainData->surface);
     }
 
     return Lvn_Result_Success;

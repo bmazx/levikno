@@ -1898,8 +1898,8 @@ LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurfa
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
     LvnPlatformData platformData = {
-        .ndh = createInfo->nativeDisplayHandle,
-        .nwh = createInfo->nativeWindowHandle,
+        .ndh = createInfo->ndh,
+        .nwh = createInfo->nwh,
     };
 
     VkSurfaceKHR vkSurface;
