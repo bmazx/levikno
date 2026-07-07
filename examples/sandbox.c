@@ -459,7 +459,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-        /*
         lvnBeginCommandBuffer(cmdBuff);
 
         LvnClearColorValue clearValues[] = {
@@ -511,7 +510,6 @@ int main(int argc, char** argv)
             .pCommandBuffers = &cmdBuff,
         };
         lvnRenderSubmit(graphicsctx, &submitInfo, 1, fence);
-        */
 
         LvnPresentInfo presentInfo = {
             .waitSemaphoreCount = 1,

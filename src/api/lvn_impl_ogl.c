@@ -1704,8 +1704,6 @@ void lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
-    lvn_memArenaResetMergeBlocks(&commandBuffer->frameArena);
-
     LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
     commandBufferData->pipeline.vaoId = 0;
     commandBufferData->pipeline.pipelineId = 0;
@@ -1713,6 +1711,7 @@ void lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer)
     memset(&commandBufferData->ibo, 0, sizeof(commandBufferData->ibo));
 
     lvn_memArenaResetMergeBlocks(&commandBufferData->cmdStream);
+    lvn_memArenaResetMergeBlocks(&commandBuffer->frameArena);
 }
 
 void lvnImplOglEndCommandBuffer(LvnCommandBuffer* commandBuffer)
@@ -1725,7 +1724,6 @@ void lvnImplOglCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPass
     LVN_ASSERT(commandBuffer && beginInfo, "commandBuffer and beginInfo cannot be null");
 
     LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
-
 
     LvnOglCmdHeader header = {
         .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BeginRenderPass,

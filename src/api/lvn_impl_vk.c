@@ -148,7 +148,7 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
         VkXlibSurfaceCreateInfoKHR sci = {
             .sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
             .dpy = (Display*) platformData->ndh,
-            .window = *(Window*) platformData->nwh,
+            .window = (Window) platformData->nwh,
         };
         PFN_vkCreateXlibSurfaceKHR vkCreateXlibSurfaceKHR =
             (PFN_vkCreateXlibSurfaceKHR) vkBackends->vkCreateSurfaceProc;
