@@ -12,6 +12,7 @@ typedef struct LvnEglLoader
 
     PFNEGLGETPLATFORMDISPLAYPROC      eglGetPlatformDisplay;
     PFNEGLINITIALIZEPROC              eglInitialize;
+    PFNEGLQUERYSTRINGPROC             eglQueryString;
     PFNEGLCHOOSECONFIGPROC            eglChooseConfig;
     PFNEGLCREATEPBUFFERSURFACEPROC    eglCreatePbufferSurface;
     PFNEGLCREATEWINDOWSURFACEPROC     eglCreateWindowSurface;
@@ -29,6 +30,11 @@ typedef struct LvnEglLoader
     EGLConfig                         config;
     EGLSurface                        surface;
     EGLContext                        context;
+
+    struct
+    {
+        bool colorspace;
+    } ext;
 } LvnEglLoader;
 
 

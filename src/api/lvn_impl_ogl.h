@@ -105,9 +105,10 @@
 #define GL_MAJOR_VERSION 0x821B
 #define GL_MINOR_VERSION 0x821C
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
-#define GL_FRAMEBUFFER 0x8D40
 #define GL_READ_FRAMEBUFFER 0x8CA8
 #define GL_DRAW_FRAMEBUFFER 0x8CA9
+#define GL_FRAMEBUFFER 0x8D40
+#define GL_FRAMEBUFFER_SRGB 0x8DB9
 #define GL_MAX_COLOR_ATTACHMENTS 0x8CDF
 #define GL_MAX_DRAW_BUFFERS 0x8824
 #define GL_COLOR_ATTACHMENT0 0x8CE0
@@ -396,6 +397,7 @@ typedef struct LvnOglSwapchainData
     uint32_t          height;
     LvnFormat         format;
     LvnPresentMode    presentMode;
+    bool              srgb;
 } LvnOglSwapchainData;
 
 typedef struct LvnOglRenderpassData

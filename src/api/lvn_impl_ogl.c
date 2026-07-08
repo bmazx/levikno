@@ -73,6 +73,7 @@ static const LvnOglCmdBuffFnCallback s_OglCmdBuffFuncTable[] =
 
 static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGraphicsContextCreateInfo* createInfo);
 static void      lvn_unloadOglLoader(LvnOpenglBackends* oglBackends);
+static bool      lvn_isOglFormatSrgb(LvnFormat format);
 static GLenum    lvn_getOglTextureFilterEnum(LvnTextureFilter filter, LvnMipmapMode mipmapMode);
 static GLenum    lvn_getOglTextureModeEnum(LvnTextureMode mode);
 static GLenum    lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format);
@@ -154,6 +155,16 @@ static void lvn_unloadOglLoader(LvnOpenglBackends* oglBackends)
 #if defined(LVN_INCLUDE_EGL)
     lvnEglLoaderTerminate(oglBackends);
 #endif
+}
+
+static bool lvn_isOglFormatSrgb(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_R8G8B8A8_SRGB: { return true; }
+        case Lvn_Format_B8G8R8A8_SRGB: { return true; }
+        default: { return false; }
+    }
 }
 
 static GLenum lvn_getOglTextureFilterEnum(LvnTextureFilter filter, LvnMipmapMode mipmapMode)
@@ -657,6 +668,7 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
     swapchainData->height = createInfo->height;
     swapchainData->format = createInfo->surfaceFormat;
     swapchainData->presentMode = createInfo->presentMode;
+    swapchainData->srgb = lvn_isOglFormatSrgb(createInfo->surfaceFormat);
 
     // swapchain images
     swapchain->pSwapchainImages = (LvnTexture*) lvn_calloc(createInfo->minImageCount * sizeof(LvnTexture));
@@ -1993,6 +2005,11 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
         const LvnOglSwapchainData* swapchainData = (const LvnOglSwapchainData*) presentInfo->pSwapchains[i]->swapchainData;
 
         oglBackends->ogllMakeCurrent(oglBackends, swapchainData->surface);
+
+        if (swapchainData->srgb)
+            oglBackends->glEnable(GL_FRAMEBUFFER_SRGB);
+        else
+            oglBackends->glDisable(GL_FRAMEBUFFER_SRGB);
 
         oglBackends->glBindFramebuffer(GL_READ_FRAMEBUFFER, swapchainData->fboIds[presentInfo->pImageIndices[i]]);
         oglBackends->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

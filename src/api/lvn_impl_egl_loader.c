@@ -1,6 +1,8 @@
 #include "lvn_impl_egl_loader.h"
 #include "lvn_impl_ogl.h"
 
+#include <string.h>
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -26,10 +28,16 @@ static LvnResult lvn_eglCreateSurface(
 
     LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 
+    EGLint surfaceAttribs[] =
+    {
+        EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR,
+        EGL_NONE,
+    };
+
 #ifdef LVN_INCLUDE_X11
     if (wps.x11)
     {
-        *surface = eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)window, NULL);
+        *surface = eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)window, eglLoader->ext.colorspace ? surfaceAttribs : NULL);
         return Lvn_Result_Success;
     }
 #endif
@@ -68,6 +76,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglGetPlatformDisplay");
     eglLoader->eglInitialize = (PFNEGLINITIALIZEPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglInitialize");
+    eglLoader->eglQueryString = (PFNEGLQUERYSTRINGPROC)
+        lvn_platformGetModuleSymbol(eglLoader->handle, "eglQueryString");
     eglLoader->eglChooseConfig = (PFNEGLCHOOSECONFIGPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglChooseConfig");
     eglLoader->eglCreatePbufferSurface = (PFNEGLCREATEPBUFFERSURFACEPROC)
@@ -93,6 +103,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
 
     if (!eglLoader->eglGetPlatformDisplay ||
         !eglLoader->eglInitialize ||
+        !eglLoader->eglQueryString ||
         !eglLoader->eglChooseConfig ||
         !eglLoader->eglCreatePbufferSurface ||
         !eglLoader->eglCreateWindowSurface ||
@@ -148,6 +159,13 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         goto fail_cleanup;
     }
 
+    // extensions
+    const char* eglExt = eglLoader->eglQueryString(eglLoader->display, EGL_EXTENSIONS);
+    if (eglExt && strstr(eglExt, "EGL_KHR_gl_colorspace"))
+    {
+        eglLoader->ext.colorspace = true;
+    }
+
     // choose framebuffer config attributes
     EGLint configAttribs[] =
     {
@@ -156,6 +174,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
         EGL_DEPTH_SIZE, 24,
         EGL_NONE
     };
