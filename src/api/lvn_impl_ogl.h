@@ -619,24 +619,24 @@ typedef struct LvnOglCmdBuffDrawIndexedData
 
 typedef struct LvnOpenglBackends
 {
-    const LvnGraphicsContext*               graphicsctx;
-    GLint                                   versionMajor, versionMinor;
+    const LvnGraphicsContext*                               graphicsctx;
+    GLint                                                   versionMajor, versionMinor;
 
     struct
     {
-        GLint                               maxVertexAttribs;
-        GLint                               maxVertexBindings;
-        GLint                               maxColorAttachments;
-        GLint                               maxDrawBuffers;
+        GLint                                               maxVertexAttribs;
+        GLint                                               maxVertexBindings;
+        GLint                                               maxColorAttachments;
+        GLint                                               maxDrawBuffers;
     } capabilities;
 
-    void*                                   loaderHandle;
-    void*                                   handle;
+    void*                                                   loaderHandle;
+    void*                                                   handle;
 
-    LvnResult                               (*ogllCreateSurface)(const struct LvnOpenglBackends*, LvnSurface*, const LvnSurfaceCreateInfo*);
-    void                                    (*ogllDestroySurface)(const struct LvnOpenglBackends*, LvnSurface*);
-    void                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, LvnSurface*);
-    void                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, LvnSurface*);
+    LvnResult                                               (*ogllCreateSurface)(const struct LvnOpenglBackends*, LvnSurface*, const LvnSurfaceCreateInfo*);
+    void                                                    (*ogllDestroySurface)(const struct LvnOpenglBackends*, LvnSurface*);
+    void                                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, LvnSurface*);
+    void                                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, LvnSurface*);
 
     PFNGLGETSTRINGPROC                                      glGetString;
     PFNGLGETERRORPROC                                       glGetError;
