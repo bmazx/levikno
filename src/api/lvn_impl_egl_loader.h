@@ -19,6 +19,7 @@ typedef struct LvnEglLoader
     PFNEGLCREATECONTEXTPROC           eglCreateContext;
     PFNEGLMAKECURRENTPROC             eglMakeCurrent;
     PFNEGLSWAPBUFFERSPROC             eglSwapBuffers;
+    PFNEGLSWAPINTERVALPROC            eglSwapInterval;
     PFNEGLBINDAPIPROC                 eglBindAPI;
     PFNEGLGETPROCADDRESSPROC          eglGetProcAddress;
     PFNEGLDESTROYSURFACEPROC          eglDestroySurface;
@@ -44,6 +45,7 @@ LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* 
 void      lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
 void      lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
 void      lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
+void      lvnEglSwapInterval(const LvnOpenglBackends* oglBackends, int interval);
 
 
 #endif

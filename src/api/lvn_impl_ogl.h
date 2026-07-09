@@ -637,6 +637,7 @@ typedef struct LvnOpenglBackends
     void                                                    (*ogllDestroySurface)(const struct LvnOpenglBackends*, LvnSurface*);
     void                                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, LvnSurface*);
     void                                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, LvnSurface*);
+    void                                                    (*ogllSwapInterval)(const struct LvnOpenglBackends*, int);
 
     PFNGLGETSTRINGPROC                                      glGetString;
     PFNGLGETERRORPROC                                       glGetError;

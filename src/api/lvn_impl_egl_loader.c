@@ -90,6 +90,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglMakeCurrent");
     eglLoader->eglSwapBuffers = (PFNEGLSWAPBUFFERSPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglSwapBuffers");
+    eglLoader->eglSwapInterval = (PFNEGLSWAPINTERVALPROC)
+        lvn_platformGetModuleSymbol(eglLoader->handle, "eglSwapInterval");
     eglLoader->eglBindAPI = (PFNEGLBINDAPIPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglBindAPI");
     eglLoader->eglDestroySurface = (PFNEGLDESTROYSURFACEPROC)
@@ -110,6 +112,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         !eglLoader->eglCreateContext ||
         !eglLoader->eglMakeCurrent ||
         !eglLoader->eglSwapBuffers ||
+        !eglLoader->eglSwapInterval ||
         !eglLoader->eglBindAPI ||
         !eglLoader->eglDestroySurface ||
         !eglLoader->eglDestroyContext ||
@@ -385,6 +388,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
     oglBackends->ogllDestroySurface = lvnEglDestroySurface;
     oglBackends->ogllMakeCurrent = lvnEglMakeCurrent;
     oglBackends->ogllSwapBuffers = lvnEglSwapBuffers;
+    oglBackends->ogllSwapInterval = lvnEglSwapInterval;
 
     eglLoader->eglMakeCurrent(eglLoader->display, eglLoader->surface, eglLoader->surface, eglLoader->context);
 
@@ -469,4 +473,12 @@ void lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, LvnSurface* surface
     EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
 
     eglLoader->eglSwapBuffers(eglLoader->display, eglSurface);
+}
+
+void lvnEglSwapInterval(const LvnOpenglBackends* oglBackends, int interval)
+{
+    LVN_ASSERT(oglBackends, "oglBackends cannot be null");
+    LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
+
+    eglLoader->eglSwapInterval(eglLoader->display, interval);
 }

@@ -2006,6 +2006,19 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
 
         oglBackends->ogllMakeCurrent(oglBackends, swapchainData->surface);
 
+        switch (swapchainData->presentMode)
+        {
+            case Lvn_PresentMode_FIFO:
+                oglBackends->ogllSwapInterval(oglBackends, 0);
+                break;
+            case Lvn_PresentMode_Mailbox:
+                oglBackends->ogllSwapInterval(oglBackends, 1);
+                break;
+            case Lvn_PresentMode_Immediate:
+                oglBackends->ogllSwapInterval(oglBackends, 1);
+                break;
+        }
+
         if (swapchainData->srgb)
             oglBackends->glEnable(GL_FRAMEBUFFER_SRGB);
         else

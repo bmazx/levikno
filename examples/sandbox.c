@@ -17,13 +17,15 @@ typedef struct WindowData
 } WindowData;
 
 static float s_Vertices[] = {
-    0.0f,-0.5f, 1.0f, 0.0f, 0.0f,
-   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+   -0.5f,-0.5f, 1.0f, 0.0f, 1.0f,
+    0.5f,-0.5f, 1.0f, 0.0f, 0.0f,
     0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
 };
 
 static uint32_t s_Indices[] = {
     0, 1, 2,
+    0, 2, 3,
 };
 
 void myPrint(const char* msg)
@@ -188,7 +190,6 @@ int main(int argc, char** argv)
 
     glfwSetErrorCallback(GLFWerrorCallback);
 
-    /* Create a windowed mode window and its OpenGL context */
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(800, 600, "Hello World", NULL, NULL);
     if (!window)
@@ -434,9 +435,21 @@ int main(int argc, char** argv)
 
     LvnResult result;
     uint32_t imageIndex = 0;
+    int fps = 0;
+    double prevTime = 0.0;
 
     while (!glfwWindowShouldClose(window))
     {
+        double currTime = glfwGetTime();
+        double delta = currTime - prevTime;
+        fps++;
+        if (delta >= 1.0)
+        {
+            LVN_LOG_DEBUG(logger, "fps: %d", fps);
+            prevTime = currTime;
+            fps = 0;
+        }
+
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
 
