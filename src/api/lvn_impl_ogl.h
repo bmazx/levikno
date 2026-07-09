@@ -6,6 +6,9 @@
 
 #include <KHR/khrplatform.h>
 
+#define LVN_OGL_CONTEXT_MAJOR 4
+#define LVN_OGL_CONTEXT_MINOR 5
+
 #define GLAPI KHRONOS_APICALL
 #define GLAPIENTRY KHRONOS_APIENTRY
 

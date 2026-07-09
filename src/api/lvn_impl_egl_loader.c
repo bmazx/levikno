@@ -209,8 +209,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
     // create context and attributes
     EGLint ctxAttribs[] =
     {
-        EGL_CONTEXT_MAJOR_VERSION, 4,
-        EGL_CONTEXT_MINOR_VERSION, 5,
+        EGL_CONTEXT_MAJOR_VERSION, LVN_OGL_CONTEXT_MAJOR,
+        EGL_CONTEXT_MINOR_VERSION, LVN_OGL_CONTEXT_MINOR,
         EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
 #ifdef LVN_CONFIG_DEBUG
         EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
