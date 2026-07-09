@@ -1,6 +1,9 @@
-
 #include <levikno/levikno.h>
 #include <levikno/lvn_graphics.h>
+
+#define LVN_GMATH_IMPL
+#include <levikno/lvn_gmath.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,6 +18,11 @@ typedef struct WindowData
     bool framebufferResized;
     int width, height;
 } WindowData;
+
+typedef struct UniformData
+{
+    LvnMat4 matrix;
+} UniformData;
 
 static float s_Vertices[] = {
    -0.5f,-0.5f, 1.0f, 0.0f, 1.0f,
@@ -214,7 +222,7 @@ int main(int argc, char** argv)
     pd.nwh = (void*)nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -313,8 +321,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.vert.glsl");
-    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.frag.glsl");
+    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
@@ -386,7 +394,7 @@ int main(int argc, char** argv)
         lvnCreateSemaphore(graphicsctx, &renderFinishedSemaphores[i]);
 
 
-    // vertex buffer create info struct
+    // vertex buffer
     LvnBufferCreateInfo bufferCreateInfo = {
         .type = Lvn_BufferTypeFlag_Vertex,
         .usage = Lvn_BufferMemoryUsage_CpuToGpu,
@@ -394,19 +402,26 @@ int main(int argc, char** argv)
         .size = sizeof(s_Vertices),
     };
 
-    // create buffer
     LvnBuffer* vertexBuffer;
     lvnCreateBuffer(graphicsctx, &vertexBuffer, &bufferCreateInfo);
 
-    // index buffer create info struct
+    // index buffer
     bufferCreateInfo.type = Lvn_BufferTypeFlag_Index;
     bufferCreateInfo.usage = Lvn_BufferMemoryUsage_CpuToGpu;
     bufferCreateInfo.data = s_Indices;
     bufferCreateInfo.size = sizeof(s_Indices);
 
-    // create buffer
     LvnBuffer* indexBuffer;
     lvnCreateBuffer(graphicsctx, &indexBuffer, &bufferCreateInfo);
+
+    // uniform buffer
+    bufferCreateInfo.type = Lvn_BufferTypeFlag_Uniform;
+    bufferCreateInfo.usage = Lvn_BufferMemoryUsage_CpuToGpu;
+    bufferCreateInfo.size = sizeof(UniformData);
+    bufferCreateInfo.data = NULL;
+
+    LvnBuffer* uniformBuffer;
+    lvnCreateBuffer(graphicsctx, &uniformBuffer, &bufferCreateInfo);
 
     LvnSamplerCreateInfo samplerCreateInfo = {
         .magFilter = Lvn_TextureFilter_Nearest,
@@ -554,6 +569,7 @@ int main(int argc, char** argv)
     lvnDestroySampler(sampler);
     lvnDestroyBuffer(vertexBuffer);
     lvnDestroyBuffer(indexBuffer);
+    lvnDestroyBuffer(uniformBuffer);
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
     for (uint32_t i = 0; i < imageCount; i++)
