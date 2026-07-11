@@ -47,7 +47,8 @@ typedef enum LvnTopologyType
     Lvn_TopologyType_TriangleStrip,
 } LvnTopologyType;
 
-typedef enum LvnPolygonMode {
+typedef enum LvnPolygonMode
+{
     Lvn_PolygonMode_Fill,
     Lvn_PolygonMode_Line,
     Lvn_PolygonMode_Point,
@@ -167,11 +168,12 @@ typedef enum LvnLogicOperation
     Lvn_LogicOp_Set,
 } LvnLogicOperation;
 
-typedef enum LvnShaderStage
+typedef enum LvnShaderStageFlagBits
 {
-    Lvn_ShaderStage_Vertex,
-    Lvn_ShaderStage_Fragment,
-} LvnShaderStage;
+    Lvn_ShaderStageFlag_Vertex   = 0x00000001,
+    Lvn_ShaderStageFlag_Fragment = 0x00000002,
+} LvnShaderStageFlagBits;
+typedef LvnFlags LvnShaderStageFlags;
 
 typedef enum LvnFormat
 {
@@ -274,6 +276,15 @@ typedef enum LvnTextureMode
     Lvn_TextureMode_ClampToBorder,
 } LvnTextureMode;
 
+typedef enum LvnDescriptorType
+{
+    Lvn_DescriptorType_Sampler,
+    Lvn_DescriptorType_CombinedImageSampler,
+    Lvn_DescriptorType_SampledImage,
+    Lvn_DescriptorType_UniformBuffer,
+    Lvn_DescriptorType_StorageBuffer,
+} LvnDescriptorType;
+
 typedef struct LvnGraphicsContext LvnGraphicsContext;
 typedef struct LvnBuffer LvnBuffer;
 typedef struct LvnSampler LvnSampler;
@@ -283,6 +294,8 @@ typedef struct LvnSwapchain LvnSwapchain;
 typedef struct LvnRenderPass LvnRenderPass;
 typedef struct LvnFramebuffer LvnFramebuffer;
 typedef struct LvnDescriptorLayout LvnDescriptorLayout;
+typedef struct LvnDescriptorPool LvnDescriptorPool;
+typedef struct LvnDescriptorSet LvnDescriptorSet;
 typedef struct LvnShader LvnShader;
 typedef struct LvnPipeline LvnPipeline;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
@@ -370,11 +383,31 @@ typedef struct LvnFramebufferCreateInfo
 
 typedef struct LvnShaderCreateInfo
 {
-    const uint8_t*    pCode;
-    size_t            codeSize;
-    LvnShaderStage    stage;
-    const char*       entryPoint;
+    const uint8_t*            pCode;
+    size_t                    codeSize;
+    LvnShaderStageFlagBits    stage;
+    const char*               entryPoint;
 } LvnShaderCreateInfo;
+
+typedef struct LvnDescriptorBinding
+{
+    uint32_t               binding;
+    LvnDescriptorType      descriptorType;
+    uint32_t               descriptorCount;
+    LvnShaderStageFlags    stageFlags;
+} LvnDescriptorBinding;
+
+typedef struct LvnDescriptorLayoutCreateInfo
+{
+    LvnDescriptorBinding*    pDescriptorBindings;
+    uint32_t                 descriptorBindingCount;
+} LvnDescriptorLayoutCreateInfo;
+
+typedef struct LvnDescriptorPoolCreateInfo
+{
+    LvnDescriptorLayout*    descriptorLayout;
+    uint32_t                maxSets;
+} LvnDescriptorPoolCreateInfo;
 
 typedef struct LvnPipelineInputAssembly
 {
@@ -608,6 +641,10 @@ LVN_API LvnResult                   lvnCreateFramebuffer(const LvnGraphicsContex
 LVN_API void                        lvnDestroyFramebuffer(LvnFramebuffer* framebuffer);
 LVN_API LvnResult                   lvnCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader** shader, const LvnShaderCreateInfo* createInfo);
 LVN_API void                        lvnDestroyShader(LvnShader* shader);
+LVN_API LvnResult                   lvnCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout** descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
+LVN_API void                        lvnDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
+LVN_API LvnResult                   lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool** descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
+LVN_API void                        lvnDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
 LVN_API LvnResult                   lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo);
 LVN_API void                        lvnDestroyPipeline(LvnPipeline* pipeline);
 LVN_API LvnResult                   lvnCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence** fence, bool signaled);

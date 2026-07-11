@@ -64,6 +64,18 @@ struct LvnDescriptorLayout
     void*                        descriptorLayoutData;
 };
 
+struct LvnDescriptorPool
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        descriptorPoolData;
+};
+
+struct LvnDescriptorSet
+{
+    const LvnGraphicsContext*    graphicsctx;
+    void*                        descriptorSetData;
+};
+
 struct LvnShader
 {
     const LvnGraphicsContext*    graphicsctx;
@@ -115,6 +127,10 @@ struct LvnGraphicsContext
     void                        (*implDestroyFramebuffer)(LvnFramebuffer*);
     LvnResult                   (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
     void                        (*implDestroyShader)(LvnShader*);
+    LvnResult                   (*implCreateDescriptorLayout)(const LvnGraphicsContext*, LvnDescriptorLayout*, const LvnDescriptorLayoutCreateInfo*);
+    void                        (*implDestroyDescriptorLayout)(LvnDescriptorLayout*);
+    LvnResult                   (*implCreateDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*, const LvnDescriptorPoolCreateInfo*);
+    void                        (*implDestroyDescriptorPool)(LvnDescriptorPool*);
     LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
     void                        (*implDestroyPipeline)(LvnPipeline*);
     LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*, bool);
@@ -158,7 +174,7 @@ struct LvnGraphicsContext
 };
 
 
-const char* lvn_getShaderStageEnumName(LvnShaderStage stage);
+const char* lvn_getShaderStageEnumName(LvnShaderStageFlagBits stage);
 
 
 #endif // !HG_LVN_GRAPHICS_INTERNAL_H

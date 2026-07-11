@@ -47,10 +47,17 @@ typedef struct LvnVkRenderpassData
 
 typedef struct LvnVkShaderData
 {
-    VkShaderModule        shaderModule;
-    char*                 entryPoint;
-    VkShaderStageFlags    shaderStage;
+    VkShaderModule           shaderModule;
+    char*                    entryPoint;
+    VkShaderStageFlagBits    shaderStage;
 } LvnVkShaderData;
+
+typedef struct LvnVkDescriptorLayoutData
+{
+    VkDescriptorSetLayout            descriptorLayout;
+    VkDescriptorSetLayoutBinding*    pDescriptorBindings;
+    uint32_t                         descriptorBindingCount;
+} LvnVkDescriptorLayoutData;
 
 typedef struct LvnVkPipelineData
 {
@@ -143,6 +150,10 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroySampler                             vkDestroySampler;
     PFN_vkCreateShaderModule                         vkCreateShaderModule;
     PFN_vkDestroyShaderModule                        vkDestroyShaderModule;
+    PFN_vkCreateDescriptorSetLayout                  vkCreateDescriptorSetLayout;
+    PFN_vkDestroyDescriptorSetLayout                 vkDestroyDescriptorSetLayout;
+    PFN_vkCreateDescriptorPool                       vkCreateDescriptorPool;
+    PFN_vkDestroyDescriptorPool                      vkDestroyDescriptorPool;
     PFN_vkCreateRenderPass                           vkCreateRenderPass;
     PFN_vkDestroyRenderPass                          vkDestroyRenderPass;
     PFN_vkCreatePipelineLayout                       vkCreatePipelineLayout;

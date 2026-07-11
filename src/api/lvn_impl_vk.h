@@ -17,6 +17,10 @@ LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnF
 void      lvnImplVkDestroyFramebuffer(LvnFramebuffer* framebuffer);
 LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
 void      lvnImplVkDestroyShader(LvnShader* shader);
+LvnResult lvnImplVkCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
+void      lvnImplVkDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
+LvnResult lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
+void      lvnImplVkDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
 LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);

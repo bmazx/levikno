@@ -77,7 +77,7 @@ static bool      lvn_isOglFormatSrgb(LvnFormat format);
 static GLenum    lvn_getOglTextureFilterEnum(LvnTextureFilter filter, LvnMipmapMode mipmapMode);
 static GLenum    lvn_getOglTextureModeEnum(LvnTextureMode mode);
 static GLenum    lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format);
-static GLenum    lvn_getOglShaderStageEnum(LvnShaderStage stage);
+static GLenum    lvn_getOglShaderStageEnum(LvnShaderStageFlagBits stage);
 static GLenum    lvn_getOglTopologyEnum(LvnTopologyType topology);
 static GLenum    lvn_getOglCullModeFlagEnum(LvnCullFaceMode cullFaceMode);
 static GLenum    lvn_getOglCullFrontFaceEnum(LvnCullFrontFace frontFace);
@@ -219,12 +219,12 @@ static GLenum lvn_getOglDepthStencilAttachmentTypeEnum(LvnFormat format)
     return GL_NONE;
 }
 
-static GLenum lvn_getOglShaderStageEnum(LvnShaderStage stage)
+static GLenum lvn_getOglShaderStageEnum(LvnShaderStageFlagBits stage)
 {
     switch (stage)
     {
-        case Lvn_ShaderStage_Vertex: { return GL_VERTEX_SHADER; }
-        case Lvn_ShaderStage_Fragment: { return GL_FRAGMENT_SHADER; }
+        case Lvn_ShaderStageFlag_Vertex: { return GL_VERTEX_SHADER; }
+        case Lvn_ShaderStageFlag_Fragment: { return GL_FRAGMENT_SHADER; }
     }
 
     LVN_ASSERT(false, "invalid shader stage enum");
@@ -524,6 +524,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     graphicsctx->implDestroyFramebuffer = lvnImplOglDestroyFramebuffer;
     graphicsctx->implCreateShader = lvnImplOglCreateShader;
     graphicsctx->implDestroyShader = lvnImplOglDestroyShader;
+    graphicsctx->implCreateDescriptorLayout = lvnImplOglCreateDescriptorLayout;
+    graphicsctx->implDestroyDescriptorLayout = lvnImplOglDestroyDescriptorLayout;
+    graphicsctx->implCreateDescriptorPool = lvnImplOglCreateDescriptorPool;
+    graphicsctx->implDestroyDescriptorPool = lvnImplOglDestroyDescriptorPool;
     graphicsctx->implCreatePipeline = lvnImplOglCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplOglDestroyPipeline;
     graphicsctx->implCreateFence = lvnImplOglCreateFence;
@@ -1017,6 +1021,26 @@ void lvnImplOglDestroyShader(LvnShader* shader)
     lvn_free(shaderData);
 
     shader->shaderData = NULL;
+}
+
+LvnResult lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo)
+{
+    return Lvn_Result_Success;
+}
+
+void lvnImplOglDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout)
+{
+
+}
+
+LvnResult lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo)
+{
+    return Lvn_Result_Success;
+}
+
+void lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
+{
+
 }
 
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)

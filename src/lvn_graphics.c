@@ -401,6 +401,104 @@ void lvnDestroyShader(LvnShader* shader)
     lvn_free(shader);
 }
 
+LvnResult lvnCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout** descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && descriptorLayout && createInfo, "graphicsctx, descriptorLayout, and createInfo cannot be null");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    *descriptorLayout = NULL;
+
+    *descriptorLayout = (LvnDescriptorLayout*) lvn_calloc(sizeof(LvnDescriptorLayout));
+    if (!*descriptorLayout)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for descriptorLayout at %p",
+                      descriptorLayout);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    LvnDescriptorLayout* descriptorLayoutPtr = *descriptorLayout;
+    descriptorLayoutPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateDescriptorLayout(graphicsctx, *descriptorLayout, createInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create descriptorLayout at %p",
+                      descriptorLayout);
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*descriptorLayout)
+    {
+        lvn_free(*descriptorLayout);
+        *descriptorLayout = NULL;
+    }
+    return errResult;
+}
+
+void lvnDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout)
+{
+    LVN_ASSERT(descriptorLayout, "descriptorLayout cannot be null");
+    const LvnGraphicsContext* graphicsctx = descriptorLayout->graphicsctx;
+    graphicsctx->implDestroyDescriptorLayout(descriptorLayout);
+    lvn_free(descriptorLayout);
+}
+
+LvnResult lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool** descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && descriptorPool && createInfo, "graphicsctx, descriptorPool, and createInfo cannot be null");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    *descriptorPool = NULL;
+
+    *descriptorPool = (LvnDescriptorPool*) lvn_calloc(sizeof(LvnDescriptorPool));
+    if (!*descriptorPool)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to allocate memory for descriptorPool at %p",
+                      descriptorPool);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    LvnDescriptorPool* descriptorPoolPtr = *descriptorPool;
+    descriptorPoolPtr->graphicsctx = graphicsctx;
+
+    LvnResult result = graphicsctx->implCreateDescriptorPool(graphicsctx, *descriptorPool, createInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create descriptorPool at %p",
+                      descriptorPool);
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (*descriptorPool)
+    {
+        lvn_free(*descriptorPool);
+        *descriptorPool = NULL;
+    }
+    return errResult;
+}
+
+void lvnDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
+{
+    LVN_ASSERT(descriptorPool, "descriptorPool cannot be null");
+    const LvnGraphicsContext* graphicsctx = descriptorPool->graphicsctx;
+    graphicsctx->implDestroyDescriptorPool(descriptorPool);
+    lvn_free(descriptorPool);
+}
+
 LvnResult lvnCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline** pipeline, const LvnPipelineCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && pipeline && createInfo, "graphicsctx, pipeline, and createInfo cannot be null");
@@ -1048,12 +1146,12 @@ LvnResult lvnRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPrese
     return graphicsctx->implRenderPresent(graphicsctx, presentInfo);
 }
 
-const char* lvn_getShaderStageEnumName(LvnShaderStage stage)
+const char* lvn_getShaderStageEnumName(LvnShaderStageFlagBits stage)
 {
     switch (stage)
     {
-        case Lvn_ShaderStage_Vertex:   { return "vertex"; }
-        case Lvn_ShaderStage_Fragment: { return "fragment"; }
+        case Lvn_ShaderStageFlag_Vertex:   { return "vertex"; }
+        case Lvn_ShaderStageFlag_Fragment: { return "fragment"; }
     }
 
     LVN_ASSERT(false, "invalid stage enum value");

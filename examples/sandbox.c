@@ -327,7 +327,7 @@ int main(int argc, char** argv)
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
     vertShCreateInfo.codeSize = vertfile.size;
-    vertShCreateInfo.stage = Lvn_ShaderStage_Vertex;
+    vertShCreateInfo.stage = Lvn_ShaderStageFlag_Vertex;
     vertShCreateInfo.entryPoint = "main";
 
     LvnShader* vertShader;
@@ -336,7 +336,7 @@ int main(int argc, char** argv)
     LvnShaderCreateInfo fragShCreateInfo = {0};
     fragShCreateInfo.pCode = fragfile.data;
     fragShCreateInfo.codeSize = fragfile.size;
-    fragShCreateInfo.stage = Lvn_ShaderStage_Fragment;
+    fragShCreateInfo.stage = Lvn_ShaderStageFlag_Fragment;
     fragShCreateInfo.entryPoint = "main";
 
     LvnShader* fragShader;

@@ -42,7 +42,9 @@ static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
 static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
 static LvnResult                   lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
-static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStage stage);
+static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStageFlagBits stage);
+static VkShaderStageFlags          lvn_getVkShaderStageFlagsEnum(LvnShaderStageFlags stageFlags);
+static VkDescriptorType            lvn_getVkDescriptorTypeEnum(LvnDescriptorType type);
 static VkPrimitiveTopology         lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType);
 static VkPolygonMode               lvn_getVkPolygonModeEnum(LvnPolygonMode polygonMode);
 static VkCullModeFlags             lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode);
@@ -467,16 +469,43 @@ fail_cleanup:
     return Lvn_Result_Failure;
 }
 
-static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStage stage)
+static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStageFlagBits stage)
 {
     switch (stage)
     {
-        case Lvn_ShaderStage_Vertex: { return VK_SHADER_STAGE_VERTEX_BIT; }
-        case Lvn_ShaderStage_Fragment: { return VK_SHADER_STAGE_FRAGMENT_BIT; }
+        case Lvn_ShaderStageFlag_Vertex: { return VK_SHADER_STAGE_VERTEX_BIT; }
+        case Lvn_ShaderStageFlag_Fragment: { return VK_SHADER_STAGE_FRAGMENT_BIT; }
     }
 
     LVN_ASSERT(false, "invalid shader stage enum");
     return VK_SHADER_STAGE_VERTEX_BIT;
+}
+
+static VkShaderStageFlags lvn_getVkShaderStageFlagsEnum(LvnShaderStageFlags stageFlags)
+{
+    VkShaderStageFlags shaderFlags = 0;
+
+    if (shaderFlags & Lvn_ShaderStageFlag_Vertex)
+        shaderFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+    if (shaderFlags & Lvn_ShaderStageFlag_Fragment)
+        shaderFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    return shaderFlags;
+}
+
+static VkDescriptorType lvn_getVkDescriptorTypeEnum(LvnDescriptorType type)
+{
+    switch (type)
+    {
+        case Lvn_DescriptorType_Sampler: { return VK_DESCRIPTOR_TYPE_SAMPLER; }
+        case Lvn_DescriptorType_CombinedImageSampler: { return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; }
+        case Lvn_DescriptorType_SampledImage: { return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; }
+        case Lvn_DescriptorType_UniformBuffer: { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; }
+        case Lvn_DescriptorType_StorageBuffer: { return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; }
+    }
+
+    LVN_ASSERT(false, "invalid descriptor type enum");
+    return VK_DESCRIPTOR_TYPE_SAMPLER;
 }
 
 static VkPrimitiveTopology lvn_getVkTopologyTypeEnum(LvnTopologyType topologyType)
@@ -1554,6 +1583,14 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateShaderModule");
     vkBackends->vkDestroyShaderModule = (PFN_vkDestroyShaderModule)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyShaderModule");
+    vkBackends->vkCreateDescriptorSetLayout = (PFN_vkCreateDescriptorSetLayout)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateDescriptorSetLayout");
+    vkBackends->vkDestroyDescriptorSetLayout = (PFN_vkDestroyDescriptorSetLayout)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyDescriptorSetLayout");
+    vkBackends->vkCreateDescriptorPool = (PFN_vkCreateDescriptorPool)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateDescriptorPool");
+    vkBackends->vkDestroyDescriptorPool = (PFN_vkDestroyDescriptorPool)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyDescriptorPool");
     vkBackends->vkCreateRenderPass = (PFN_vkCreateRenderPass)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateRenderPass");
     vkBackends->vkDestroyRenderPass = (PFN_vkDestroyRenderPass)
@@ -1659,6 +1696,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->vkDestroySampler ||
         !vkBackends->vkCreateShaderModule ||
         !vkBackends->vkDestroyShaderModule ||
+        !vkBackends->vkCreateDescriptorSetLayout ||
+        !vkBackends->vkDestroyDescriptorSetLayout ||
+        !vkBackends->vkCreateDescriptorPool ||
+        !vkBackends->vkDestroyDescriptorPool ||
         !vkBackends->vkCreateRenderPass ||
         !vkBackends->vkDestroyRenderPass ||
         !vkBackends->vkCreatePipelineLayout ||
@@ -1811,6 +1852,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyFramebuffer = lvnImplVkDestroyFramebuffer;
     graphicsctx->implCreateShader = lvnImplVkCreateShader;
     graphicsctx->implDestroyShader = lvnImplVkDestroyShader;
+    graphicsctx->implCreateDescriptorLayout = lvnImplVkCreateDescriptorLayout;
+    graphicsctx->implDestroyDescriptorLayout = lvnImplVkDestroyDescriptorLayout;
+    graphicsctx->implCreateDescriptorPool = lvnImplVkCreateDescriptorPool;
+    graphicsctx->implDestroyDescriptorPool = lvnImplVkDestroyDescriptorPool;
     graphicsctx->implCreatePipeline = lvnImplVkCreatePipeline;
     graphicsctx->implDestroyPipeline = lvnImplVkDestroyPipeline;
     graphicsctx->implCreateFence = lvnImplVkCreateFence;
@@ -2378,10 +2423,11 @@ LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader
     memcpy(shaderData->entryPoint, createInfo->entryPoint, entryPointStrLen);
 
     // shader module
-    VkShaderModuleCreateInfo shaderCreateInfo = {0};
-    shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderCreateInfo.codeSize = createInfo->codeSize;
-    shaderCreateInfo.pCode = (const uint32_t*) createInfo->pCode;
+    VkShaderModuleCreateInfo shaderCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = createInfo->codeSize,
+        .pCode = (const uint32_t*) createInfo->pCode,
+    };
 
     if (vkBackends->vkCreateShaderModule(vkBackends->device, &shaderCreateInfo, NULL, &shaderData->shaderModule) != VK_SUCCESS)
     {
@@ -2421,6 +2467,160 @@ void lvnImplVkDestroyShader(LvnShader* shader)
     lvn_free(shaderData);
 
     shader->shaderData = NULL;
+}
+
+LvnResult lvnImplVkCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && descriptorLayout && createInfo, "graphicsctx, descriptorLayout, and createInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnVkDescriptorLayoutData* descriptorLayoutData = NULL;
+
+    descriptorLayoutData = (LvnVkDescriptorLayoutData*) lvn_calloc(sizeof(LvnVkDescriptorLayoutData));
+    if (!descriptorLayoutData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor layout data in descriptor layout %p",
+                      descriptorLayout);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorLayoutData->pDescriptorBindings = (VkDescriptorSetLayoutBinding*) lvn_calloc(createInfo->descriptorBindingCount * sizeof(VkDescriptorSetLayoutBinding));
+    if (!descriptorLayoutData->pDescriptorBindings)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor bindings array in descriptor layout %p",
+                      descriptorLayout);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    // descriptor set bindings
+    descriptorLayoutData->descriptorBindingCount = createInfo->descriptorBindingCount;
+    for (uint32_t i = 0; i < createInfo->descriptorBindingCount; i++)
+    {
+        descriptorLayoutData->pDescriptorBindings[i].binding = createInfo->pDescriptorBindings[i].binding;
+        descriptorLayoutData->pDescriptorBindings[i].descriptorCount = createInfo->pDescriptorBindings[i].descriptorCount;
+        descriptorLayoutData->pDescriptorBindings[i].descriptorType = lvn_getVkDescriptorTypeEnum(createInfo->pDescriptorBindings[i].descriptorType);
+        descriptorLayoutData->pDescriptorBindings[i].stageFlags = lvn_getVkShaderStageFlagsEnum(createInfo->pDescriptorBindings[i].stageFlags);
+    }
+
+    // create descriptor layout
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = createInfo->descriptorBindingCount,
+        .pBindings = descriptorLayoutData->pDescriptorBindings,
+    };
+
+    if (vkBackends->vkCreateDescriptorSetLayout(vkBackends->device, &descriptorSetLayoutCreateInfo, NULL, &descriptorLayoutData->descriptorLayout) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create descriptor set layout in descriptor layout %p",
+                      descriptorLayout);
+        goto fail_cleanup;
+    }
+
+    descriptorLayout->descriptorLayoutData = descriptorLayoutData;
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (descriptorLayoutData)
+    {
+        vkBackends->vkDestroyDescriptorSetLayout(vkBackends->device, descriptorLayoutData->descriptorLayout, NULL);
+        if (descriptorLayoutData->pDescriptorBindings) { lvn_free(descriptorLayoutData->pDescriptorBindings); }
+        lvn_free(descriptorLayoutData);
+    }
+    return errResult;
+}
+
+void lvnImplVkDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout)
+{
+    LVN_ASSERT(descriptorLayout, "descriptorLayout cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) descriptorLayout->graphicsctx->implData;
+
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    LvnVkDescriptorLayoutData* descriptorLayoutData = (LvnVkDescriptorLayoutData*) descriptorLayout->descriptorLayoutData;
+
+    vkBackends->vkDestroyDescriptorSetLayout(vkBackends->device, descriptorLayoutData->descriptorLayout, NULL);
+    lvn_free(descriptorLayoutData->pDescriptorBindings);
+    lvn_free(descriptorLayoutData);
+    descriptorLayout->descriptorLayoutData = NULL;
+}
+
+LvnResult lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx && descriptorPool && createInfo, "graphicsctx, descriptorPool, and createInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    const LvnVkDescriptorLayoutData* descriptorLayoutData = (const LvnVkDescriptorLayoutData*) createInfo->descriptorLayout->descriptorLayoutData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    VkDescriptorPoolSize* descriptorPoolSizes = NULL;
+    VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
+
+    descriptorPoolSizes = (VkDescriptorPoolSize*) lvn_calloc(descriptorLayoutData->descriptorBindingCount * sizeof(VkDescriptorPoolSize));
+    if (!descriptorPoolSizes)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor pool sizes array in descriptor pool %p",
+                      descriptorPool);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < descriptorLayoutData->descriptorBindingCount; i++)
+    {
+        descriptorPoolSizes[i].type = descriptorLayoutData->pDescriptorBindings[i].descriptorType;
+        descriptorPoolSizes[i].descriptorCount = createInfo->maxSets;
+    }
+
+    VkDescriptorPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .poolSizeCount = descriptorLayoutData->descriptorBindingCount,
+        .pPoolSizes = descriptorPoolSizes,
+        .maxSets = createInfo->maxSets,
+    };
+
+    if (vkBackends->vkCreateDescriptorPool(vkBackends->device, &poolInfo, NULL, &vkDescriptorPool) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create descriptor pool %p",
+                      descriptorPool);
+        goto fail_cleanup;
+    }
+
+    descriptorPool->descriptorPoolData = vkDescriptorPool;
+
+    lvn_free(descriptorPoolSizes);
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    if (vkDescriptorPool != VK_NULL_HANDLE)
+        vkBackends->vkDestroyDescriptorPool(vkBackends->device, vkDescriptorPool, NULL);
+    if (descriptorPoolSizes)
+        lvn_free(descriptorPoolSizes);
+    return errResult;
+}
+
+void lvnImplVkDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
+{
+    LVN_ASSERT(descriptorPool, "descriptorPool cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) descriptorPool->graphicsctx->implData;
+
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    VkDescriptorPool vkDescriptorPool = (VkDescriptorPool) descriptorPool->descriptorPoolData;
+
+    vkBackends->vkDestroyDescriptorPool(vkBackends->device, vkDescriptorPool, NULL);
+    descriptorPool->descriptorPoolData = NULL;
 }
 
 LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)

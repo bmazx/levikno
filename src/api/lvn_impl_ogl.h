@@ -480,8 +480,8 @@ typedef struct LvnOglPipelineData
 
 typedef struct LvnOglShaderData
 {
-    uint32_t          shaderId;
-    LvnShaderStage    stage;
+    uint32_t                  shaderId;
+    LvnShaderStageFlagBits    stage;
 } LvnOglShaderData;
 
 typedef struct LvnOglBufferData
@@ -730,6 +730,10 @@ LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, Lvn
 void      lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer);
 LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
 void      lvnImplOglDestroyShader(LvnShader* shader);
+LvnResult lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
+void      lvnImplOglDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
+LvnResult lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
+void      lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
 void      lvnImplOglDestroyPipeline(LvnPipeline* pipeline);
 LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
