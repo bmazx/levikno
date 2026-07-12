@@ -749,6 +749,10 @@ void      lvnImplOglDestroyTexture(LvnTexture* texture);
 LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
 void      lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
+LvnResult lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
+LvnResult lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
+void      lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
+
 void      lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 void      lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
 

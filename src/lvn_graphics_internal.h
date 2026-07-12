@@ -67,6 +67,7 @@ struct LvnDescriptorLayout
 struct LvnDescriptorPool
 {
     const LvnGraphicsContext*    graphicsctx;
+    LvnMemoryPool                setPool;
     void*                        descriptorPoolData;
 };
 
@@ -146,6 +147,10 @@ struct LvnGraphicsContext
     LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*);
     void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
 
+    LvnResult                   (*implAllocateDescriptorSets)(const LvnGraphicsContext*, LvnDescriptorSet**, LvnDescriptorSetAllocateInfo*);
+    LvnResult                   (*implResetDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*);
+    void                        (*implUpdateDescriptorSets)(const LvnGraphicsContext*, uint32_t, const LvnDescriptorSetWriteInfo*, uint32_t, const LvnDescriptorSetCopyInfo*);
+
     void                        (*implSurfaceGetSupportedFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
     void                        (*implSurfaceGetSupportedPresentModes)(const LvnSurface*, uint32_t*, LvnPresentMode*);
 
@@ -160,7 +165,7 @@ struct LvnGraphicsContext
 
     void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
     void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
-    void                        (*implCmdBeginRenderPass)(LvnCommandBuffer*, LvnRenderPassBeginInfo* beginInfo);
+    void                        (*implCmdBeginRenderPass)(LvnCommandBuffer*, LvnRenderPassBeginInfo*);
     void                        (*implCmdEndRenderPass)(LvnCommandBuffer*);
     void                        (*implCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
     void                        (*implCmdBindVertexBuffer)(LvnCommandBuffer*, uint32_t, uint32_t, LvnBuffer**, uint64_t*);

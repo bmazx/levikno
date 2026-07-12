@@ -342,6 +342,39 @@ int main(int argc, char** argv)
     LvnShader* fragShader;
     lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
 
+    // descriptor layout
+    LvnDescriptorBinding descriptorBindings[] = {
+        { 0, Lvn_DescriptorType_UniformBuffer, 1, Lvn_ShaderStageFlag_Vertex },
+    };
+
+    LvnDescriptorLayoutCreateInfo descriptorLayoutCreateInfo = {
+        .descriptorBindingCount = LVN_ARRAY_LEN(descriptorBindings),
+        .pDescriptorBindings = descriptorBindings,
+    };
+
+    LvnDescriptorLayout* descriptorLayout;
+    lvnCreateDescriptorLayout(graphicsctx, &descriptorLayout, &descriptorLayoutCreateInfo);
+
+    // descriptor pool
+    LvnDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+        .descriptorLayout = descriptorLayout,
+        .maxSets = 1,
+    };
+
+    LvnDescriptorPool* descriptorPool;
+    lvnCreateDescriptorPool(graphicsctx, &descriptorPool, &descriptorPoolCreateInfo);
+
+    // descriptor set
+    LvnDescriptorSetAllocateInfo descriptorSetAllocInfo = {
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = 1,
+        .pDescriptorLayouts = descriptorLayout,
+    };
+
+    LvnDescriptorSet* descriptorSet;
+    lvnAllocateDescriptorSets(graphicsctx, &descriptorSet, &descriptorSetAllocInfo);
+
+    // pipeline
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
 
     LvnVertexAttribute attributes[2] =
@@ -564,6 +597,8 @@ int main(int argc, char** argv)
 
     lvnUnloadImage(&image);
 
+    lvnDestroyDescriptorPool(descriptorPool);
+    lvnDestroyDescriptorLayout(descriptorLayout);
     lvnDestroyCommandBuffer(cmdBuff);
     lvnDestroyTexture(texture);
     lvnDestroySampler(sampler);

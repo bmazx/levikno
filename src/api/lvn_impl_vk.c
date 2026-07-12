@@ -1623,6 +1623,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCreateCommandPool");
     vkBackends->vkDestroyCommandPool = (PFN_vkDestroyCommandPool)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkDestroyCommandPool");
+    vkBackends->vkAllocateDescriptorSets = (PFN_vkAllocateDescriptorSets)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateDescriptorSets");
+    vkBackends->vkResetDescriptorPool = (PFN_vkResetDescriptorPool)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkResetDescriptorPool");
     vkBackends->vkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
     vkBackends->vkFreeCommandBuffers = (PFN_vkFreeCommandBuffers)
@@ -1716,6 +1720,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->vkDestroySemaphore ||
         !vkBackends->vkCreateCommandPool ||
         !vkBackends->vkDestroyCommandPool ||
+        !vkBackends->vkAllocateDescriptorSets ||
+        !vkBackends->vkResetDescriptorPool ||
         !vkBackends->vkAllocateCommandBuffers ||
         !vkBackends->vkBeginCommandBuffer ||
         !vkBackends->vkEndCommandBuffer ||
@@ -1870,6 +1876,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implDestroyTexture = lvnImplVkDestroyTexture;
     graphicsctx->implCreateCommandBuffer = lvnImplVkCreateCommandBuffer;
     graphicsctx->implDestroyCommandBuffer = lvnImplVkDestroyCommandBuffer;
+    graphicsctx->implAllocateDescriptorSets = lvnImplVkAllocateDescriptorSets;
+    graphicsctx->implResetDescriptorPool = lvnImplVkResetDescriptorPool;
+    graphicsctx->implUpdateDescriptorSets = lvnImplVkUpdateDescriptorSets;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplVkSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplVkSurfaceGetSupportedPresentModes;
     graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
@@ -3410,6 +3419,95 @@ void lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
     vkBackends->vkFreeCommandBuffers(vkBackends->device, vkBackends->commandPool, 1, &vkCommandBuffer);
 
     commandBuffer->commandbufferData = NULL;
+}
+
+LvnResult lvnImplVkAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo)
+{
+    LVN_ASSERT(graphicsctx && allocInfo, "graphicsctx and allocInfo cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkDescriptorPool descriptorPool = (VkDescriptorPool) allocInfo->descriptorPool->descriptorPoolData;
+
+    LvnResult errResult = Lvn_Result_Failure;
+    VkDescriptorSetLayout* descriptorLayouts = NULL;
+    VkDescriptorSet* descriptorSets = NULL;
+
+    descriptorLayouts = (VkDescriptorSetLayout*) lvn_calloc(allocInfo->descriptorSetCount * sizeof(VkDescriptorSetLayout));
+    if (!descriptorLayouts)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor layouts array while allocating descriptor sets at %p",
+                      pDescriptorSets);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorSets = (VkDescriptorSet*) lvn_calloc(allocInfo->descriptorSetCount * sizeof(VkDescriptorSet));
+    if (!descriptorSets)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to allocate memory for descriptor sets array while allocating descriptor sets at %p",
+                      pDescriptorSets);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < allocInfo->descriptorSetCount; i++)
+    {
+        const LvnVkDescriptorLayoutData* descriptorLayoutData = (const LvnVkDescriptorLayoutData*) allocInfo->pDescriptorLayouts[i].descriptorLayoutData;
+        descriptorLayouts[i] = descriptorLayoutData->descriptorLayout;
+    }
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = allocInfo->descriptorSetCount,
+        .pSetLayouts = descriptorLayouts,
+    };
+
+    if (vkBackends->vkAllocateDescriptorSets(vkBackends->device, &descriptorSetAllocInfo, descriptorSets) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[vulkan] failed to create descriptor sets at %p",
+                      pDescriptorSets);
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < allocInfo->descriptorSetCount; i++)
+        pDescriptorSets[i]->descriptorSetData = descriptorSets[i];
+
+    lvn_free(descriptorLayouts);
+    lvn_free(descriptorSets);
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    lvn_free(descriptorLayouts);
+    lvn_free(descriptorSets);
+    return errResult;
+}
+
+LvnResult lvnImplVkResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool)
+{
+    LVN_ASSERT(graphicsctx && descriptorPool, "graphicsctx and descriptorPool cannot be null");
+
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    VkDescriptorPool vkDescriptorPool = (VkDescriptorPool) descriptorPool->descriptorPoolData;
+
+    if (vkBackends->vkResetDescriptorPool(vkBackends->device, vkDescriptorPool, 0) != VK_SUCCESS)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
+                      "[vulkan] failed to reset descriptor pool at descriptor pool %p",
+                      descriptorPool);
+        return Lvn_Result_Failure;
+    }
+
+    return Lvn_Result_Success;
+}
+
+void lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+{
+
 }
 
 void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)

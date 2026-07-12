@@ -470,7 +470,25 @@ LvnResult lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDesc
     LvnDescriptorPool* descriptorPoolPtr = *descriptorPool;
     descriptorPoolPtr->graphicsctx = graphicsctx;
 
-    LvnResult result = graphicsctx->implCreateDescriptorPool(graphicsctx, *descriptorPool, createInfo);
+    // descriptor set memory pool
+    LvnMemoryPoolCreateInfo memPoolCreateInfo = {
+        .stride = sizeof(LvnDescriptorSet),
+        .count = createInfo->maxSets,
+        .align = LVN_DEFAULT_ALIGN,
+    };
+
+    LvnResult result = lvn_memPoolCreate(&descriptorPoolPtr->setPool, &memPoolCreateInfo);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to create set pool for descriptorPool at %p",
+                      descriptorPool);
+        errResult = result;
+        goto fail_cleanup;
+    }
+
+    // create descriptor pool
+    result = graphicsctx->implCreateDescriptorPool(graphicsctx, *descriptorPool, createInfo);
     if (result != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -485,6 +503,7 @@ LvnResult lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDesc
 fail_cleanup:
     if (*descriptorPool)
     {
+        lvn_memPoolDestroy(&(*descriptorPool)->setPool);
         lvn_free(*descriptorPool);
         *descriptorPool = NULL;
     }
@@ -496,6 +515,7 @@ void lvnDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
     LVN_ASSERT(descriptorPool, "descriptorPool cannot be null");
     const LvnGraphicsContext* graphicsctx = descriptorPool->graphicsctx;
     graphicsctx->implDestroyDescriptorPool(descriptorPool);
+    lvn_memPoolDestroy(&descriptorPool->setPool);
     lvn_free(descriptorPool);
 }
 
@@ -873,6 +893,62 @@ void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
     graphicsctx->implDestroyCommandBuffer(commandBuffer);
     lvn_memArenaDestroy(&commandBuffer->frameArena);
     lvn_free(commandBuffer);
+}
+
+LvnResult lvnAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo)
+{
+    LVN_ASSERT(graphicsctx && pDescriptorSets && allocInfo, "graphicsctx, pDescriptorSets, and allocInfo cannot be null");
+
+    if (!allocInfo->descriptorPool)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to allocate descriptor sets, allocInfo->descriptorPool was null");
+        return Lvn_Result_Failure;
+    }
+
+    for (uint32_t i = 0; i < allocInfo->descriptorSetCount; i++)
+    {
+        pDescriptorSets[i] = (LvnDescriptorSet*) lvn_memPoolAlloc(&allocInfo->descriptorPool->setPool);
+        if (!pDescriptorSets[i])
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "failed to allocate memory from descriptor set pool for descriptor sets at %p",
+                          pDescriptorSets);
+            return Lvn_Result_OutOfMemory;
+        }
+    }
+
+    return graphicsctx->implAllocateDescriptorSets(graphicsctx, pDescriptorSets, allocInfo);
+}
+
+LvnResult lvnResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool)
+{
+    LVN_ASSERT(graphicsctx && descriptorPool, "graphicsctx and descriptorPool cannot be null");
+
+    LvnResult result = graphicsctx->implResetDescriptorPool(graphicsctx, descriptorPool);
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to reset descriptor pool %p",
+                      descriptorPool);
+        return result;
+    }
+
+    result = lvn_memPoolResetMergeBlocks(&descriptorPool->setPool) != Lvn_Result_Success;
+    if (result != Lvn_Result_Success)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "failed to reset set memory pool for descriptor pool %p",
+                      descriptorPool);
+        return result;
+    }
+
+    return Lvn_Result_Success;
+}
+
+void lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    graphicsctx->implUpdateDescriptorSets(graphicsctx, descriptorWriteCount, pDescriptorWrites, descriptorCopyCount, pDescriptorCopies);
 }
 
 void lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)

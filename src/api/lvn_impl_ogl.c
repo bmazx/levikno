@@ -542,6 +542,9 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     graphicsctx->implDestroyTexture = lvnImplOglDestroyTexture;
     graphicsctx->implCreateCommandBuffer = lvnImplOglCreateCommandBuffer;
     graphicsctx->implDestroyCommandBuffer = lvnImplOglDestroyCommandBuffer;
+    graphicsctx->implAllocateDescriptorSets = lvnImplOglAllocateDescriptorSets;
+    graphicsctx->implResetDescriptorPool = lvnImplOglResetDescriptorPool;
+    graphicsctx->implUpdateDescriptorSets = lvnImplOglUpdateDescriptorSets;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplOglSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplOglSurfaceGetSupportedPresentModes;
     graphicsctx->implSwapchainResize = lvnImplOglSwapchainResize;
@@ -1587,6 +1590,21 @@ void lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
     lvn_memArenaDestroy(&commandBufferData->cmdStream);
     lvn_free(commandBufferData);
     commandBuffer->commandbufferData = NULL;
+}
+
+LvnResult lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo)
+{
+    return Lvn_Result_Success;
+}
+
+LvnResult lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool)
+{
+    return Lvn_Result_Success;
+}
+
+void lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+{
+
 }
 
 void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)

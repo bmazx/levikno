@@ -373,9 +373,9 @@ typedef struct LvnRenderPassCreateInfo
 typedef struct LvnFramebufferCreateInfo
 {
     LvnRenderPass*        renderPass;
+    uint32_t              colorAttachmentCount;
     LvnTexture* const*    pColorAttachments;
     LvnTexture* const*    pResolveAttachments;
-    uint32_t              colorAttachmentCount;
     LvnTexture*           depthStencilAttachment;
     uint32_t              width;
     uint32_t              height;
@@ -399,8 +399,8 @@ typedef struct LvnDescriptorBinding
 
 typedef struct LvnDescriptorLayoutCreateInfo
 {
-    LvnDescriptorBinding*    pDescriptorBindings;
     uint32_t                 descriptorBindingCount;
+    LvnDescriptorBinding*    pDescriptorBindings;
 } LvnDescriptorLayoutCreateInfo;
 
 typedef struct LvnDescriptorPoolCreateInfo
@@ -408,6 +408,48 @@ typedef struct LvnDescriptorPoolCreateInfo
     LvnDescriptorLayout*    descriptorLayout;
     uint32_t                maxSets;
 } LvnDescriptorPoolCreateInfo;
+
+typedef struct LvnDescriptorSetAllocateInfo
+{
+    LvnDescriptorPool*      descriptorPool;
+    uint32_t                descriptorSetCount;
+    LvnDescriptorLayout*    pDescriptorLayouts;
+} LvnDescriptorSetAllocateInfo;
+
+typedef struct LvnDescriptorBufferInfo
+{
+    LvnBuffer*    buffer;
+    uint64_t      offset;
+    uint64_t      range;
+} LvnDescriptorBufferInfo;
+
+typedef struct LvnDescriptorImageInfo
+{
+    LvnSampler*    sampler;
+    LvnTexture*    texture;
+} LvnDescriptorImageInfo;
+
+typedef struct LvnDescriptorSetWriteInfo
+{
+    LvnDescriptorType                 descriptorType;
+    uint32_t                          binding;
+    uint32_t                          firstIndex;
+    uint32_t                          descriptorCount;
+    LvnDescriptorSet*                 descriptorSet;
+    const LvnDescriptorBufferInfo*    pBufferInfo;
+    const LvnDescriptorImageInfo*     pImageInfo;
+} LvnDescriptorSetWriteInfo;
+
+typedef struct LvnDescriptorSetCopyInfo
+{
+    LvnDescriptorSet*                 srcDescriptorSet;
+    uint32_t                          srcBinding;
+    uint32_t                          srcFirstIndex;
+    LvnDescriptorSet*                 dstDescriptorSet;
+    uint32_t                          dstBinding;
+    uint32_t                          dstFirstIndex;
+    uint32_t                          descriptorCount;
+} LvnDescriptorSetCopyInfo;
 
 typedef struct LvnPipelineInputAssembly
 {
@@ -505,14 +547,14 @@ typedef struct LvnVertexAttribute
 typedef struct LvnPipelineCreateInfo
 {
     const LvnPipelineFixedFunctions*           pipelineFixedFunctions;
-    const LvnVertexBindingDescription*         pVertexBindingDescriptions;
     uint32_t                                   vertexBindingDescriptionCount;
-    const LvnVertexAttribute*                  pVertexAttributes;
+    const LvnVertexBindingDescription*         pVertexBindingDescriptions;
     uint32_t                                   vertexAttributeCount;
-    const LvnDescriptorLayout* const*          pDescriptorLayouts;
+    const LvnVertexAttribute*                  pVertexAttributes;
     uint32_t                                   descriptorLayoutCount;
-    LvnShader* const*                          pShaderStages;
+    const LvnDescriptorLayout* const*          pDescriptorLayouts;
     uint32_t                                   stageCount;
+    LvnShader* const*                          pShaderStages;
     LvnRenderPass*                             renderPass;
 } LvnPipelineCreateInfo;
 
@@ -659,6 +701,10 @@ LVN_API LvnResult                   lvnCreateTexture(const LvnGraphicsContext* g
 LVN_API void                        lvnDestroyTexture(LvnTexture* texture);
 LVN_API LvnResult                   lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer** commandBuffer);
 LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
+
+LVN_API LvnResult                   lvnAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
+LVN_API LvnResult                   lvnResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
+LVN_API void                        lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
 
 LVN_API void                        lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 LVN_API void                        lvnSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
