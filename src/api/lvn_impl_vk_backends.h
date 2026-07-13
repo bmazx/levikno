@@ -172,6 +172,7 @@ typedef struct LvnVulkanBackends
     PFN_vkDestroyCommandPool                         vkDestroyCommandPool;
     PFN_vkAllocateDescriptorSets                     vkAllocateDescriptorSets;
     PFN_vkResetDescriptorPool                        vkResetDescriptorPool;
+    PFN_vkUpdateDescriptorSets                       vkUpdateDescriptorSets;
     PFN_vkAllocateCommandBuffers                     vkAllocateCommandBuffers;
     PFN_vkFreeCommandBuffers                         vkFreeCommandBuffers;
     PFN_vkBeginCommandBuffer                         vkBeginCommandBuffer;
@@ -182,6 +183,7 @@ typedef struct LvnVulkanBackends
     PFN_vkCmdBindPipeline                            vkCmdBindPipeline;
     PFN_vkCmdBindVertexBuffers                       vkCmdBindVertexBuffers;
     PFN_vkCmdBindIndexBuffer                         vkCmdBindIndexBuffer;
+    PFN_vkCmdBindDescriptorSets                      vkCmdBindDescriptorSets;
     PFN_vkCmdSetViewport                             vkCmdSetViewport;
     PFN_vkCmdSetScissor                              vkCmdSetScissor;
     PFN_vkCmdDraw                                    vkCmdDraw;

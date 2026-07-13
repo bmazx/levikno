@@ -483,14 +483,14 @@ static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStageFlagBits sta
 
 static VkShaderStageFlags lvn_getVkShaderStageFlagsEnum(LvnShaderStageFlags stageFlags)
 {
-    VkShaderStageFlags shaderFlags = 0;
+    VkShaderStageFlags flags = 0;
 
-    if (shaderFlags & Lvn_ShaderStageFlag_Vertex)
-        shaderFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-    if (shaderFlags & Lvn_ShaderStageFlag_Fragment)
-        shaderFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+    if (stageFlags & Lvn_ShaderStageFlag_Vertex)
+        flags |= VK_SHADER_STAGE_VERTEX_BIT;
+    if (stageFlags & Lvn_ShaderStageFlag_Fragment)
+        flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    return shaderFlags;
+    return flags;
 }
 
 static VkDescriptorType lvn_getVkDescriptorTypeEnum(LvnDescriptorType type)
@@ -1627,6 +1627,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateDescriptorSets");
     vkBackends->vkResetDescriptorPool = (PFN_vkResetDescriptorPool)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkResetDescriptorPool");
+    vkBackends->vkUpdateDescriptorSets = (PFN_vkUpdateDescriptorSets)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkUpdateDescriptorSets");
     vkBackends->vkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkAllocateCommandBuffers");
     vkBackends->vkFreeCommandBuffers = (PFN_vkFreeCommandBuffers)
@@ -1647,6 +1649,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindVertexBuffers");
     vkBackends->vkCmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindIndexBuffer");
+    vkBackends->vkCmdBindDescriptorSets = (PFN_vkCmdBindDescriptorSets)
+        vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdBindDescriptorSets");
     vkBackends->vkCmdSetViewport = (PFN_vkCmdSetViewport)
         vkBackends->vkGetDeviceProcAddr(vkBackends->device, "vkCmdSetViewport");
     vkBackends->vkCmdSetScissor = (PFN_vkCmdSetScissor)
@@ -1722,6 +1726,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->vkDestroyCommandPool ||
         !vkBackends->vkAllocateDescriptorSets ||
         !vkBackends->vkResetDescriptorPool ||
+        !vkBackends->vkUpdateDescriptorSets ||
         !vkBackends->vkAllocateCommandBuffers ||
         !vkBackends->vkBeginCommandBuffer ||
         !vkBackends->vkEndCommandBuffer ||
@@ -1731,6 +1736,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         !vkBackends->vkCmdBindPipeline ||
         !vkBackends->vkCmdBindVertexBuffers ||
         !vkBackends->vkCmdBindIndexBuffer ||
+        !vkBackends->vkCmdBindDescriptorSets ||
         !vkBackends->vkCmdSetViewport ||
         !vkBackends->vkCmdSetScissor ||
         !vkBackends->vkCmdDraw ||
@@ -1894,6 +1900,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implCmdBindPipeline = lvnImplVkCmdBindPipeline;
     graphicsctx->implCmdBindVertexBuffer = lvnImplVkCmdBindVertexBuffer;
     graphicsctx->implCmdBindIndexBuffer = lvnImplVkCmdBindIndexBuffer;
+    graphicsctx->implCmdBindDescriptorSets = lvnImplVkCmdBindDescriptorSets;
+    graphicsctx->implCmdBindDescriptorSets = lvnImplVkCmdBindDescriptorSets;
     graphicsctx->implCmdSetViewport = lvnImplVkCmdSetViewport;
     graphicsctx->implCmdSetScissor = lvnImplVkCmdSetScissor;
     graphicsctx->implCmdDraw = lvnImplVkCmdDraw;
@@ -2762,8 +2770,8 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
 
     for (uint32_t i = 0; i < createInfo->descriptorLayoutCount; i++)
     {
-        VkDescriptorSetLayout descriptorLayout = (VkDescriptorSetLayout) createInfo->pDescriptorLayouts[i]->descriptorLayoutData;
-        descriptorLayouts[i] = descriptorLayout;
+        const LvnVkDescriptorLayoutData* descriptorLayoutData = (const LvnVkDescriptorLayoutData*) createInfo->pDescriptorLayouts[i]->descriptorLayoutData;
+        descriptorLayouts[i] = descriptorLayoutData->descriptorLayout;
     }
 
     // pipeline fixed functions
@@ -3505,14 +3513,158 @@ LvnResult lvnImplVkResetDescriptorPool(const LvnGraphicsContext* graphicsctx, Lv
     return Lvn_Result_Success;
 }
 
-void lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
 {
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
 
+    LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) graphicsctx->implData;
+
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    LvnResult errResult = Lvn_Result_Failure;
+    VkWriteDescriptorSet* descriptorWrites = NULL;
+    VkCopyDescriptorSet* descriptorCopies = NULL;
+    VkDescriptorBufferInfo* descriptorBufferInfos = NULL;
+    VkDescriptorImageInfo* descriptorImageInfos = NULL;
+
+    descriptorWrites = (VkWriteDescriptorSet*) lvn_calloc(descriptorWriteCount * sizeof(VkWriteDescriptorSet));
+    if (descriptorWriteCount && !descriptorWrites)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for descriptor writes array while updating descriptor sets");
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorCopies = (VkCopyDescriptorSet*) lvn_calloc(descriptorCopyCount * sizeof(VkCopyDescriptorSet));
+    if (descriptorCopyCount && !descriptorCopies)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for descriptor copies array while updating descriptor sets");
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    size_t bufferCount = 0, imageCount = 0;
+    for (uint32_t i = 0; i < descriptorWriteCount; i++)
+    {
+        if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_UniformBuffer ||
+            pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_StorageBuffer)
+        {
+            bufferCount += pDescriptorWrites[i].descriptorCount;
+        }
+        else if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_Sampler ||
+                 pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_CombinedImageSampler ||
+                 pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_SampledImage)
+        {
+            imageCount += pDescriptorWrites[i].descriptorCount;
+        }
+    }
+
+    descriptorBufferInfos = lvn_calloc(bufferCount * sizeof(VkDescriptorBufferInfo));
+    if (bufferCount && !descriptorBufferInfos)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for descriptor buffer infos array while updating descriptor sets");
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorImageInfos = lvn_calloc(imageCount * sizeof(VkDescriptorImageInfo));
+    if (imageCount && !descriptorImageInfos)
+    {
+        LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for descriptor image infos array while updating descriptor sets");
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    uint32_t bufferInfoIndex = 0, imageInfoIndex = 0;
+
+    // descriptor writes
+    for (uint32_t i = 0; i < descriptorWriteCount; i++)
+    {
+        VkDescriptorSet descriptorSet = (VkDescriptorSet) pDescriptorWrites[i].descriptorSet->descriptorSetData;
+
+        descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[i].dstSet = descriptorSet;
+        descriptorWrites[i].dstBinding = pDescriptorWrites[i].binding;
+        descriptorWrites[i].dstArrayElement = pDescriptorWrites[i].firstIndex;
+        descriptorWrites[i].descriptorType = lvn_getVkDescriptorTypeEnum(pDescriptorWrites[i].descriptorType);
+        descriptorWrites[i].descriptorCount = pDescriptorWrites[i].descriptorCount;
+
+        // if descriptor using uniform buffers
+        if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_UniformBuffer ||
+            pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_StorageBuffer)
+        {
+            descriptorWrites[i].pBufferInfo = &descriptorBufferInfos[bufferInfoIndex];
+
+            for (uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+            {
+                LvnVkBufferData* bufferData = (LvnVkBufferData*) pDescriptorWrites[i].pBufferInfo[j].buffer->bufferData;
+                descriptorBufferInfos[bufferInfoIndex].buffer = bufferData->buffer;
+                descriptorBufferInfos[bufferInfoIndex].offset = pDescriptorWrites[i].pBufferInfo[j].offset;
+                descriptorBufferInfos[bufferInfoIndex].range = pDescriptorWrites[i].pBufferInfo[j].range;
+                bufferInfoIndex++;
+            }
+        }
+
+        // if descriptor using textures
+        else if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_Sampler ||
+                 pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_CombinedImageSampler ||
+                 pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_SampledImage)
+        {
+            descriptorWrites[i].pImageInfo = &descriptorImageInfos[imageInfoIndex];
+
+            for (uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+            {
+                VkImageView imageView = (pDescriptorWrites[i].pImageInfo[j].texture)
+                    ? ((LvnVkTextureData*)pDescriptorWrites[i].pImageInfo[j].texture->textureData)->imageView
+                    : VK_NULL_HANDLE;
+                VkSampler sampler = (pDescriptorWrites[i].pImageInfo[j].sampler)
+                    ? (VkSampler)pDescriptorWrites[i].pImageInfo[j].sampler->samplerData
+                    : VK_NULL_HANDLE;
+                descriptorImageInfos[imageInfoIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                descriptorImageInfos[imageInfoIndex].imageView = imageView;
+                descriptorImageInfos[imageInfoIndex].sampler = sampler;
+                imageInfoIndex++;
+            }
+        }
+    }
+
+    // descriptor copies
+    for (uint32_t i = 0; i < descriptorCopyCount; i++)
+    {
+        VkDescriptorSet srcSet = (VkDescriptorSet) pDescriptorCopies[i].srcDescriptorSet->descriptorSetData;
+        VkDescriptorSet dstSet = (VkDescriptorSet) pDescriptorCopies[i].dstDescriptorSet->descriptorSetData;
+
+        descriptorCopies[i].sType = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
+        descriptorCopies[i].srcBinding = pDescriptorCopies[i].srcBinding;
+        descriptorCopies[i].srcArrayElement = pDescriptorCopies[i].srcFirstIndex;
+        descriptorCopies[i].srcSet = srcSet;
+        descriptorCopies[i].dstBinding = pDescriptorCopies[i].dstBinding;
+        descriptorCopies[i].dstArrayElement = pDescriptorCopies[i].dstFirstIndex;
+        descriptorCopies[i].dstSet = dstSet;
+        descriptorCopies[i].descriptorCount = pDescriptorCopies[i].descriptorCount;
+    }
+
+    vkBackends->vkUpdateDescriptorSets(vkBackends->device, descriptorWriteCount, descriptorWrites, descriptorCopyCount, descriptorCopies);
+
+    lvn_free(descriptorBufferInfos);
+    lvn_free(descriptorImageInfos);
+    lvn_free(descriptorWrites);
+    lvn_free(descriptorCopies);
+
+    return Lvn_Result_Success;
+
+fail_cleanup:
+    lvn_free(descriptorBufferInfos);
+    lvn_free(descriptorImageInfos);
+    lvn_free(descriptorWrites);
+    lvn_free(descriptorCopies);
+    return errResult;
 }
 
 void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
 {
     LVN_ASSERT(surface && formatCount, "surface and formatCount cannot be null");
+
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) surface->graphicsctx->implData;
     VkSurfaceKHR vkSurface = (VkSurfaceKHR) surface->surfaceData;
 
@@ -3857,6 +4009,30 @@ void lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buf
     LvnVkBufferData* bufferData = (LvnVkBufferData*) buffer->bufferData;
 
    vkBackends->vkCmdBindIndexBuffer(cmdBuff, bufferData->buffer, offset, VK_INDEX_TYPE_UINT32);
+}
+
+void lvnImplVkCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) commandBuffer->graphicsctx->implData;
+    const LvnVkPipelineData* pipelineData = (const LvnVkPipelineData*) pipeline->pipelineData;
+    VkCommandBuffer cmdBuff = (VkCommandBuffer) commandBuffer->commandbufferData;
+
+    LvnArenaMark mark = lvn_memArenaMark(&commandBuffer->frameArena);
+
+    VkDescriptorSet* descriptorSets = lvn_memArenaAlloc(&commandBuffer->frameArena, descriptorSetCount * sizeof(VkDescriptorSet));
+    for (uint32_t i = 0; i < descriptorSetCount; i++)
+        descriptorSets[i] = (VkDescriptorSet) pDescriptorSets[i]->descriptorSetData;
+
+    vkBackends->vkCmdBindDescriptorSets(cmdBuff,
+                                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        pipelineData->pipelineLayout,
+                                        firstSet, descriptorSetCount,
+                                        descriptorSets,
+                                        dynamicOffsetCount,
+                                        pDynamicOffsets);
+
+    lvn_memArenaMarkRevert(&commandBuffer->frameArena, &mark);
 }
 
 void lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)

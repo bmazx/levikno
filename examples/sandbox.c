@@ -1,6 +1,8 @@
 #include <levikno/levikno.h>
 #include <levikno/lvn_graphics.h>
 
+#define LVN_GMATH_WHITELIST_INCLUDES
+#define LVN_GMATH_INCLUDE_GRAPHICS_ESSENTIAL
 #define LVN_GMATH_IMPL
 #include <levikno/lvn_gmath.h>
 
@@ -399,8 +401,8 @@ int main(int argc, char** argv)
     pipelineCreateInfo.vertexAttributeCount = LVN_ARRAY_LEN(attributes);
     pipelineCreateInfo.pVertexBindingDescriptions = &vertexBindingDescription;
     pipelineCreateInfo.vertexBindingDescriptionCount = 1;
-    pipelineCreateInfo.pDescriptorLayouts = NULL;
-    pipelineCreateInfo.descriptorLayoutCount = 0;
+    pipelineCreateInfo.pDescriptorLayouts = &descriptorLayout;
+    pipelineCreateInfo.descriptorLayoutCount = 1;
     pipelineCreateInfo.pShaderStages = shaderStages;
     pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(shaderStages);
     pipelineCreateInfo.renderPass = renderPass;
@@ -486,6 +488,26 @@ int main(int argc, char** argv)
     int fps = 0;
     double prevTime = 0.0;
 
+    LvnDescriptorBufferInfo descriptorBufferInfo = {
+        .buffer = uniformBuffer,
+        .range = sizeof(UniformData),
+        .offset = 0,
+    };
+
+    LvnDescriptorSetWriteInfo descriptorWriteInfo = {
+        .descriptorType = Lvn_DescriptorType_UniformBuffer,
+        .binding = 0,
+        .firstIndex = 0,
+        .descriptorCount = 1,
+        .pBufferInfo = &descriptorBufferInfo,
+        .descriptorSet = descriptorSet,
+    };
+
+    lvnUpdateDescriptorSets(graphicsctx, 1, &descriptorWriteInfo, 0, NULL);
+
+    UniformData uboData = {0};
+    lvn_mat4_identity(uboData.matrix);
+
     while (!glfwWindowShouldClose(window))
     {
         double currTime = glfwGetTime();
@@ -497,6 +519,22 @@ int main(int argc, char** argv)
             prevTime = currTime;
             fps = 0;
         }
+
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+        float aspect = (float)width / height;
+
+        // uniform buffer
+        LvnMat4 proj;
+        lvn_orthoRHZO(proj, -aspect, aspect, -1.0f, 1.0f, -1.0f, 1.0f);
+        LvnMat4 view;
+        lvn_mat4_identity(view);
+        LvnMat4 camera;
+        lvn_mat4_mult(proj, view, camera);
+
+        lvn_mat4_copy(camera, uboData.matrix);
+        lvnBufferUpdateData(uniformBuffer, &uboData, sizeof(UniformData), 0);
 
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
@@ -556,6 +594,8 @@ int main(int argc, char** argv)
         uint64_t offsets[] = {0};
         lvnCmdBindVertexBuffer(cmdBuff, 0, 1, &vertexBuffer, offsets);
         lvnCmdBindIndexBuffer(cmdBuff, indexBuffer, 0);
+
+        lvnCmdBindDescriptorSets(cmdBuff, pipeline, 0, 1, &descriptorSet, 0, NULL);
 
         lvnCmdDrawIndexed(cmdBuff, LVN_ARRAY_LEN(s_Indices), 1, 0, 0, 0);
 

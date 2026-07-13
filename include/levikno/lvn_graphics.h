@@ -552,7 +552,7 @@ typedef struct LvnPipelineCreateInfo
     uint32_t                                   vertexAttributeCount;
     const LvnVertexAttribute*                  pVertexAttributes;
     uint32_t                                   descriptorLayoutCount;
-    const LvnDescriptorLayout* const*          pDescriptorLayouts;
+    LvnDescriptorLayout* const*                pDescriptorLayouts;
     uint32_t                                   stageCount;
     LvnShader* const*                          pShaderStages;
     LvnRenderPass*                             renderPass;
@@ -704,7 +704,7 @@ LVN_API void                        lvnDestroyCommandBuffer(LvnCommandBuffer* co
 
 LVN_API LvnResult                   lvnAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
 LVN_API LvnResult                   lvnResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
-LVN_API void                        lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
+LVN_API LvnResult                   lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
 
 LVN_API void                        lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 LVN_API void                        lvnSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
@@ -733,6 +733,7 @@ LVN_API void                        lvnCmdEndRenderPass(LvnCommandBuffer* comman
 LVN_API void                        lvnCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
 LVN_API void                        lvnCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
 LVN_API void                        lvnCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
+LVN_API void                        lvnCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
 LVN_API void                        lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
 LVN_API void                        lvnCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
 LVN_API void                        lvnCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);

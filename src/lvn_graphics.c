@@ -945,10 +945,10 @@ LvnResult lvnResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescr
     return Lvn_Result_Success;
 }
 
-void lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+LvnResult lvnUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
 {
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
-    graphicsctx->implUpdateDescriptorSets(graphicsctx, descriptorWriteCount, pDescriptorWrites, descriptorCopyCount, pDescriptorCopies);
+    return graphicsctx->implUpdateDescriptorSets(graphicsctx, descriptorWriteCount, pDescriptorWrites, descriptorCopyCount, pDescriptorCopies);
 }
 
 void lvnSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
@@ -1180,6 +1180,13 @@ void lvnCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, u
     LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
     const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implCmdBindIndexBuffer(commandBuffer, buffer, offset);
+}
+
+void lvnCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+{
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
+    graphicsctx->implCmdBindDescriptorSets(commandBuffer, pipeline, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 }
 
 void lvnCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)

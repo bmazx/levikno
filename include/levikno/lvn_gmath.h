@@ -64,6 +64,41 @@ typedef LvnMat3x3 LvnMat3;
 typedef LvnMat4x4 LvnMat4;
 
 
+// define this to only include graphics essential vector and matrix types (vecf, veci, vecui, matf)
+#ifdef LVN_GMATH_INCLUDE_GRAPHICS_ESSENTIAL
+#define LVN_GMATH_INCLUDE_VEC2_F
+#define LVN_GMATH_INCLUDE_VEC3_F
+#define LVN_GMATH_INCLUDE_VEC4_F
+#define LVN_GMATH_INCLUDE_VEC2_I8
+#define LVN_GMATH_INCLUDE_VEC3_I8
+#define LVN_GMATH_INCLUDE_VEC4_I8
+#define LVN_GMATH_INCLUDE_VEC2_UI8
+#define LVN_GMATH_INCLUDE_VEC3_UI8
+#define LVN_GMATH_INCLUDE_VEC4_UI8
+#define LVN_GMATH_INCLUDE_VEC2_I16
+#define LVN_GMATH_INCLUDE_VEC3_I16
+#define LVN_GMATH_INCLUDE_VEC4_I16
+#define LVN_GMATH_INCLUDE_VEC2_UI16
+#define LVN_GMATH_INCLUDE_VEC3_UI16
+#define LVN_GMATH_INCLUDE_VEC4_UI16
+#define LVN_GMATH_INCLUDE_VEC2_I32
+#define LVN_GMATH_INCLUDE_VEC3_I32
+#define LVN_GMATH_INCLUDE_VEC4_I32
+#define LVN_GMATH_INCLUDE_VEC2_UI32
+#define LVN_GMATH_INCLUDE_VEC3_UI32
+#define LVN_GMATH_INCLUDE_VEC4_UI32
+#define LVN_GMATH_INCLUDE_VEC2_I64
+#define LVN_GMATH_INCLUDE_VEC3_I64
+#define LVN_GMATH_INCLUDE_VEC4_I64
+#define LVN_GMATH_INCLUDE_VEC2_UI64
+#define LVN_GMATH_INCLUDE_VEC3_UI64
+#define LVN_GMATH_INCLUDE_VEC4_UI64
+#define LVN_GMATH_INCLUDE_MAT2_F
+#define LVN_GMATH_INCLUDE_MAT3_F
+#define LVN_GMATH_INCLUDE_MAT4_F
+#endif // LVN_GMATH_INCLUDE_GRAPHICS_ESSENTIAL_ONLY
+
+// define this to whitelist all vector and matrix types
 #ifndef LVN_GMATH_WHITELIST_INCLUDES
 #define LVN_GMATH_INCLUDE_VEC2_F
 #define LVN_GMATH_INCLUDE_VEC2_D
@@ -152,8 +187,6 @@ void lvn_vec2_##t##_addpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);  
 void lvn_vec2_##t##_subpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
 void lvn_vec2_##t##_multpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                        \
 void lvn_vec2_##t##_divpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
-LvnType_##t lvn_vec2_##t##_mag(LvnVec2_##t v);                                                                         \
-LvnType_##t lvn_vec2_##t##_mag2(LvnVec2_##t v);                                                                        \
 LvnType_##t lvn_vec2_##t##_dot(LvnVec2_##t v1, LvnVec2_##t v2);
 
 #define LVN_DEFINE_VEC3_TYPE_MATH_DECL(t)                                                                              \
@@ -181,8 +214,6 @@ void lvn_vec3_##t##_subpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);  
 void lvn_vec3_##t##_multpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                        \
 void lvn_vec3_##t##_divpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                         \
 void lvn_vec3_##t##_cross(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                            \
-LvnType_##t lvn_vec3_##t##_mag(LvnVec3_##t v);                                                                         \
-LvnType_##t lvn_vec3_##t##_mag2(LvnVec3_##t v);                                                                        \
 LvnType_##t lvn_vec3_##t##_dot(LvnVec3_##t v1, LvnVec3_##t v2);
 
 #define LVN_DEFINE_VEC4_TYPE_MATH_DECL(t)                                                                              \
@@ -209,8 +240,6 @@ void lvn_vec4_##t##_addpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);  
 void lvn_vec4_##t##_subpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
 void lvn_vec4_##t##_multpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                        \
 void lvn_vec4_##t##_divpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
-LvnType_##t lvn_vec4_##t##_mag(LvnVec4_##t v);                                                                         \
-LvnType_##t lvn_vec4_##t##_mag2(LvnVec4_##t v);                                                                        \
 LvnType_##t lvn_vec4_##t##_dot(LvnVec4_##t v1, LvnVec4_##t v2);
 
 #define LVN_DEFINE_MAT2_TYPE_MATH_DECL(t)                                                                              \
@@ -337,8 +366,6 @@ void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst); 
 void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
 void lvn_vec##n##i_multpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                       \
 void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-int32_t lvn_vec##n##i_mag(LvnVec##n##i v);                                                                             \
-int32_t lvn_vec##n##i_mag2(LvnVec##n##i v);                                                                            \
 int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2);                                                           \
 
 #define LVN_DEFINE_VEC_UI32_TYPE_MATH_DECL(n)                                                                          \
@@ -365,8 +392,6 @@ void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst
 void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
 void lvn_vec##n##ui_multpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                    \
 void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-uint32_t lvn_vec##n##ui_mag(LvnVec##n##ui v);                                                                          \
-uint32_t lvn_vec##n##ui_mag2(LvnVec##n##ui v);                                                                         \
 uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2);                                                       \
 
 #define LVN_DEFINE_MAT_F_TYPE_MATH_DECL(n)                                                                             \
@@ -1756,8 +1781,6 @@ void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) {
 void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_subpv(pv, count, dst); }\
 void lvn_vec##n##i_multpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_multpv(pv, count, dst); }\
 void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_divpv(pv, count, dst); }\
-int32_t lvn_vec##n##i_mag(LvnVec##n##i v) { return lvn_vec##n##_i32_mag(v); }                                          \
-int32_t lvn_vec##n##i_mag2(LvnVec##n##i v) { return lvn_vec##n##_i32_mag2(v); }                                        \
 int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2) { return lvn_vec##n##_i32_dot(v1, v2); }
 
 #define LVN_DEFINE_VEC_UI32_TYPE_MATH_IMPL(n)                                                                          \
@@ -1784,8 +1807,6 @@ void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst
 void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subpv(pv, count, dst); }\
 void lvn_vec##n##ui_multpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_multpv(pv, count, dst); }\
 void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divpv(pv, count, dst); }\
-uint32_t lvn_vec##n##ui_mag(LvnVec##n##ui v) { return lvn_vec##n##_ui32_mag(v); }                                      \
-uint32_t lvn_vec##n##ui_mag2(LvnVec##n##ui v) { return lvn_vec##n##_ui32_mag2(v); }                                    \
 uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2) { return lvn_vec##n##_ui32_dot(v1, v2); }
 
 #define LVN_DEFINE_MAT_F_TYPE_MATH_IMPL(n)                                                                             \
@@ -2098,10 +2119,15 @@ LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(4)
 LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(4)
 #endif
 
+void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
+void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
+void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
+void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 
 #ifdef LVN_GMATH_IMPL
 
 #include <math.h>
+#include <string.h>
 
 #ifdef LVN_GMATH_INCLUDE_VEC2_F
 LVN_DEFINE_VEC2_TYPE_MATH_IMPL(f)
@@ -2339,6 +2365,51 @@ LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(4)
 #ifdef LVN_GMATH_INCLUDE_MAT4_UI32
 LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(4)
 #endif
+
+void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] =  (float)(2) / (right - left);
+    m[1][1] =  (float)(2) / (top - bottom);
+    m[2][2] = -(float)(1) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -near / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] =  (float)(2) / (right - left);
+    m[1][1] =  (float)(2) / (top - bottom);
+    m[2][2] = -(float)(2) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -(far + near) / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] = (float)(2) / (right - left);
+    m[1][1] = (float)(2) / (top - bottom);
+    m[2][2] = (float)(1) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -near / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] = (float)(2) / (right - left);
+    m[1][1] = (float)(2) / (top - bottom);
+    m[2][2] = (float)(2) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -(far + near) / (far - near);
+    m[3][3] =  (float)(1);
+}
+
 
 #endif // LVN_GMATH_IMPL
 

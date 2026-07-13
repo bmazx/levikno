@@ -560,6 +560,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     graphicsctx->implCmdBindPipeline = lvnImplOglCmdBindPipeline;
     graphicsctx->implCmdBindVertexBuffer = lvnImplOglCmdBindVertexBuffer;
     graphicsctx->implCmdBindIndexBuffer = lvnImplOglCmdBindIndexBuffer;
+    graphicsctx->implCmdBindDescriptorSets = lvnImplOglCmdBindDescriptorSets;
     graphicsctx->implCmdSetViewport = lvnImplOglCmdSetViewport;
     graphicsctx->implCmdSetScissor = lvnImplOglCmdSetScissor;
     graphicsctx->implCmdDraw = lvnImplOglCmdDraw;
@@ -1602,9 +1603,9 @@ LvnResult lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, L
     return Lvn_Result_Success;
 }
 
-void lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
+LvnResult lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
 {
-
+    return Lvn_Result_Success;
 }
 
 void lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats)
@@ -1875,6 +1876,11 @@ void lvnImplOglCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* bu
     cmdData->commandBuffer = commandBuffer;
     cmdData->buffer = buffer;
     cmdData->offset = offset;
+}
+
+void lvnImplOglCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+{
+
 }
 
 void lvnImplOglCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
