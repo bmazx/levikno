@@ -27,10 +27,11 @@ typedef struct UniformData
 } UniformData;
 
 static float s_Vertices[] = {
-   -0.5f,-0.5f, 1.0f, 0.0f, 1.0f,
-    0.5f,-0.5f, 1.0f, 0.0f, 0.0f,
-    0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+/*   x     y  |  r     g     b  |  u     v   */
+   -0.5f,-0.5f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.5f,-0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
 };
 
 static uint32_t s_Indices[] = {
@@ -347,6 +348,7 @@ int main(int argc, char** argv)
     // descriptor layout
     LvnDescriptorBinding descriptorBindings[] = {
         { 0, Lvn_DescriptorType_UniformBuffer, 1, Lvn_ShaderStageFlag_Vertex },
+        { 1, Lvn_DescriptorType_CombinedImageSampler, 1, Lvn_ShaderStageFlag_Fragment },
     };
 
     LvnDescriptorLayoutCreateInfo descriptorLayoutCreateInfo = {
@@ -379,15 +381,16 @@ int main(int argc, char** argv)
     // pipeline
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
 
-    LvnVertexAttribute attributes[2] =
+    LvnVertexAttribute attributes[] =
     {
         { 0, 0, Lvn_Format_R32G32_FLOAT, 0 },
         { 0, 1, Lvn_Format_R32G32B32_FLOAT, (2 * sizeof(float)) },
+        { 0, 2, Lvn_Format_R32G32_FLOAT, (5 * sizeof(float)) },
     };
 
     LvnVertexBindingDescription vertexBindingDescription = {
         .binding = 0,
-        .stride = 5 * sizeof(float),
+        .stride = 7 * sizeof(float),
     };
 
     LvnShader* shaderStages[] =
@@ -469,7 +472,7 @@ int main(int argc, char** argv)
     LvnSampler* sampler;
     lvnCreateSampler(graphicsctx, &sampler, &samplerCreateInfo);
 
-    LvnImage image = lvnLoadImageEx("/home/bma/Documents/textures/woodBox.jpg", 4, false);
+    LvnImage image = lvnLoadImageEx("res/images/debug.png", 4, false);
 
     LvnTextureCreateInfo textureCreateInfo = {
         .format = Lvn_Format_R8G8B8A8_SRGB,
@@ -494,16 +497,31 @@ int main(int argc, char** argv)
         .offset = 0,
     };
 
-    LvnDescriptorSetWriteInfo descriptorWriteInfo = {
-        .descriptorType = Lvn_DescriptorType_UniformBuffer,
-        .binding = 0,
-        .firstIndex = 0,
-        .descriptorCount = 1,
-        .pBufferInfo = &descriptorBufferInfo,
-        .descriptorSet = descriptorSet,
+    LvnDescriptorImageInfo descriptorImageInfo = {
+        .texture = texture,
+        .sampler = sampler,
     };
 
-    lvnUpdateDescriptorSets(graphicsctx, 1, &descriptorWriteInfo, 0, NULL);
+    LvnDescriptorSetWriteInfo descriptorWriteInfos[] = {
+        {
+            .descriptorSet = descriptorSet,
+            .descriptorType = Lvn_DescriptorType_UniformBuffer,
+            .binding = 0,
+            .firstIndex = 0,
+            .descriptorCount = 1,
+            .pBufferInfo = &descriptorBufferInfo,
+        },
+        {
+            .descriptorSet = descriptorSet,
+            .descriptorType = Lvn_DescriptorType_CombinedImageSampler,
+            .binding = 1,
+            .firstIndex = 0,
+            .descriptorCount = 1,
+            .pImageInfo = &descriptorImageInfo,
+        },
+    };
+
+    lvnUpdateDescriptorSets(graphicsctx, LVN_ARRAY_LEN(descriptorWriteInfos), descriptorWriteInfos, 0, NULL);
 
     UniformData uboData = {0};
     lvn_mat4_identity(uboData.matrix);

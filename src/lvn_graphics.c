@@ -1113,9 +1113,12 @@ LvnImage lvnLoadImageEx(const char* filepath, int forceChannels, bool flipVertic
         return image;
     }
 
+    uint32_t channels = (forceChannels ? forceChannels : imageChannels);
+    memcpy(data, pixels, imageWidth * imageHeight * channels);
+
     image.width = imageWidth;
     image.height = imageHeight;
-    image.channels = forceChannels ? forceChannels : imageChannels;
+    image.channels = channels;
     image.data = data;
 
     stbi_image_free(pixels);
