@@ -502,6 +502,8 @@ static VkDescriptorType lvn_getVkDescriptorTypeEnum(LvnDescriptorType type)
         case Lvn_DescriptorType_SampledImage: { return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; }
         case Lvn_DescriptorType_UniformBuffer: { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; }
         case Lvn_DescriptorType_StorageBuffer: { return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; }
+        case Lvn_DescriptorType_UniformBufferDynamic: { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; }
+        case Lvn_DescriptorType_StorageBufferDynamic: { return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; }
     }
 
     LVN_ASSERT(false, "invalid descriptor type enum");
@@ -2575,13 +2577,12 @@ LvnResult lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, L
     LVN_ASSERT(graphicsctx && descriptorPool && createInfo, "graphicsctx, descriptorPool, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
-    const LvnVkDescriptorLayoutData* descriptorLayoutData = (const LvnVkDescriptorLayoutData*) createInfo->descriptorLayout->descriptorLayoutData;
 
     LvnResult errResult = Lvn_Result_Failure;
     VkDescriptorPoolSize* descriptorPoolSizes = NULL;
     VkDescriptorPool vkDescriptorPool = VK_NULL_HANDLE;
 
-    descriptorPoolSizes = (VkDescriptorPoolSize*) lvn_calloc(descriptorLayoutData->descriptorBindingCount * sizeof(VkDescriptorPoolSize));
+    descriptorPoolSizes = (VkDescriptorPoolSize*) lvn_calloc(createInfo->poolSizeCount * sizeof(VkDescriptorPoolSize));
     if (!descriptorPoolSizes)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -2591,15 +2592,15 @@ LvnResult lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, L
         goto fail_cleanup;
     }
 
-    for (uint32_t i = 0; i < descriptorLayoutData->descriptorBindingCount; i++)
+    for (uint32_t i = 0; i < createInfo->poolSizeCount; i++)
     {
-        descriptorPoolSizes[i].type = descriptorLayoutData->pDescriptorBindings[i].descriptorType;
-        descriptorPoolSizes[i].descriptorCount = createInfo->maxSets;
+        descriptorPoolSizes[i].type = lvn_getVkDescriptorTypeEnum(createInfo->pPoolSizes[i].type);
+        descriptorPoolSizes[i].descriptorCount = createInfo->pPoolSizes[i].descriptorCount;
     }
 
     VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .poolSizeCount = descriptorLayoutData->descriptorBindingCount,
+        .poolSizeCount = createInfo->poolSizeCount,
         .pPoolSizes = descriptorPoolSizes,
         .maxSets = createInfo->maxSets,
     };

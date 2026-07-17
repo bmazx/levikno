@@ -360,8 +360,14 @@ int main(int argc, char** argv)
     lvnCreateDescriptorLayout(graphicsctx, &descriptorLayout, &descriptorLayoutCreateInfo);
 
     // descriptor pool
+    LvnDescriptorPoolSize descriptorPoolSizes[] = {
+        { Lvn_DescriptorType_UniformBuffer, 1, },
+        { Lvn_DescriptorType_CombinedImageSampler, 1, },
+    };
+
     LvnDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-        .descriptorLayout = descriptorLayout,
+        .poolSizeCount = LVN_ARRAY_LEN(descriptorPoolSizes),
+        .pPoolSizes = descriptorPoolSizes,
         .maxSets = 1,
     };
 

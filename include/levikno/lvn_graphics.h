@@ -283,6 +283,8 @@ typedef enum LvnDescriptorType
     Lvn_DescriptorType_SampledImage,
     Lvn_DescriptorType_UniformBuffer,
     Lvn_DescriptorType_StorageBuffer,
+    Lvn_DescriptorType_UniformBufferDynamic,
+    Lvn_DescriptorType_StorageBufferDynamic,
 } LvnDescriptorType;
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;
@@ -403,10 +405,17 @@ typedef struct LvnDescriptorLayoutCreateInfo
     LvnDescriptorBinding*    pDescriptorBindings;
 } LvnDescriptorLayoutCreateInfo;
 
+typedef struct LvnDescriptorPoolSize
+{
+    LvnDescriptorType    type;
+    uint32_t             descriptorCount;
+} LvnDescriptorPoolSize;
+
 typedef struct LvnDescriptorPoolCreateInfo
 {
-    LvnDescriptorLayout*    descriptorLayout;
-    uint32_t                maxSets;
+    uint32_t                  maxSets;
+    uint32_t                  poolSizeCount;
+    LvnDescriptorPoolSize*    pPoolSizes;
 } LvnDescriptorPoolCreateInfo;
 
 typedef struct LvnDescriptorSetAllocateInfo
