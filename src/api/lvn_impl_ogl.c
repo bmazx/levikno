@@ -1029,22 +1029,136 @@ void lvnImplOglDestroyShader(LvnShader* shader)
 
 LvnResult lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && descriptorLayout && createInfo, "graphicsctx, descriptorLayout, and createInfo cannot be null");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglDescriptorLayoutData* descriptorLayoutData;
+
+    descriptorLayoutData = (LvnOglDescriptorLayoutData*) lvn_calloc(sizeof(LvnOglDescriptorLayoutData));
+    if (!descriptorLayoutData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for descriptor layout data in descriptor layout %p",
+                      descriptorLayout);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorLayoutData->descriptorBindingCount = createInfo->descriptorBindingCount;
+    descriptorLayoutData->pDescriptorBindings = (LvnDescriptorBinding*) lvn_calloc(createInfo->descriptorBindingCount * sizeof(LvnDescriptorBinding));
+    if (!descriptorLayoutData->pDescriptorBindings)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for descriptor binding array in descriptor layout %p",
+                      descriptorLayout);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    memcpy(descriptorLayoutData->pDescriptorBindings, createInfo->pDescriptorBindings, createInfo->descriptorBindingCount * sizeof(LvnDescriptorBinding));
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (descriptorLayoutData)
+    {
+        if (descriptorLayoutData->pDescriptorBindings)
+            lvn_free(descriptorLayoutData->pDescriptorBindings);
+        lvn_free(descriptorLayoutData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout)
 {
+    LVN_ASSERT(descriptorLayout, "descriptorLayout cannot be null");
 
+    LvnOglDescriptorLayoutData* descriptorLayoutData = (LvnOglDescriptorLayoutData*) descriptorLayout->descriptorLayoutData;
+
+    lvn_free(descriptorLayoutData->pDescriptorBindings);
+    lvn_free(descriptorLayoutData);
+
+    descriptorLayout->descriptorLayoutData = NULL;
 }
 
 LvnResult lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo)
 {
+    LVN_ASSERT(graphicsctx && descriptorPool && createInfo, "graphicsctx, descriptorPool, and createInfo cannot be null");
+
+    LvnResult errResult = Lvn_Result_Failure;
+    LvnOglDescriptorPoolData* descriptorPoolData = NULL;
+
+    descriptorPoolData = (LvnOglDescriptorPoolData*) lvn_calloc(sizeof(LvnOglDescriptorPoolData));
+    if (!descriptorPoolData)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for descriptor pool data in descriptor pool %p",
+                      descriptorPool);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    descriptorPoolData->descriptorPoolCount = createInfo->poolSizeCount;
+    descriptorPoolData->pDescriptorPools = (LvnOglPoolSizeData*) lvn_calloc(createInfo->poolSizeCount * sizeof(LvnOglPoolSizeData));
+    if (!descriptorPoolData->pDescriptorPools)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to allocate memory for memory pool array in descriptor pool %p",
+                      descriptorPool);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    for (uint32_t i = 0; i < createInfo->poolSizeCount; i++)
+    {
+        descriptorPoolData->pDescriptorPools[i].type = createInfo->pPoolSizes[i].type;
+        descriptorPoolData->pDescriptorPools[i].descriptorCount = createInfo->pPoolSizes[i].descriptorCount;
+
+        LvnMemoryPoolCreateInfo memPoolCreateInfo = {
+            .stride = sizeof(LvnOglDescriptorSetData),
+            .count = createInfo->pPoolSizes[i].descriptorCount,
+            .align = LVN_DEFAULT_ALIGN,
+        };
+
+        int result = lvn_memPoolCreate(&descriptorPoolData->pDescriptorPools[i].pool, &memPoolCreateInfo);
+        if (result != LVN_CMA_SUCCESS)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[opengl] failed to create memory pool for descriptor sets in descriptor pool %p",
+                          descriptorPool);
+            errResult = result;
+            goto fail_cleanup;
+        }
+    }
+
+    descriptorPoolData->maxSets = createInfo->maxSets;
+
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (descriptorPoolData)
+    {
+        for (uint32_t i = 0; i < descriptorPoolData->descriptorPoolCount; i++)
+            lvn_memPoolDestroy(&descriptorPoolData->pDescriptorPools[i].pool);
+        if (descriptorPoolData->pDescriptorPools)
+            lvn_free(descriptorPoolData->pDescriptorPools);
+        lvn_free(descriptorPoolData);
+    }
+    return errResult;
 }
 
 void lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
 {
+    LVN_ASSERT(descriptorPool, "descriptorPool cannot be null");
 
+    LvnOglDescriptorPoolData* descriptorPoolData = (LvnOglDescriptorPoolData*) descriptorPool->descriptorPoolData;
+
+    for (uint32_t i = 0; i < descriptorPoolData->descriptorPoolCount; i++)
+        lvn_memPoolDestroy(&descriptorPoolData->pDescriptorPools[i].pool);
+    lvn_free(descriptorPoolData->pDescriptorPools);
+    lvn_free(descriptorPoolData);
+
+    descriptorPool->descriptorPoolData = NULL;
 }
 
 LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo)
@@ -1559,10 +1673,11 @@ LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, L
     LvnMemoryArenaCreateInfo arenaCreateInfo = {
         .size = 16e+3, // 16 KB
         .align = LVN_DEFAULT_ALIGN,
+        .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
     };
 
-    LvnResult result = lvn_memArenaCreate(&commandBufferData->cmdStream, &arenaCreateInfo);
-    if (result != Lvn_Result_Success)
+    int result = lvn_memArenaCreate(&commandBufferData->cmdStream, &arenaCreateInfo);
+    if (result != LVN_CMA_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create command stream arena for command buffer data in command buffer %p",
@@ -1595,6 +1710,11 @@ void lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 
 LvnResult lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo)
 {
+    LVN_ASSERT(graphicsctx && pDescriptorSets && allocInfo, "graphicsctx, pDescriptorSets, and allocInfo cannot be null");
+
+    LvnOglDescriptorPoolData* descriptorPoolData = (LvnOglDescriptorPoolData*) allocInfo->descriptorPool->descriptorPoolData;
+
+
     return Lvn_Result_Success;
 }
 

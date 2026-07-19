@@ -475,20 +475,20 @@ LvnResult lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDesc
         .stride = sizeof(LvnDescriptorSet),
         .count = createInfo->maxSets,
         .align = LVN_DEFAULT_ALIGN,
+        .flags = Lvn_MemoryPoolFlag_DynamicGrowth,
     };
 
-    LvnResult result = lvn_memPoolCreate(&descriptorPoolPtr->setPool, &memPoolCreateInfo);
-    if (result != Lvn_Result_Success)
+    int cmaResult = lvn_memPoolCreate(&descriptorPoolPtr->setPool, &memPoolCreateInfo);
+    if (cmaResult != LVN_CMA_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create set pool for descriptorPool at %p",
                       descriptorPool);
-        errResult = result;
         goto fail_cleanup;
     }
 
     // create descriptor pool
-    result = graphicsctx->implCreateDescriptorPool(graphicsctx, *descriptorPool, createInfo);
+    LvnResult result = graphicsctx->implCreateDescriptorPool(graphicsctx, *descriptorPool, createInfo);
     if (result != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -852,19 +852,19 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
     LvnMemoryArenaCreateInfo arenaCreateInfo = {
         .size = 16e+3, // 16 KB
         .align = LVN_DEFAULT_ALIGN,
+        .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
     };
 
-    LvnResult result = lvn_memArenaCreate(&commandBufferPtr->frameArena, &arenaCreateInfo);
-    if (result != Lvn_Result_Success)
+    int cmaResult = lvn_memArenaCreate(&commandBufferPtr->frameArena, &arenaCreateInfo);
+    if (cmaResult != LVN_CMA_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "failed to create memory arena for command buffer at %p",
                       commandBuffer);
-        errResult = result;
         goto fail_cleanup;
     }
 
-    result = graphicsctx->implCreateCommandBuffer(graphicsctx, commandBufferPtr);
+    LvnResult result = graphicsctx->implCreateCommandBuffer(graphicsctx, commandBufferPtr);
     if (result != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,

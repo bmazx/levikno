@@ -484,6 +484,32 @@ typedef struct LvnOglShaderData
     LvnShaderStageFlagBits    stage;
 } LvnOglShaderData;
 
+typedef struct LvnOglDescriptorLayoutData
+{
+    LvnDescriptorBinding*    pDescriptorBindings;
+    uint32_t                 descriptorBindingCount;
+} LvnOglDescriptorLayoutData;
+
+typedef struct LvnOglPoolSizeData
+{
+    LvnMemoryPool        pool;
+    LvnDescriptorType    type;
+    uint32_t             descriptorCount;
+
+} LvnOglPoolSizeData;
+
+typedef struct LvnOglDescriptorPoolData
+{
+    LvnOglPoolSizeData*            pDescriptorPools;
+    uint32_t                       descriptorPoolCount;
+    uint32_t                       maxSets;
+} LvnOglDescriptorPoolData;
+
+typedef struct LvnOglDescriptorSetData
+{
+
+} LvnOglDescriptorSetData;
+
 typedef struct LvnOglBufferData
 {
     uint32_t    bufferId;
