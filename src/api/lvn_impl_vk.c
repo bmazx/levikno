@@ -2522,7 +2522,7 @@ LvnResult lvnImplVkCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx,
     for (uint32_t i = 0; i < createInfo->descriptorBindingCount; i++)
     {
         descriptorLayoutData->pDescriptorBindings[i].binding = createInfo->pDescriptorBindings[i].binding;
-        descriptorLayoutData->pDescriptorBindings[i].descriptorCount = createInfo->pDescriptorBindings[i].descriptorCount;
+        descriptorLayoutData->pDescriptorBindings[i].descriptorCount = 1;
         descriptorLayoutData->pDescriptorBindings[i].descriptorType = lvn_getVkDescriptorTypeEnum(createInfo->pDescriptorBindings[i].descriptorType);
         descriptorLayoutData->pDescriptorBindings[i].stageFlags = lvn_getVkShaderStageFlagsEnum(createInfo->pDescriptorBindings[i].stageFlags);
     }
@@ -3550,13 +3550,13 @@ LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, u
         if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_UniformBuffer ||
             pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_StorageBuffer)
         {
-            bufferCount += pDescriptorWrites[i].descriptorCount;
+            bufferCount++;
         }
         else if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_Sampler ||
                  pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_CombinedImageSampler ||
                  pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_SampledImage)
         {
-            imageCount += pDescriptorWrites[i].descriptorCount;
+            imageCount++;
         }
     }
 
@@ -3588,7 +3588,7 @@ LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, u
         descriptorWrites[i].dstBinding = pDescriptorWrites[i].binding;
         descriptorWrites[i].dstArrayElement = pDescriptorWrites[i].firstIndex;
         descriptorWrites[i].descriptorType = lvn_getVkDescriptorTypeEnum(pDescriptorWrites[i].descriptorType);
-        descriptorWrites[i].descriptorCount = pDescriptorWrites[i].descriptorCount;
+        descriptorWrites[i].descriptorCount = 1;
 
         // if descriptor using uniform buffers
         if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_UniformBuffer ||
@@ -3596,14 +3596,11 @@ LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, u
         {
             descriptorWrites[i].pBufferInfo = &descriptorBufferInfos[bufferInfoIndex];
 
-            for (uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
-            {
-                LvnVkBufferData* bufferData = (LvnVkBufferData*) pDescriptorWrites[i].pBufferInfo[j].buffer->bufferData;
-                descriptorBufferInfos[bufferInfoIndex].buffer = bufferData->buffer;
-                descriptorBufferInfos[bufferInfoIndex].offset = pDescriptorWrites[i].pBufferInfo[j].offset;
-                descriptorBufferInfos[bufferInfoIndex].range = pDescriptorWrites[i].pBufferInfo[j].range;
-                bufferInfoIndex++;
-            }
+            LvnVkBufferData* bufferData = (LvnVkBufferData*) pDescriptorWrites[i].bufferInfo->buffer->bufferData;
+            descriptorBufferInfos[bufferInfoIndex].buffer = bufferData->buffer;
+            descriptorBufferInfos[bufferInfoIndex].offset = pDescriptorWrites[i].bufferInfo->offset;
+            descriptorBufferInfos[bufferInfoIndex].range = pDescriptorWrites[i].bufferInfo->range;
+            bufferInfoIndex++;
         }
 
         // if descriptor using textures
@@ -3613,19 +3610,16 @@ LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, u
         {
             descriptorWrites[i].pImageInfo = &descriptorImageInfos[imageInfoIndex];
 
-            for (uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
-            {
-                VkImageView imageView = (pDescriptorWrites[i].pImageInfo[j].texture)
-                    ? ((LvnVkTextureData*)pDescriptorWrites[i].pImageInfo[j].texture->textureData)->imageView
-                    : VK_NULL_HANDLE;
-                VkSampler sampler = (pDescriptorWrites[i].pImageInfo[j].sampler)
-                    ? (VkSampler)pDescriptorWrites[i].pImageInfo[j].sampler->samplerData
-                    : VK_NULL_HANDLE;
-                descriptorImageInfos[imageInfoIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                descriptorImageInfos[imageInfoIndex].imageView = imageView;
-                descriptorImageInfos[imageInfoIndex].sampler = sampler;
-                imageInfoIndex++;
-            }
+            VkImageView imageView = (pDescriptorWrites[i].imageInfo->texture)
+                ? ((LvnVkTextureData*)pDescriptorWrites[i].imageInfo->texture->textureData)->imageView
+                : VK_NULL_HANDLE;
+            VkSampler sampler = (pDescriptorWrites[i].imageInfo->sampler)
+                ? (VkSampler)pDescriptorWrites[i].imageInfo->sampler->samplerData
+                : VK_NULL_HANDLE;
+            descriptorImageInfos[imageInfoIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            descriptorImageInfos[imageInfoIndex].imageView = imageView;
+            descriptorImageInfos[imageInfoIndex].sampler = sampler;
+            imageInfoIndex++;
         }
     }
 

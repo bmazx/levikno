@@ -347,8 +347,8 @@ int main(int argc, char** argv)
 
     // descriptor layout
     LvnDescriptorBinding descriptorBindings[] = {
-        { 0, Lvn_DescriptorType_UniformBuffer, 1, Lvn_ShaderStageFlag_Vertex },
-        { 1, Lvn_DescriptorType_CombinedImageSampler, 1, Lvn_ShaderStageFlag_Fragment },
+        { 0, Lvn_DescriptorType_UniformBuffer, Lvn_ShaderStageFlag_Vertex },
+        { 1, Lvn_DescriptorType_CombinedImageSampler, Lvn_ShaderStageFlag_Fragment },
     };
 
     LvnDescriptorLayoutCreateInfo descriptorLayoutCreateInfo = {
@@ -514,16 +514,14 @@ int main(int argc, char** argv)
             .descriptorType = Lvn_DescriptorType_UniformBuffer,
             .binding = 0,
             .firstIndex = 0,
-            .descriptorCount = 1,
-            .pBufferInfo = &descriptorBufferInfo,
+            .bufferInfo = &descriptorBufferInfo,
         },
         {
             .descriptorSet = descriptorSet,
             .descriptorType = Lvn_DescriptorType_CombinedImageSampler,
             .binding = 1,
             .firstIndex = 0,
-            .descriptorCount = 1,
-            .pImageInfo = &descriptorImageInfo,
+            .imageInfo = &descriptorImageInfo,
         },
     };
 

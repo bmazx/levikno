@@ -395,7 +395,6 @@ typedef struct LvnDescriptorBinding
 {
     uint32_t               binding;
     LvnDescriptorType      descriptorType;
-    uint32_t               descriptorCount;
     LvnShaderStageFlags    stageFlags;
 } LvnDescriptorBinding;
 
@@ -443,10 +442,9 @@ typedef struct LvnDescriptorSetWriteInfo
     LvnDescriptorType                 descriptorType;
     uint32_t                          binding;
     uint32_t                          firstIndex;
-    uint32_t                          descriptorCount;
     LvnDescriptorSet*                 descriptorSet;
-    const LvnDescriptorBufferInfo*    pBufferInfo;
-    const LvnDescriptorImageInfo*     pImageInfo;
+    const LvnDescriptorBufferInfo*    bufferInfo;
+    const LvnDescriptorImageInfo*     imageInfo;
 } LvnDescriptorSetWriteInfo;
 
 typedef struct LvnDescriptorSetCopyInfo
