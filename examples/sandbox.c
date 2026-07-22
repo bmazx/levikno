@@ -493,7 +493,6 @@ int main(int argc, char** argv)
         .samples = Lvn_SampleCountFlag_1_Bit,
         .width = image.width,
         .height = image.height,
-        .channels = image.channels,
     };
 
     LvnTexture* texture;

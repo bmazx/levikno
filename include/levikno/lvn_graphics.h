@@ -585,7 +585,6 @@ typedef struct LvnTextureCreateInfo
     LvnSampleCountFlags    samples;
     uint32_t               width;
     uint32_t               height;
-    uint32_t               channels;
 } LvnTextureCreateInfo;
 
 typedef union LvnClearColorValue

@@ -65,6 +65,7 @@ static VkSamplerAddressMode        lvn_getVkTextureModeEnum(LvnTextureMode mode)
 static VkBufferUsageFlags          lvn_getVkBufferUsageFlagsEnum(LvnBufferTypeFlags type);
 static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
 static LvnPresentMode              lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode);
+static uint32_t                    lvn_getChannelWidthBytes(LvnFormat format);
 static void                        lvn_transitionImageLayout(const LvnVulkanBackends* vkBackends, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
 static LvnResult                   lvn_createBuffer(const LvnVulkanBackends* vkBackends, VkBuffer* buffer, VmaAllocation* bufferMemory, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBackends, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset);
@@ -880,6 +881,56 @@ static LvnPresentMode lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode)
     }
 
     return Lvn_PresentMode_FIFO;
+}
+
+static uint32_t lvn_getChannelWidthBytes(LvnFormat format)
+{
+    switch (format)
+    {
+        case Lvn_Format_Undefined: { return 0; }
+        case Lvn_Format_R8_UNORM: { return 1; }
+        case Lvn_Format_R8_SNORM: { return 1; }
+        case Lvn_Format_R8_UINT: { return 1; }
+        case Lvn_Format_R8_SINT: { return 1; }
+        case Lvn_Format_R16_UNORM: { return 2; }
+        case Lvn_Format_R16_SNORM: { return 2; }
+        case Lvn_Format_R16_UINT: { return 2; }
+        case Lvn_Format_R16_SINT: { return 2; }
+        case Lvn_Format_R16_FLOAT: { return 2; }
+        case Lvn_Format_R32_UINT: { return 4; }
+        case Lvn_Format_R32_SINT: { return 4; }
+        case Lvn_Format_R32_FLOAT: { return 4; }
+        case Lvn_Format_R8G8_UNORM: { return 2; }
+        case Lvn_Format_R8G8_SNORM: { return 2; }
+        case Lvn_Format_R8G8_UINT: { return 2; }
+        case Lvn_Format_R8G8_SINT: { return 2; }
+        case Lvn_Format_R16G16_FLOAT: { return 4; }
+        case Lvn_Format_R32G32_FLOAT: { return 8; }
+        case Lvn_Format_R32G32_UINT: { return 8; }
+        case Lvn_Format_R32G32_SINT: { return 8; }
+        case Lvn_Format_R32G32B32_FLOAT: { return 12; }
+        case Lvn_Format_R32G32B32_UINT: { return 12; }
+        case Lvn_Format_R32G32B32_SINT: { return 12; }
+        case Lvn_Format_R8G8B8A8_UNORM: { return 4; }
+        case Lvn_Format_R8G8B8A8_SNORM: { return 4; }
+        case Lvn_Format_R8G8B8A8_UINT: { return 4; }
+        case Lvn_Format_R8G8B8A8_SINT: { return 4; }
+        case Lvn_Format_R8G8B8A8_SRGB: { return 4; }
+        case Lvn_Format_R16G16B16A16_FLOAT: { return 8; }
+        case Lvn_Format_R32G32B32A32_FLOAT: { return 16; }
+        case Lvn_Format_R32G32B32A32_UINT: { return 16; }
+        case Lvn_Format_R32G32B32A32_SINT: { return 16; }
+        case Lvn_Format_B8G8R8A8_UNORM: { return 4; }
+        case Lvn_Format_B8G8R8A8_SRGB: { return 4; }
+        case Lvn_Format_A2B10G10R10_UNORM: { return 4; }
+        case Lvn_Format_A2B10G10R10_UINT: { return 4; }
+        case Lvn_Format_D16_UNORM: { return 2; }
+        case Lvn_Format_D24_UNORM_S8_UINT: { return 4; }
+        case Lvn_Format_D32_FLOAT: { return 4; }
+    }
+
+    LVN_ASSERT(false, "invalid format enum");
+    return 0;
 }
 
 static void lvn_transitionImageLayout(
@@ -3292,7 +3343,9 @@ LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTextu
         goto fail_cleanup;
     }
 
-    VkDeviceSize imageSize = createInfo->width * createInfo->height * createInfo->channels;
+    uint32_t channelWidth = lvn_getChannelWidthBytes(createInfo->format);
+    VkDeviceSize imageSize = createInfo->width * createInfo->height * channelWidth;
+
     if (lvn_createBuffer(vkBackends, &stagingBuffer, &stagingBufferMemory, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
