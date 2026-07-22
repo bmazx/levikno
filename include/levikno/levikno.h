@@ -58,6 +58,21 @@ typedef struct LvnFile
     size_t      size;
 } LvnFile;
 
+typedef struct LvnImage
+{
+    uint8_t*    data;
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    channels;
+} LvnImage;
+
+typedef struct LvnLoadImageInfo
+{
+    const char*    filepath;
+    int            forceChannels;
+    bool           flipVertically;
+} LvnLoadImageInfo;
+
 typedef struct LvnSink
 {
     void (*logFunc)(const char*);
@@ -123,6 +138,9 @@ LVN_API LvnFile                 lvnLoadFileSrc(const char* filepath);           
 LVN_API LvnFile                 lvnLoadFileBin(const char* filepath);                      // load a binary file from a file path
 LVN_API LvnFile                 lvnLoadFile(const char* filepath, LvnFileType type);       // load a file from a file path
 LVN_API void                    lvnUnloadFile(LvnFile* file);                              // unload a file from memory
+
+LVN_API LvnImage                lvnLoadImage(const LvnLoadImageInfo* loadInfo);
+LVN_API void                    lvnUnloadImage(LvnImage* image);
 
 LVN_API int                     lvnDateGetYear(void);                                      // get the year number (eg. 2025)
 LVN_API int                     lvnDateGetYear02d(void);                                   // get the last two digits of the year number (eg. 25)

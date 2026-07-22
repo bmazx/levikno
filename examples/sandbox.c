@@ -488,11 +488,12 @@ int main(int argc, char** argv)
 
     LvnTextureCreateInfo textureCreateInfo = {
         .format = Lvn_Format_R8G8B8A8_SRGB,
-        .image = &image,
+        .image = image.data,
         .sampler = sampler,
         .samples = Lvn_SampleCountFlag_1_Bit,
         .width = image.width,
         .height = image.height,
+        .channels = image.channels,
     };
 
     LvnTexture* texture;

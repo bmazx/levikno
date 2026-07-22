@@ -1614,7 +1614,6 @@ LvnResult lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
-    const LvnImage* image = createInfo->image;
 
     LvnResult errResult = Lvn_Result_Failure;
     LvnOglTextureData* textureData = NULL;
@@ -1647,7 +1646,7 @@ LvnResult lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnText
                                                    GL_TRUE);
     }
 
-    oglBackends->glTextureSubImage2D(textureData->textureId, 0, 0, 0, createInfo->width, createInfo->height, dataFormat, formatType, image->data);
+    oglBackends->glTextureSubImage2D(textureData->textureId, 0, 0, 0, createInfo->width, createInfo->height, dataFormat, formatType, createInfo->image);
 
     texture->textureData = textureData;
     texture->width = createInfo->width;

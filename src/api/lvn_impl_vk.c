@@ -3292,7 +3292,7 @@ LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTextu
         goto fail_cleanup;
     }
 
-    VkDeviceSize imageSize = createInfo->width * createInfo->height * createInfo->image->channels;
+    VkDeviceSize imageSize = createInfo->width * createInfo->height * createInfo->channels;
     if (lvn_createBuffer(vkBackends, &stagingBuffer, &stagingBufferMemory, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
@@ -3303,7 +3303,7 @@ LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTextu
 
     void* data;
     vmaMapMemory(vkBackends->vmaAllocator, stagingBufferMemory, &data);
-    memcpy(data, createInfo->image->data, imageSize);
+    memcpy(data, createInfo->image, imageSize);
     vmaUnmapMemory(vkBackends->vmaAllocator, stagingBufferMemory);
 
     VkFormat format = lvn_getVkFormatEnum(createInfo->format);

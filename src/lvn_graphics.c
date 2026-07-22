@@ -9,8 +9,6 @@
     #include "lvn_impl_vk.h"
 #endif
 
-#include "stb_image.h"
-
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api);
 
@@ -1085,48 +1083,6 @@ void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
     LVN_ASSERT(buffer, "buffer cannot be null");
     const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
     graphicsctx->implBufferResize(buffer, size);
-}
-
-LvnImage lvnLoadImage(const LvnLoadImageInfo* loadInfo)
-{
-    LVN_ASSERT(loadInfo, "loadInfo cannot not be null");
-    LVN_ASSERT(loadInfo->forceChannels >= 0 && loadInfo->forceChannels <= 4, "loadInfo->forceChannels must be between 0 and 4");
-
-    LvnImage image = {0};
-
-    stbi_set_flip_vertically_on_load(loadInfo->flipVertically);
-    int imageWidth, imageHeight, imageChannels;
-    stbi_uc* pixels = stbi_load(loadInfo->filepath, &imageWidth, &imageHeight, &imageChannels, loadInfo->forceChannels);
-    if (!pixels)
-        return image;
-
-    void* data = lvn_calloc(imageWidth * imageHeight * (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels));
-    if (!data) {
-        stbi_image_free(pixels);
-        return image;
-    }
-
-    uint32_t channels = (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels);
-    memcpy(data, pixels, imageWidth * imageHeight * channels);
-
-    image.width = imageWidth;
-    image.height = imageHeight;
-    image.channels = channels;
-    image.data = data;
-
-    stbi_image_free(pixels);
-
-    return image;
-}
-
-void lvnUnloadImage(LvnImage* image)
-{
-    if (!image) return;
-    lvn_free(image->data);
-    image->data = NULL;
-    image->width = 0;
-    image->height = 0;
-    image->channels = 0;
 }
 
 void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)

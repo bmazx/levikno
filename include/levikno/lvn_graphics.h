@@ -313,14 +313,6 @@ typedef struct LvnPlatformData
     void*    nwh;
 } LvnPlatformData;
 
-typedef struct LvnImage
-{
-    uint8_t*    data;
-    uint32_t    width;
-    uint32_t    height;
-    uint32_t    channels;
-} LvnImage;
-
 typedef struct LvnSurfaceCreateInfo
 {
     void*    ndh;
@@ -572,13 +564,6 @@ typedef struct LvnBufferCreateInfo
     const void*             data;
 } LvnBufferCreateInfo;
 
-typedef struct LvnLoadImageInfo
-{
-    const char*    filepath;
-    int            forceChannels;
-    bool           flipVertically;
-} LvnLoadImageInfo;
-
 typedef struct LvnSamplerCreateInfo
 {
     LvnTextureFilter    minFilter;
@@ -595,11 +580,12 @@ typedef struct LvnSamplerCreateInfo
 typedef struct LvnTextureCreateInfo
 {
     const LvnSampler*      sampler;
-    const LvnImage*        image;
+    const uint8_t*         image;
     LvnFormat              format;
     LvnSampleCountFlags    samples;
     uint32_t               width;
     uint32_t               height;
+    uint32_t               channels;
 } LvnTextureCreateInfo;
 
 typedef union LvnClearColorValue
@@ -734,9 +720,6 @@ LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
 
 LVN_API void                        lvnBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 LVN_API void                        lvnBufferResize(LvnBuffer* buffer, uint64_t size);
-
-LVN_API LvnImage                    lvnLoadImage(const LvnLoadImageInfo* loadInfo);
-LVN_API void                        lvnUnloadImage(LvnImage* image);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);

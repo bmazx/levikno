@@ -6,6 +6,8 @@
 #include <time.h>
 #include <stdarg.h>
 
+#include "stb_image.h"
+
 
 // custom memory allocators
 #define LVN_CMA_MALLOC(sz)    lvn_calloc(sz)
@@ -326,6 +328,7 @@ LvnFile lvnLoadFile(const char* filepath, LvnFileType type)
     return file;
 
 fail_cleanup:
+    lvn_free(file.data);
     file.data = NULL;
     file.size = 0;
     fclose(fileptr);
@@ -338,6 +341,56 @@ void lvnUnloadFile(LvnFile* file)
     lvn_free(file->data);
     file->data = NULL;
     file->size = 0;
+}
+
+LvnImage lvnLoadImage(const LvnLoadImageInfo* loadInfo)
+{
+    LVN_ASSERT(loadInfo, "loadInfo cannot not be null");
+    LVN_ASSERT(loadInfo->forceChannels >= 0 && loadInfo->forceChannels <= 4, "loadInfo->forceChannels must be between 0 and 4");
+
+    LvnImage image = {0};
+
+    stbi_set_flip_vertically_on_load(loadInfo->flipVertically);
+    int imageWidth, imageHeight, imageChannels;
+    stbi_uc* pixels = stbi_load(loadInfo->filepath, &imageWidth, &imageHeight, &imageChannels, loadInfo->forceChannels);
+    if (!pixels) { goto fail_cleanup; }
+
+    void* data = lvn_calloc(imageWidth * imageHeight * (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels));
+    if (!data)
+    {
+        stbi_image_free(pixels);
+        goto fail_cleanup;
+    }
+
+    uint32_t channels = (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels);
+    memcpy(data, pixels, imageWidth * imageHeight * channels);
+
+    image.width = imageWidth;
+    image.height = imageHeight;
+    image.channels = channels;
+    image.data = data;
+
+    stbi_image_free(pixels);
+
+    return image;
+
+fail_cleanup:
+    lvn_free(image.data);
+    image.data = NULL;
+    image.width = 0;
+    image.height = 0;
+    image.channels = 0;
+    return image;
+}
+
+void lvnUnloadImage(LvnImage* image)
+{
+    if (!image) return;
+    lvn_free(image->data);
+    image->data = NULL;
+    image->width = 0;
+    image->height = 0;
+    image->channels = 0;
 }
 
 LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo)
