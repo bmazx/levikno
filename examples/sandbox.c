@@ -478,7 +478,13 @@ int main(int argc, char** argv)
     LvnSampler* sampler;
     lvnCreateSampler(graphicsctx, &sampler, &samplerCreateInfo);
 
-    LvnImage image = lvnLoadImageEx("res/images/debug.png", 4, false);
+    LvnLoadImageInfo loadImageInfo = {
+        .filepath = "res/images/debug.png",
+        .forceChannels = 4,
+        .flipVertically = false,
+    };
+
+    LvnImage image = lvnLoadImage(&loadImageInfo);
 
     LvnTextureCreateInfo textureCreateInfo = {
         .format = Lvn_Format_R8G8B8A8_SRGB,

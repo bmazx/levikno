@@ -1087,33 +1087,26 @@ void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
     graphicsctx->implBufferResize(buffer, size);
 }
 
-LvnImage lvnLoadImage(const char* filepath)
+LvnImage lvnLoadImage(const LvnLoadImageInfo* loadInfo)
 {
-    LVN_ASSERT(filepath, "filepath cannot not be null");
-
-    return lvnLoadImageEx(filepath, 0, false);
-}
-
-LvnImage lvnLoadImageEx(const char* filepath, int forceChannels, bool flipVertically)
-{
-    LVN_ASSERT(filepath, "filepath cannot not be null");
-    LVN_ASSERT(forceChannels >= 0 && forceChannels <= 4, "forceChannels must be between 0 and 4");
+    LVN_ASSERT(loadInfo, "loadInfo cannot not be null");
+    LVN_ASSERT(loadInfo->forceChannels >= 0 && loadInfo->forceChannels <= 4, "loadInfo->forceChannels must be between 0 and 4");
 
     LvnImage image = {0};
 
-    stbi_set_flip_vertically_on_load(flipVertically);
+    stbi_set_flip_vertically_on_load(loadInfo->flipVertically);
     int imageWidth, imageHeight, imageChannels;
-    stbi_uc* pixels = stbi_load(filepath, &imageWidth, &imageHeight, &imageChannels, forceChannels);
+    stbi_uc* pixels = stbi_load(loadInfo->filepath, &imageWidth, &imageHeight, &imageChannels, loadInfo->forceChannels);
     if (!pixels)
         return image;
 
-    void* data = lvn_calloc(imageWidth * imageHeight * (forceChannels ? forceChannels : imageChannels));
+    void* data = lvn_calloc(imageWidth * imageHeight * (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels));
     if (!data) {
         stbi_image_free(pixels);
         return image;
     }
 
-    uint32_t channels = (forceChannels ? forceChannels : imageChannels);
+    uint32_t channels = (loadInfo->forceChannels ? loadInfo->forceChannels : imageChannels);
     memcpy(data, pixels, imageWidth * imageHeight * channels);
 
     image.width = imageWidth;

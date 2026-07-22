@@ -572,6 +572,13 @@ typedef struct LvnBufferCreateInfo
     const void*             data;
 } LvnBufferCreateInfo;
 
+typedef struct LvnLoadImageInfo
+{
+    const char*    filepath;
+    int            forceChannels;
+    bool           flipVertically;
+} LvnLoadImageInfo;
+
 typedef struct LvnSamplerCreateInfo
 {
     LvnTextureFilter    minFilter;
@@ -728,8 +735,7 @@ LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
 LVN_API void                        lvnBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 LVN_API void                        lvnBufferResize(LvnBuffer* buffer, uint64_t size);
 
-LVN_API LvnImage                    lvnLoadImage(const char* filepath);
-LVN_API LvnImage                    lvnLoadImageEx(const char* filepath, int forceChannels, bool flipVertically);
+LVN_API LvnImage                    lvnLoadImage(const LvnLoadImageInfo* loadInfo);
 LVN_API void                        lvnUnloadImage(LvnImage* image);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
