@@ -292,6 +292,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         eglLoader->eglGetProcAddress("glNamedFramebufferDrawBuffer");
     oglBackends->glNamedFramebufferDrawBuffers = (PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC)
         eglLoader->eglGetProcAddress("glNamedFramebufferDrawBuffers");
+    oglBackends->glNamedBufferSubData = (PFNGLNAMEDBUFFERSUBDATAPROC)
+        eglLoader->eglGetProcAddress("glNamedBufferSubData");
     oglBackends->glSamplerParameteri = (PFNGLSAMPLERPARAMETERIPROC)
         eglLoader->eglGetProcAddress("glSamplerParameteri");
     oglBackends->glTextureParameteri = (PFNGLTEXTUREPARAMETERIPROC)
@@ -358,6 +360,10 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         eglLoader->eglGetProcAddress("glBindVertexArray");
     oglBackends->glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)
         eglLoader->eglGetProcAddress("glBindFramebuffer");
+    oglBackends->glBindBufferRange = (PFNGLBINDBUFFERRANGEPROC)
+        eglLoader->eglGetProcAddress("glBindBufferRange");
+    oglBackends->glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)
+        eglLoader->eglGetProcAddress("glBindTextureUnit");
     oglBackends->glBlitFramebuffer = (PFNGLBLITFRAMEBUFFERPROC)
         eglLoader->eglGetProcAddress("glBlitFramebuffer");
     oglBackends->glClear = (PFNGLCLEARPROC)

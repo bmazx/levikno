@@ -65,6 +65,7 @@ static const LvnOglCmdBuffFnCallback s_OglCmdBuffFuncTable[] =
     [Lvn_OglCmdBuffFunc_BindPipeline] = lvnCmdBuffImplOglCmdBindPipeline,
     [Lvn_OglCmdBuffFunc_BindVertexBuffer] = lvnCmdBuffImplOglCmdBindVertexBuffer,
     [Lvn_OglCmdBuffFunc_BindIndexBuffer] = lvnCmdBuffImplOglCmdBindIndexBuffer,
+    [Lvn_OglCmdBuffFunc_BindDescriptorSets] = lvnCmdBuffImplOglCmdBindDescriptorSets,
     [Lvn_OglCmdBuffFunc_SetViewport] = lvnCmdBuffImplOglCmdSetViewport,
     [Lvn_OglCmdBuffFunc_SetScissor] = lvnCmdBuffImplOglCmdSetScissor,
     [Lvn_OglCmdBuffFunc_Draw] = lvnCmdBuffImplOglCmdDraw,
@@ -84,6 +85,7 @@ static GLenum    lvn_getOglCullFrontFaceEnum(LvnCullFrontFace frontFace);
 static GLenum    lvn_getOglBlendFactorEnum(LvnColorBlendFactor blendFactor);
 static GLenum    lvn_getOglCompareOpEnum(LvnCompareOperation compareOp);
 static GLenum    lvn_getOglStencilOpEnum(LvnStencilOperation stencilOp);
+static GLenum    lvn_getOglUniformBufferEnum(LvnDescriptorType type);
 static uint32_t  lvn_getSampleCount(LvnSampleCountFlags samples);
 
 static void GLAPIENTRY lvn_openglDebugCallback(
@@ -352,6 +354,19 @@ static GLenum lvn_getOglStencilOpEnum(LvnStencilOperation stencilOp)
     return GL_KEEP;
 }
 
+static GLenum lvn_getOglUniformBufferEnum(LvnDescriptorType type)
+{
+    switch (type)
+    {
+        case Lvn_DescriptorType_UniformBuffer: { return GL_UNIFORM_BUFFER; }
+        case Lvn_DescriptorType_StorageBuffer: { return GL_SHADER_STORAGE_BUFFER; }
+        default: { break; }
+    }
+
+    LVN_ASSERT(false, "invalid uniform buffer type enum");
+    return GL_UNIFORM_BUFFER;
+}
+
 static uint32_t lvn_getSampleCount(LvnSampleCountFlags samples)
 {
     switch (samples)
@@ -440,6 +455,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glNamedFramebufferTexture ||
         !oglBackends->glNamedFramebufferDrawBuffer ||
         !oglBackends->glNamedFramebufferDrawBuffers ||
+        !oglBackends->glNamedBufferSubData ||
         !oglBackends->glSamplerParameteri ||
         !oglBackends->glTextureParameteri ||
         !oglBackends->glTextureStorage2D ||
@@ -472,6 +488,8 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glBindBuffer ||
         !oglBackends->glBindVertexBuffers ||
         !oglBackends->glBindVertexArray ||
+        !oglBackends->glBindBufferRange ||
+        !oglBackends->glBindTextureUnit ||
         !oglBackends->glBindFramebuffer ||
         !oglBackends->glBlitFramebuffer ||
         !oglBackends->glClear ||
@@ -1057,6 +1075,8 @@ LvnResult lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx
 
     memcpy(descriptorLayoutData->pDescriptorBindings, createInfo->pDescriptorBindings, createInfo->descriptorBindingCount * sizeof(LvnDescriptorBinding));
 
+    descriptorLayout->descriptorLayoutData = descriptorLayoutData;
+
     return Lvn_Result_Success;
 
 fail_cleanup:
@@ -1098,50 +1118,53 @@ LvnResult lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, 
         goto fail_cleanup;
     }
 
-    descriptorPoolData->descriptorPoolCount = createInfo->poolSizeCount;
-    descriptorPoolData->pDescriptorPools = (LvnOglPoolSizeData*) lvn_calloc(createInfo->poolSizeCount * sizeof(LvnOglPoolSizeData));
-    if (!descriptorPoolData->pDescriptorPools)
+    // descriptor set pool
+    LvnMemoryPoolCreateInfo memPoolCreateInfo = {
+        .stride = sizeof(LvnOglDescriptorSetData),
+        .count = createInfo->maxSets,
+        .align = LVN_DEFAULT_ALIGN,
+    };
+
+    int result = lvn_memPoolCreate(&descriptorPoolData->descriptorPool, &memPoolCreateInfo);
+    if (result != LVN_CMA_SUCCESS)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[opengl] failed to allocate memory for memory pool array in descriptor pool %p",
+                      "[opengl] failed to create memory pool for descriptor sets in descriptor pool %p",
                       descriptorPool);
-        errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
+    // binding arena
+    uint32_t descriptorCount = 0;
     for (uint32_t i = 0; i < createInfo->poolSizeCount; i++)
+        descriptorCount += createInfo->pPoolSizes[i].descriptorCount;
+
+    LvnMemoryArenaCreateInfo memArenaCreateInfo = {
+        .size = descriptorCount * sizeof(LvnOglDescriptorBindingData),
+        .align = LVN_ALIGNOF(LvnOglDescriptorBindingData),
+        .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
+    };
+
+    result = lvn_memArenaCreate(&descriptorPoolData->bindingArena, &memArenaCreateInfo);
+    if (result != LVN_CMA_SUCCESS)
     {
-        descriptorPoolData->pDescriptorPools[i].type = createInfo->pPoolSizes[i].type;
-        descriptorPoolData->pDescriptorPools[i].descriptorCount = createInfo->pPoolSizes[i].descriptorCount;
-
-        LvnMemoryPoolCreateInfo memPoolCreateInfo = {
-            .stride = sizeof(LvnOglDescriptorSetData),
-            .count = createInfo->pPoolSizes[i].descriptorCount,
-            .align = LVN_DEFAULT_ALIGN,
-        };
-
-        int result = lvn_memPoolCreate(&descriptorPoolData->pDescriptorPools[i].pool, &memPoolCreateInfo);
-        if (result != LVN_CMA_SUCCESS)
-        {
-            LVN_LOG_ERROR(graphicsctx->coreLogger,
-                          "[opengl] failed to create memory pool for descriptor sets in descriptor pool %p",
-                          descriptorPool);
-            errResult = result;
-            goto fail_cleanup;
-        }
+        LVN_LOG_ERROR(graphicsctx->coreLogger,
+                      "[opengl] failed to create descriptor binding arena for descriptor sets in descriptor pool %p",
+                      descriptorPool);
+        goto fail_cleanup;
     }
 
     descriptorPoolData->maxSets = createInfo->maxSets;
+
+    descriptorPool->descriptorPoolData = descriptorPoolData;
 
     return Lvn_Result_Success;
 
 fail_cleanup:
     if (descriptorPoolData)
     {
-        for (uint32_t i = 0; i < descriptorPoolData->descriptorPoolCount; i++)
-            lvn_memPoolDestroy(&descriptorPoolData->pDescriptorPools[i].pool);
-        if (descriptorPoolData->pDescriptorPools)
-            lvn_free(descriptorPoolData->pDescriptorPools);
+        lvn_memPoolDestroy(&descriptorPoolData->descriptorPool);
+        lvn_memArenaDestroy(&descriptorPoolData->bindingArena);
         lvn_free(descriptorPoolData);
     }
     return errResult;
@@ -1153,9 +1176,8 @@ void lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
 
     LvnOglDescriptorPoolData* descriptorPoolData = (LvnOglDescriptorPoolData*) descriptorPool->descriptorPoolData;
 
-    for (uint32_t i = 0; i < descriptorPoolData->descriptorPoolCount; i++)
-        lvn_memPoolDestroy(&descriptorPoolData->pDescriptorPools[i].pool);
-    lvn_free(descriptorPoolData->pDescriptorPools);
+    lvn_memPoolDestroy(&descriptorPoolData->descriptorPool);
+    lvn_memArenaDestroy(&descriptorPoolData->bindingArena);
     lvn_free(descriptorPoolData);
 
     descriptorPool->descriptorPoolData = NULL;
@@ -1494,7 +1516,7 @@ LvnResult lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffe
     }
     else
     {
-        GLbitfield flags = GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT;
+        GLbitfield flags = GL_MAP_PERSISTENT_BIT;
         if (createInfo->usage == Lvn_BufferMemoryUsage_CpuToGpu)
             flags |= GL_MAP_WRITE_BIT;
         else if (createInfo->usage == Lvn_BufferMemoryUsage_GpuToCpu)
@@ -1712,19 +1734,101 @@ LvnResult lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx
 {
     LVN_ASSERT(graphicsctx && pDescriptorSets && allocInfo, "graphicsctx, pDescriptorSets, and allocInfo cannot be null");
 
+    // TODO: add descriptor set validation:
+    // - check for descriptor binding counts
+
     LvnOglDescriptorPoolData* descriptorPoolData = (LvnOglDescriptorPoolData*) allocInfo->descriptorPool->descriptorPoolData;
 
+    // allocate descriptor sets
+    for (uint32_t i = 0; i < allocInfo->descriptorSetCount; i++)
+    {
+        LvnOglDescriptorSetData* descriptorSetData = (LvnOglDescriptorSetData*) lvn_memPoolAlloc(&descriptorPoolData->descriptorPool);
+        if (!descriptorSetData)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[opengl] failed to allocate descriptor set data in descriptor sets (%p) at pDescriptorSets[%zu] | descriptor memory pool returned null",
+                          pDescriptorSets, i);
+            goto fail_cleanup;
+        }
+
+        const LvnOglDescriptorLayoutData* descriptorLayoutData = allocInfo->pDescriptorLayouts[i].descriptorLayoutData;
+
+        descriptorSetData->descriptorBindingCount = descriptorLayoutData->descriptorBindingCount;
+        descriptorSetData->pDescriptorBindingData = (LvnOglDescriptorBindingData*)
+            lvn_memArenaAlloc(&descriptorPoolData->bindingArena, descriptorLayoutData->descriptorBindingCount * sizeof(LvnOglDescriptorBindingData));
+
+        for (uint32_t j = 0; j < descriptorLayoutData->descriptorBindingCount; j++)
+        {
+            descriptorSetData->pDescriptorBindingData[j].binding = descriptorLayoutData->pDescriptorBindings[j].binding;
+            descriptorSetData->pDescriptorBindingData[j].type = descriptorLayoutData->pDescriptorBindings[j].descriptorType;
+            descriptorSetData->pDescriptorBindingData[j].stage = descriptorLayoutData->pDescriptorBindings[j].stageFlags;
+        }
+
+        pDescriptorSets[i]->descriptorSetData = descriptorSetData;
+    }
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    for (uint32_t i = 0; i < allocInfo->descriptorSetCount; i++)
+    {
+        if (pDescriptorSets[i]->descriptorSetData)
+            lvn_memPoolFree(&descriptorPoolData->descriptorPool, pDescriptorSets[i]->descriptorSetData);
+    }
+
+    return Lvn_Result_Failure;
 }
 
 LvnResult lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool)
 {
+    LVN_ASSERT(graphicsctx && descriptorPool, "graphicsctx and descriptorPool cannot be null");
+
+    LvnOglDescriptorPoolData* descriptorPoolData = (LvnOglDescriptorPoolData*) descriptorPool->descriptorPoolData;
+
+    lvn_memPoolResetMergeBlocks(&descriptorPoolData->descriptorPool);
+    lvn_memArenaResetMergeBlocks(&descriptorPoolData->bindingArena);
+
     return Lvn_Result_Success;
 }
 
 LvnResult lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies)
 {
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+
+    // TODO: add descriptor set validation
+    // - check if descriptor binding and type matches between descriptor set in pool and argument
+
+    for (uint32_t i = 0; i < descriptorWriteCount; i++)
+    {
+        LvnOglDescriptorSetData* descriptorSetData = (LvnOglDescriptorSetData*) pDescriptorWrites[i].descriptorSet->descriptorSetData;
+
+        for (uint32_t j = 0; j < descriptorSetData->descriptorBindingCount; j++)
+        {
+            if (descriptorSetData->pDescriptorBindingData[j].binding == pDescriptorWrites[i].binding)
+            {
+                if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_UniformBuffer ||
+                    pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_StorageBuffer)
+                {
+                    const LvnOglBufferData* bufferData = (const LvnOglBufferData*) pDescriptorWrites[i].bufferInfo->buffer->bufferData;
+                    descriptorSetData->pDescriptorBindingData[j].id = bufferData->bufferId;
+                    descriptorSetData->pDescriptorBindingData[j].range = pDescriptorWrites[i].bufferInfo->range;
+                    descriptorSetData->pDescriptorBindingData[j].offset = pDescriptorWrites[i].bufferInfo->offset;
+                }
+                else if (pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_Sampler ||
+                         pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_CombinedImageSampler ||
+                         pDescriptorWrites[i].descriptorType == Lvn_DescriptorType_SampledImage)
+                {
+                    const LvnOglTextureData* textureData = (const LvnOglTextureData*) pDescriptorWrites[i].imageInfo->texture->textureData;
+                    descriptorSetData->pDescriptorBindingData[j].id = textureData->textureId;
+                    descriptorSetData->pDescriptorBindingData[j].range = 0;
+                    descriptorSetData->pDescriptorBindingData[j].offset = 0;
+                }
+
+                break;
+            }
+        }
+    }
+
     return Lvn_Result_Success;
 }
 
@@ -1867,7 +1971,19 @@ LvnResult lvnImplOglFenceReset(LvnFence* fence)
 
 void lvnImplOglBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset)
 {
+    LVN_ASSERT(buffer, "buffer cannot be null");
 
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) buffer->graphicsctx->implData;
+    const LvnOglBufferData* bufferData = (const LvnOglBufferData*) buffer->bufferData;
+
+    if (buffer->usage == Lvn_BufferMemoryUsage_GpuOnly)
+    {
+        oglBackends->glNamedBufferSubData(bufferData->bufferId, (GLintptr)offset, (GLsizeiptr)size, data);
+    }
+    else if (buffer->usage == Lvn_BufferMemoryUsage_CpuToGpu)
+    {
+        memcpy((uint8_t*)bufferData->bufferMap + offset, data, size);
+    }
 }
 
 void lvnImplOglBufferResize(LvnBuffer* buffer, uint64_t size)
@@ -2000,7 +2116,32 @@ void lvnImplOglCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* bu
 
 void lvnImplOglCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
+    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
 
+    LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) commandBuffer->commandbufferData;
+
+    LvnOglCmdHeader header = {
+        .cmdBuffFnEnum = Lvn_OglCmdBuffFunc_BindDescriptorSets,
+        .size = sizeof(LvnOglCmdBuffBindDescriptorSetsData),
+    };
+
+    LvnDescriptorSet** descriptorSets = (LvnDescriptorSet**) lvn_memArenaAlloc(&commandBuffer->frameArena, descriptorSetCount * sizeof(LvnDescriptorSet*));
+    for (uint32_t i = 0; i < descriptorSetCount; i++)
+        descriptorSets[i] = pDescriptorSets[i];
+
+    uint32_t* dynamicOffsets = (uint32_t*) lvn_memArenaAlloc(&commandBuffer->frameArena, dynamicOffsetCount * sizeof(uint32_t));
+    for (uint32_t i = 0; i < dynamicOffsetCount; i++)
+        dynamicOffsets[i] = pDynamicOffsets[i];
+
+    LvnOglCmdBuffBindDescriptorSetsData* cmdData = lvn_memArenaAlloc(&commandBufferData->cmdStream, sizeof(LvnOglCmdBuffBindDescriptorSetsData));
+    cmdData->header = header;
+    cmdData->commandBuffer = commandBuffer;
+    cmdData->pipeline = pipeline;
+    cmdData->firstSet = firstSet;
+    cmdData->descriptorSetCount = descriptorSetCount;
+    cmdData->pDescriptorSets = descriptorSets;
+    cmdData->dynamicOffsetCount = dynamicOffsetCount;
+    cmdData->pDynamicOffsets = dynamicOffsets;
 }
 
 void lvnImplOglCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport)
@@ -2277,6 +2418,44 @@ void lvnCmdBuffImplOglCmdBindIndexBuffer(void* data)
     const LvnOglBufferData* bufferData = (const LvnOglBufferData*) cmdData->buffer->bufferData;
     commandBufferData->ibo.id = bufferData->bufferId;
     commandBufferData->ibo.offset = cmdData->offset;
+}
+
+void lvnCmdBuffImplOglCmdBindDescriptorSets(void* data)
+{
+    LVN_ASSERT(data, "data cannot be null");
+
+    const LvnOglCmdBuffBindDescriptorSetsData* cmdData = (const LvnOglCmdBuffBindDescriptorSetsData*) data;
+
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
+
+    for (uint32_t i = cmdData->firstSet; i < cmdData->descriptorSetCount; i++)
+    {
+        const LvnOglDescriptorSetData* descriptorSetData = (const LvnOglDescriptorSetData*) cmdData->pDescriptorSets[i]->descriptorSetData;
+
+        for (uint32_t j = 0; j < descriptorSetData->descriptorBindingCount; j++)
+        {
+            // uniform/storage buffers
+            if (descriptorSetData->pDescriptorBindingData[j].type == Lvn_DescriptorType_UniformBuffer ||
+                descriptorSetData->pDescriptorBindingData[j].type == Lvn_DescriptorType_StorageBuffer)
+            {
+                oglBackends->glBindBufferRange(
+                    lvn_getOglUniformBufferEnum(descriptorSetData->pDescriptorBindingData[j].type),
+                    descriptorSetData->pDescriptorBindingData[j].binding,
+                    descriptorSetData->pDescriptorBindingData[j].id,
+                    (GLintptr)descriptorSetData->pDescriptorBindingData[j].offset,
+                    (GLsizeiptr)descriptorSetData->pDescriptorBindingData[j].range);
+            }
+
+            // textures
+            else if (descriptorSetData->pDescriptorBindingData[j].type == Lvn_DescriptorType_Sampler ||
+                     descriptorSetData->pDescriptorBindingData[j].type == Lvn_DescriptorType_CombinedImageSampler ||
+                     descriptorSetData->pDescriptorBindingData[j].type == Lvn_DescriptorType_SampledImage)
+            {
+                oglBackends->glBindTextureUnit(descriptorSetData->pDescriptorBindingData[j].binding,
+                                               descriptorSetData->pDescriptorBindingData[j].id);
+            }
+        }
+    }
 }
 
 void lvnCmdBuffImplOglCmdSetViewport(void* data)

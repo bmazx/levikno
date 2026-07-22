@@ -3586,8 +3586,8 @@ LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, u
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[i].dstSet = descriptorSet;
         descriptorWrites[i].dstBinding = pDescriptorWrites[i].binding;
-        descriptorWrites[i].dstArrayElement = pDescriptorWrites[i].firstIndex;
         descriptorWrites[i].descriptorType = lvn_getVkDescriptorTypeEnum(pDescriptorWrites[i].descriptorType);
+        descriptorWrites[i].dstArrayElement = 0;
         descriptorWrites[i].descriptorCount = 1;
 
         // if descriptor using uniform buffers

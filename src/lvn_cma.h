@@ -536,7 +536,7 @@ int lvn_memArenaCreate(LvnMemoryArena* memArena, const LvnMemoryArenaCreateInfo*
     LVN_CMA_ASSERT(memArena && createInfo, "memArena and createInfo cannot be null");
     LVN_CMA_ASSERT(createInfo->size <= SIZE_MAX, "arena size overflow");
     LVN_CMA_ASSERT(createInfo->align != 0 && (createInfo->align & (createInfo->align - 1)) == 0, "align cannot be zero or a non power of two");
-    LVN_CMA_ASSERT(createInfo->align >= LVN_ALIGNOF(lvn_max_align_t), "align must be >= max align");
+    LVN_CMA_ASSERT(createInfo->align >= LVN_ALIGNOF(void*), "align must be >= max align");
 
     int errResult = LVN_CMA_ERROR;
     LvnMemoryBlock* memBlock = NULL;

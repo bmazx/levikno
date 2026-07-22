@@ -264,6 +264,7 @@
 #define GL_VERTEX_ARRAY 0x8074
 #define GL_SAMPLER 0x82E6
 #define GL_UNIFORM_BUFFER 0x8A11
+#define GL_SHADER_STORAGE_BUFFER 0x90D2
 #define GL_MAX_VERTEX_ATTRIB_BINDINGS 0x82DA
 #define GL_MAX_VERTEX_ATTRIBS 0x8869
 
@@ -321,6 +322,7 @@ typedef GLenum (GLAPIENTRY *PFNGLCHECKNAMEDFRAMEBUFFERSTATUSPROC)(GLuint framebu
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERTEXTUREPROC)(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC)(GLuint framebuffer, GLenum buf);
 typedef void (GLAPIENTRY *PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC)(GLuint framebuffer, GLsizei n, const GLenum *bufs);
+typedef void (GLAPIENTRY *PFNGLNAMEDBUFFERSUBDATAPROC)(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data);
 typedef void (GLAPIENTRY *PFNGLSAMPLERPARAMETERIPROC)(GLuint sampler, GLenum pname, GLint param);
 typedef void (GLAPIENTRY *PFNGLTEXTUREPARAMETERIPROC)(GLuint texture, GLenum pname, GLint param);
 typedef void (GLAPIENTRY *PFNGLTEXTURESTORAGE2DPROC)(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
@@ -354,6 +356,8 @@ typedef void (GLAPIENTRY *PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXBUFFERSPROC)(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides);
 typedef void (GLAPIENTRY *PFNGLBINDVERTEXARRAYPROC)(GLuint array);
 typedef void (GLAPIENTRY *PFNGLBINDFRAMEBUFFERPROC)(GLenum target, GLuint framebuffer);
+typedef void (GLAPIENTRY *PFNGLBINDBUFFERRANGEPROC)(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
+typedef void (GLAPIENTRY *PFNGLBINDTEXTUREUNITPROC)(GLuint unit, GLuint texture);
 typedef void (GLAPIENTRY *PFNGLBLITFRAMEBUFFERPROC)(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
 typedef void (GLAPIENTRY *PFNGLCLEARPROC)(GLbitfield mask);
 typedef void (GLAPIENTRY *PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
@@ -376,6 +380,7 @@ typedef enum LvnOglCmdBuffFnEnum
     Lvn_OglCmdBuffFunc_BindPipeline,
     Lvn_OglCmdBuffFunc_BindVertexBuffer,
     Lvn_OglCmdBuffFunc_BindIndexBuffer,
+    Lvn_OglCmdBuffFunc_BindDescriptorSets,
     Lvn_OglCmdBuffFunc_SetViewport,
     Lvn_OglCmdBuffFunc_SetScissor,
     Lvn_OglCmdBuffFunc_Draw,
@@ -490,24 +495,27 @@ typedef struct LvnOglDescriptorLayoutData
     uint32_t                 descriptorBindingCount;
 } LvnOglDescriptorLayoutData;
 
-typedef struct LvnOglPoolSizeData
-{
-    LvnMemoryPool        pool;
-    LvnDescriptorType    type;
-    uint32_t             descriptorCount;
-
-} LvnOglPoolSizeData;
-
 typedef struct LvnOglDescriptorPoolData
 {
-    LvnOglPoolSizeData*            pDescriptorPools;
-    uint32_t                       descriptorPoolCount;
-    uint32_t                       maxSets;
+    LvnMemoryPool                       descriptorPool;
+    LvnMemoryArena                      bindingArena;
+    uint32_t                            maxSets;
 } LvnOglDescriptorPoolData;
+
+typedef struct LvnOglDescriptorBindingData
+{
+    LvnDescriptorType      type;
+    LvnShaderStageFlags    stage;
+    uint32_t               binding;
+    uint64_t               range;
+    uint64_t               offset;
+    uint32_t               id;
+} LvnOglDescriptorBindingData;
 
 typedef struct LvnOglDescriptorSetData
 {
-
+    LvnOglDescriptorBindingData*    pDescriptorBindingData;
+    uint32_t                        descriptorBindingCount;
 } LvnOglDescriptorSetData;
 
 typedef struct LvnOglBufferData
@@ -608,6 +616,18 @@ typedef struct LvnOglCmdBuffBindIndexBufferData
     uint64_t             offset;
 } LvnOglCmdBuffBindIndexBufferData;
 
+typedef struct LvnOglCmdBuffBindDescriptorSetsData
+{
+    LvnOglCmdHeader             header;
+    LvnCommandBuffer*           commandBuffer;
+    LvnPipeline*                pipeline;
+    uint32_t                    firstSet;
+    uint32_t                    descriptorSetCount;
+    LvnDescriptorSet* const*    pDescriptorSets;
+    uint32_t                    dynamicOffsetCount;
+    const uint32_t*             pDynamicOffsets;
+} LvnOglCmdBuffBindDescriptorSetsData;
+
 typedef struct LvnOglCmdBuffSetViewportData
 {
     LvnOglCmdHeader      header;
@@ -696,6 +716,7 @@ typedef struct LvnOpenglBackends
     PFNGLNAMEDFRAMEBUFFERTEXTUREPROC                        glNamedFramebufferTexture;
     PFNGLNAMEDFRAMEBUFFERDRAWBUFFERPROC                     glNamedFramebufferDrawBuffer;
     PFNGLNAMEDFRAMEBUFFERDRAWBUFFERSPROC                    glNamedFramebufferDrawBuffers;
+    PFNGLNAMEDBUFFERSUBDATAPROC                             glNamedBufferSubData;
     PFNGLSAMPLERPARAMETERIPROC                              glSamplerParameteri;
     PFNGLTEXTUREPARAMETERIPROC                              glTextureParameteri;
     PFNGLTEXTURESTORAGE2DPROC                               glTextureStorage2D;
@@ -729,6 +750,8 @@ typedef struct LvnOpenglBackends
     PFNGLBINDVERTEXBUFFERSPROC                              glBindVertexBuffers;
     PFNGLBINDVERTEXARRAYPROC                                glBindVertexArray;
     PFNGLBINDFRAMEBUFFERPROC                                glBindFramebuffer;
+    PFNGLBINDBUFFERRANGEPROC                                glBindBufferRange;
+    PFNGLBINDTEXTUREUNITPROC                                glBindTextureUnit;
     PFNGLBLITFRAMEBUFFERPROC                                glBlitFramebuffer;
     PFNGLCLEARPROC                                          glClear;
     PFNGLCLEARCOLORPROC                                     glClearColor;
@@ -811,6 +834,7 @@ void      lvnCmdBuffImplOglCmdEndRenderPass(void* data);
 void      lvnCmdBuffImplOglCmdBindPipeline(void* data);
 void      lvnCmdBuffImplOglCmdBindVertexBuffer(void* data);
 void      lvnCmdBuffImplOglCmdBindIndexBuffer(void* data);
+void      lvnCmdBuffImplOglCmdBindDescriptorSets(void* data);
 void      lvnCmdBuffImplOglCmdSetViewport(void* data);
 void      lvnCmdBuffImplOglCmdSetScissor(void* data);
 void      lvnCmdBuffImplOglCmdDraw(void* data);

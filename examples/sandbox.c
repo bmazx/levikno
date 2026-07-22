@@ -513,14 +513,12 @@ int main(int argc, char** argv)
             .descriptorSet = descriptorSet,
             .descriptorType = Lvn_DescriptorType_UniformBuffer,
             .binding = 0,
-            .firstIndex = 0,
             .bufferInfo = &descriptorBufferInfo,
         },
         {
             .descriptorSet = descriptorSet,
             .descriptorType = Lvn_DescriptorType_CombinedImageSampler,
             .binding = 1,
-            .firstIndex = 0,
             .imageInfo = &descriptorImageInfo,
         },
     };

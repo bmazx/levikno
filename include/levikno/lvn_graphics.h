@@ -441,7 +441,6 @@ typedef struct LvnDescriptorSetWriteInfo
 {
     LvnDescriptorType                 descriptorType;
     uint32_t                          binding;
-    uint32_t                          firstIndex;
     LvnDescriptorSet*                 descriptorSet;
     const LvnDescriptorBufferInfo*    bufferInfo;
     const LvnDescriptorImageInfo*     imageInfo;
