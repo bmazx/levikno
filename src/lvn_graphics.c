@@ -1071,18 +1071,11 @@ LvnResult lvnFenceReset(LvnFence* fence)
     return graphicsctx->implFenceReset(fence);
 }
 
-void lvnBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset)
+void lvnBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset)
 {
     LVN_ASSERT(buffer, "buffer cannot be null");
     const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
-    graphicsctx->implBufferUpdateData(buffer, data, size, offset);
-}
-
-void lvnBufferResize(LvnBuffer* buffer, uint64_t size)
-{
-    LVN_ASSERT(buffer, "buffer cannot be null");
-    const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
-    graphicsctx->implBufferResize(buffer, size);
+    graphicsctx->implBufferUpdate(buffer, data, size, offset);
 }
 
 void lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer)

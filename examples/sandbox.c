@@ -488,9 +488,9 @@ int main(int argc, char** argv)
 
     LvnTextureCreateInfo textureCreateInfo = {
         .format = Lvn_Format_R8G8B8A8_SRGB,
-        .image = image.data,
         .sampler = sampler,
         .samples = Lvn_SampleCountFlag_1_Bit,
+        .image = image.data,
         .width = image.width,
         .height = image.height,
     };
@@ -560,7 +560,7 @@ int main(int argc, char** argv)
         lvn_mat4_mult(proj, view, camera);
 
         lvn_mat4_copy(camera, uboData.matrix);
-        lvnBufferUpdateData(uniformBuffer, &uboData, sizeof(UniformData), 0);
+        lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);
 
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);

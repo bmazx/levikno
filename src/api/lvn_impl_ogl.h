@@ -811,8 +811,7 @@ LvnResult lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaph
 LvnResult lvnImplOglFenceWait(LvnFence* fence, uint64_t timeout);
 LvnResult lvnImplOglFenceReset(LvnFence* fence);
 
-void      lvnImplOglBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
-void      lvnImplOglBufferResize(LvnBuffer* buffer, uint64_t size);
+void      lvnImplOglBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 
 void      lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplOglEndCommandBuffer(LvnCommandBuffer* commandBuffer);

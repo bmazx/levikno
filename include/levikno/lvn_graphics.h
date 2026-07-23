@@ -580,9 +580,9 @@ typedef struct LvnSamplerCreateInfo
 typedef struct LvnTextureCreateInfo
 {
     const LvnSampler*      sampler;
-    const uint8_t*         image;
     LvnFormat              format;
     LvnSampleCountFlags    samples;
+    const uint8_t*         image;
     uint32_t               width;
     uint32_t               height;
 } LvnTextureCreateInfo;
@@ -717,8 +717,7 @@ LVN_API LvnPipelineFixedFunctions   lvnConfigPipelineFixedFunctionsInit(void);
 LVN_API LvnResult                   lvnFenceWait(LvnFence* fence, uint64_t timeout);
 LVN_API LvnResult                   lvnFenceReset(LvnFence* fence);
 
-LVN_API void                        lvnBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
-LVN_API void                        lvnBufferResize(LvnBuffer* buffer, uint64_t size);
+LVN_API void                        lvnBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 
 LVN_API void                        lvnBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 LVN_API void                        lvnEndCommandBuffer(LvnCommandBuffer* commandBuffer);

@@ -49,8 +49,7 @@ LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemapho
 LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);
 LvnResult lvnImplVkFenceReset(LvnFence* fence);
 
-void      lvnImplVkBufferUpdateData(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
-void      lvnImplVkBufferResize(LvnBuffer* buffer, uint64_t size);
+void      lvnImplVkBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 
 void      lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
 void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
