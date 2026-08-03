@@ -1894,8 +1894,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     LvnMemoryArenaCreateInfo arenaCreateInfo = {
-        .size = 16e+3, // 16 KB
+        .size = graphicsctx->memory.baseFrameArenaSize,
         .align = LVN_DEFAULT_ALIGN,
+        .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
     };
 
     LvnResult result = lvn_memArenaCreate(&vkBackends->frameArena, &arenaCreateInfo);

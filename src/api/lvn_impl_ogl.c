@@ -1691,7 +1691,7 @@ LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, L
 
     // cmdStream arena
     LvnMemoryArenaCreateInfo arenaCreateInfo = {
-        .size = 16e+3, // 16 KB
+        .size = graphicsctx->memory.baseCmdBuffByteStreamSize,
         .align = LVN_DEFAULT_ALIGN,
         .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
     };

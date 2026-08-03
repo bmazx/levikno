@@ -658,8 +658,9 @@ typedef struct LvnGraphicsContextCreateInfo
     bool                        enableGraphicsApiDebugLogging;    // enable logging for graphics api layer debug logs
     struct
     {
-        size_t                  baseFrameArenaAllocSize;          // base size of frame arena in bytes
-        size_t                  baseCmdBuffPoolAllocSize;         // base count of cmdBuff pool
+        size_t                  baseFrameArenaSize;               // base size of frame arena in bytes
+        size_t                  baseCmdBuffFrameArenaSize;        // base size of command buffer frame arena
+        size_t                  baseCmdBuffByteStreamSize;        // base size of command buffer byte stream
     } memory;
 } LvnGraphicsContextCreateInfo;
 

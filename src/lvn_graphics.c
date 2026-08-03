@@ -54,6 +54,11 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->presentModeFlags = createInfo->presentationModeFlags;
     gctxPtr->enableGraphicsApiDebugLogging = createInfo->enableGraphicsApiDebugLogging;
 
+    // memory
+    gctxPtr->memory.baseFrameArenaSize = createInfo->memory.baseFrameArenaSize;
+    gctxPtr->memory.baseCmdBuffFrameArenaSize = createInfo->memory.baseCmdBuffFrameArenaSize;
+    gctxPtr->memory.baseCmdBuffByteStreamSize = createInfo->memory.baseCmdBuffByteStreamSize;
+
     // setup graphics api
     switch (createInfo->graphicsapi)
     {
@@ -473,7 +478,6 @@ LvnResult lvnCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDesc
         .stride = sizeof(LvnDescriptorSet),
         .count = createInfo->maxSets,
         .align = LVN_DEFAULT_ALIGN,
-        .flags = Lvn_MemoryPoolFlag_DynamicGrowth,
     };
 
     int cmaResult = lvn_memPoolCreate(&descriptorPoolPtr->setPool, &memPoolCreateInfo);
@@ -848,7 +852,7 @@ LvnResult lvnCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnComma
 
     // frame arena
     LvnMemoryArenaCreateInfo arenaCreateInfo = {
-        .size = 16e+3, // 16 KB
+        .size = graphicsctx->memory.baseCmdBuffFrameArenaSize,
         .align = LVN_DEFAULT_ALIGN,
         .flags = Lvn_MemoryArenaFlag_DynamicGrowth,
     };

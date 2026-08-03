@@ -116,6 +116,13 @@ struct LvnGraphicsContext
     LvnPresentationModeFlags    presentModeFlags;
     bool                        enableGraphicsApiDebugLogging;
 
+    struct
+    {
+        size_t                  baseFrameArenaSize;
+        size_t                  baseCmdBuffFrameArenaSize;
+        size_t                  baseCmdBuffByteStreamSize;
+    } memory;
+
     // graphics implementation
     void*                       implData;
     LvnResult                   (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
