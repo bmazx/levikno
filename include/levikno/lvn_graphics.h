@@ -303,23 +303,121 @@ typedef struct LvnPipeline LvnPipeline;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
 typedef struct LvnFence LvnFence;
 typedef struct LvnSemaphore LvnSemaphore;
+typedef struct LvnPlatformData LvnPlatformData;
+typedef struct LvnResolveAttachment LvnResolveAttachment;
+typedef struct LvnColorAttachment LvnColorAttachment;
+typedef struct LvnDepthStencilAttachment LvnDepthStencilAttachment;
+typedef struct LvnDescriptorBinding LvnDescriptorBinding;
+typedef struct LvnDescriptorPoolSize LvnDescriptorPoolSize;
+typedef struct LvnDescriptorBufferInfo LvnDescriptorBufferInfo;
+typedef struct LvnDescriptorImageInfo LvnDescriptorImageInfo;
+typedef struct LvnPipelineInputAssembly LvnPipelineInputAssembly;
+typedef struct LvnPipelineRasterizer LvnPipelineRasterizer;
+typedef struct LvnPipelineMultiSampling LvnPipelineMultiSampling;
+typedef struct LvnPipelineColorBlendAttachment LvnPipelineColorBlendAttachment;
+typedef struct LvnPipelineColorBlend LvnPipelineColorBlend;
+typedef struct LvnPipelineStencilAttachment LvnPipelineStencilAttachment;
+typedef struct LvnPipelineDepthStencil LvnPipelineDepthStencil;
+typedef struct LvnPipelineFixedFunctions LvnPipelineFixedFunctions;
+typedef struct LvnVertexBindingDescription LvnVertexBindingDescription;
+typedef struct LvnVertexAttribute LvnVertexAttribute;
+typedef struct LvnClearDepthStencilValue LvnClearDepthStencilValue;
+typedef struct LvnExtent2D LvnExtent2D;
+typedef struct LvnOffset2D LvnOffset2D;
+typedef struct LvnRenderArea LvnRenderArea;
+typedef struct LvnViewport LvnViewport;
+typedef struct LvnSurfaceCreateInfo LvnSurfaceCreateInfo;
+typedef struct LvnSwapchainCreateInfo LvnSwapchainCreateInfo;
+typedef struct LvnRenderPassCreateInfo LvnRenderPassCreateInfo;
+typedef struct LvnFramebufferCreateInfo LvnFramebufferCreateInfo;
+typedef struct LvnShaderCreateInfo LvnShaderCreateInfo;
+typedef struct LvnDescriptorLayoutCreateInfo LvnDescriptorLayoutCreateInfo;
+typedef struct LvnDescriptorPoolCreateInfo LvnDescriptorPoolCreateInfo;
+typedef struct LvnPipelineCreateInfo LvnPipelineCreateInfo;
+typedef struct LvnBufferCreateInfo LvnBufferCreateInfo;
+typedef struct LvnSamplerCreateInfo LvnSamplerCreateInfo;
+typedef struct LvnTextureCreateInfo LvnTextureCreateInfo;
+typedef struct LvnDescriptorSetAllocateInfo LvnDescriptorSetAllocateInfo;
+typedef struct LvnDescriptorSetWriteInfo LvnDescriptorSetWriteInfo;
+typedef struct LvnDescriptorSetCopyInfo LvnDescriptorSetCopyInfo;
+typedef struct LvnRenderPassBeginInfo LvnRenderPassBeginInfo;
+typedef struct LvnSubmitInfo LvnSubmitInfo;
+typedef struct LvnPresentInfo LvnPresentInfo;
+typedef struct LvnGraphicsContextFunctions LvnGraphicsContextFunctions;
+typedef struct LvnGraphicsContextCreateInfo LvnGraphicsContextCreateInfo;
+
+typedef union LvnClearColorValue LvnClearColorValue;
 
 struct LvnContext;
 
 
-typedef struct LvnPlatformData
+typedef LvnResult (*PFN_lvnCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
+typedef void      (*PFN_lvnDestroySurface)(LvnSurface*);
+typedef LvnResult (*PFN_lvnCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
+typedef void      (*PFN_lvnDestroySwapchain)(LvnSwapchain*);
+typedef LvnResult (*PFN_lvnCreateRenderPass)(const LvnGraphicsContext*, LvnRenderPass*, const LvnRenderPassCreateInfo*);
+typedef void      (*PFN_lvnDestroyRenderPass)(LvnRenderPass*);
+typedef LvnResult (*PFN_lvnCreateFramebuffer)(const LvnGraphicsContext*, LvnFramebuffer*, const LvnFramebufferCreateInfo*);
+typedef void      (*PFN_lvnDestroyFramebuffer)(LvnFramebuffer*);
+typedef LvnResult (*PFN_lvnCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
+typedef void      (*PFN_lvnDestroyShader)(LvnShader*);
+typedef LvnResult (*PFN_lvnCreateDescriptorLayout)(const LvnGraphicsContext*, LvnDescriptorLayout*, const LvnDescriptorLayoutCreateInfo*);
+typedef void      (*PFN_lvnDestroyDescriptorLayout)(LvnDescriptorLayout*);
+typedef LvnResult (*PFN_lvnCreateDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*, const LvnDescriptorPoolCreateInfo*);
+typedef void      (*PFN_lvnDestroyDescriptorPool)(LvnDescriptorPool*);
+typedef LvnResult (*PFN_lvnCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
+typedef void      (*PFN_lvnDestroyPipeline)(LvnPipeline*);
+typedef LvnResult (*PFN_lvnCreateFence)(const LvnGraphicsContext*, LvnFence*, bool);
+typedef void      (*PFN_lvnDestroyFence)(LvnFence*);
+typedef LvnResult (*PFN_lvnCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
+typedef void      (*PFN_lvnDestroySemaphore)(LvnSemaphore*);
+typedef LvnResult (*PFN_lvnCreateBuffer)(const LvnGraphicsContext*, LvnBuffer*, const LvnBufferCreateInfo*);
+typedef void      (*PFN_lvnDestroyBuffer)(LvnBuffer*);
+typedef LvnResult (*PFN_lvnCreateSampler)(const LvnGraphicsContext*, LvnSampler*, const LvnSamplerCreateInfo*);
+typedef void      (*PFN_lvnDestroySampler)(LvnSampler*);
+typedef LvnResult (*PFN_lvnCreateTexture)(const LvnGraphicsContext*, LvnTexture*, const LvnTextureCreateInfo*);
+typedef void      (*PFN_lvnDestroyTexture)(LvnTexture*);
+typedef LvnResult (*PFN_lvnCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*);
+typedef void      (*PFN_lvnDestroyCommandBuffer)(LvnCommandBuffer*);
+typedef LvnResult (*PFN_lvnAllocateDescriptorSets)(const LvnGraphicsContext*, LvnDescriptorSet**, LvnDescriptorSetAllocateInfo*);
+typedef LvnResult (*PFN_lvnResetDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*);
+typedef LvnResult (*PFN_lvnUpdateDescriptorSets)(const LvnGraphicsContext*, uint32_t, const LvnDescriptorSetWriteInfo*, uint32_t, const LvnDescriptorSetCopyInfo*);
+typedef void      (*PFN_lvnSurfaceGetSupportedFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
+typedef void      (*PFN_lvnSurfaceGetSupportedPresentModes)(const LvnSurface*, uint32_t*, LvnPresentMode*);
+typedef LvnResult (*PFN_lvnSwapchainResize)(LvnSwapchain*, uint32_t, uint32_t);
+typedef LvnResult (*PFN_lvnSwapchainAcquireNextImage)(LvnSwapchain*, LvnSemaphore*, LvnFence*, uint32_t*);
+typedef LvnResult (*PFN_lvnFenceWait)(LvnFence*, uint64_t);
+typedef LvnResult (*PFN_lvnFenceReset)(LvnFence*);
+typedef void      (*PFN_lvnBufferUpdate)(LvnBuffer*, void*, uint64_t, uint64_t);
+typedef void      (*PFN_lvnBeginCommandBuffer)(LvnCommandBuffer*);
+typedef void      (*PFN_lvnEndCommandBuffer)(LvnCommandBuffer*);
+typedef void      (*PFN_lvnCmdBeginRenderPass)(LvnCommandBuffer*, LvnRenderPassBeginInfo*);
+typedef void      (*PFN_lvnCmdEndRenderPass)(LvnCommandBuffer*);
+typedef void      (*PFN_lvnCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
+typedef void      (*PFN_lvnCmdBindVertexBuffer)(LvnCommandBuffer*, uint32_t, uint32_t, LvnBuffer**, uint64_t*);
+typedef void      (*PFN_lvnCmdBindIndexBuffer)(LvnCommandBuffer*, LvnBuffer*, uint64_t);
+typedef void      (*PFN_lvnCmdBindDescriptorSets)(LvnCommandBuffer*, LvnPipeline*, uint32_t, uint32_t, LvnDescriptorSet* const*, uint32_t, const uint32_t*);
+typedef void      (*PFN_lvnCmdSetViewport)(LvnCommandBuffer*, const LvnViewport*);
+typedef void      (*PFN_lvnCmdSetScissor)(LvnCommandBuffer*, const LvnRenderArea*);
+typedef void      (*PFN_lvnCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);
+typedef void      (*PFN_lvnCmdDrawIndexed)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, int32_t, uint32_t);
+typedef LvnResult (*PFN_lvnRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
+typedef LvnResult (*PFN_lvnRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
+
+
+struct LvnPlatformData
 {
     void*    ndh;
     void*    nwh;
-} LvnPlatformData;
+};
 
-typedef struct LvnSurfaceCreateInfo
+struct LvnSurfaceCreateInfo
 {
     void*    ndh;
     void*    nwh;
-} LvnSurfaceCreateInfo;
+};
 
-typedef struct LvnSwapchainCreateInfo
+struct LvnSwapchainCreateInfo
 {
     LvnSurface*       surface;
     LvnFormat         surfaceFormat;
@@ -327,17 +425,17 @@ typedef struct LvnSwapchainCreateInfo
     uint32_t          minImageCount;
     uint32_t          width;
     uint32_t          height;
-} LvnSwapchainCreateInfo;
+};
 
-typedef struct LvnResolveAttachment
+struct LvnResolveAttachment
 {
     LvnFormat               format;
     LvnAttachmentUsage      usage;
     LvnAttachmentLoadOp     loadOp;
     LvnAttachmentStoreOp    storeOp;
-} LvnResolveAttachment;
+};
 
-typedef struct LvnColorAttachment
+struct LvnColorAttachment
 {
     LvnFormat                format;
     LvnAttachmentUsage       usage;
@@ -345,9 +443,9 @@ typedef struct LvnColorAttachment
     LvnAttachmentLoadOp      loadOp;
     LvnAttachmentStoreOp     storeOp;
     LvnResolveAttachment*    resolveAttachment;
-} LvnColorAttachment;
+};
 
-typedef struct LvnDepthStencilAttachment
+struct LvnDepthStencilAttachment
 {
     LvnFormat               format;
     LvnSampleCountFlags     samples;
@@ -355,16 +453,16 @@ typedef struct LvnDepthStencilAttachment
     LvnAttachmentStoreOp    storeOp;
     LvnAttachmentLoadOp     stencilLoadOp;
     LvnAttachmentStoreOp    stencilStoreOp;
-} LvnDepthStencilAttachment;
+};
 
-typedef struct LvnRenderPassCreateInfo
+struct LvnRenderPassCreateInfo
 {
     LvnColorAttachment*           pColorAttachments;
     uint32_t                      colorAttachmentCount;
     LvnDepthStencilAttachment*    depthStencilAttachment;
-} LvnRenderPassCreateInfo;
+};
 
-typedef struct LvnFramebufferCreateInfo
+struct LvnFramebufferCreateInfo
 {
     LvnRenderPass*        renderPass;
     uint32_t              colorAttachmentCount;
@@ -373,72 +471,72 @@ typedef struct LvnFramebufferCreateInfo
     LvnTexture*           depthStencilAttachment;
     uint32_t              width;
     uint32_t              height;
-} LvnFramebufferCreateInfo;
+};
 
-typedef struct LvnShaderCreateInfo
+struct LvnShaderCreateInfo
 {
     const uint8_t*            pCode;
     size_t                    codeSize;
     LvnShaderStageFlagBits    stage;
     const char*               entryPoint;
-} LvnShaderCreateInfo;
+};
 
-typedef struct LvnDescriptorBinding
+struct LvnDescriptorBinding
 {
     uint32_t               binding;
     LvnDescriptorType      descriptorType;
     LvnShaderStageFlags    stageFlags;
-} LvnDescriptorBinding;
+};
 
-typedef struct LvnDescriptorLayoutCreateInfo
+struct LvnDescriptorLayoutCreateInfo
 {
     uint32_t                 descriptorBindingCount;
     LvnDescriptorBinding*    pDescriptorBindings;
-} LvnDescriptorLayoutCreateInfo;
+};
 
-typedef struct LvnDescriptorPoolSize
+struct LvnDescriptorPoolSize
 {
     LvnDescriptorType    type;
     uint32_t             descriptorCount;
-} LvnDescriptorPoolSize;
+};
 
-typedef struct LvnDescriptorPoolCreateInfo
+struct LvnDescriptorPoolCreateInfo
 {
     uint32_t                  maxSets;
     uint32_t                  poolSizeCount;
     LvnDescriptorPoolSize*    pPoolSizes;
-} LvnDescriptorPoolCreateInfo;
+};
 
-typedef struct LvnDescriptorSetAllocateInfo
+struct LvnDescriptorSetAllocateInfo
 {
     LvnDescriptorPool*      descriptorPool;
     uint32_t                descriptorSetCount;
     LvnDescriptorLayout*    pDescriptorLayouts;
-} LvnDescriptorSetAllocateInfo;
+};
 
-typedef struct LvnDescriptorBufferInfo
+struct LvnDescriptorBufferInfo
 {
     LvnBuffer*    buffer;
     uint64_t      offset;
     uint64_t      range;
-} LvnDescriptorBufferInfo;
+};
 
-typedef struct LvnDescriptorImageInfo
+struct LvnDescriptorImageInfo
 {
     LvnSampler*    sampler;
     LvnTexture*    texture;
-} LvnDescriptorImageInfo;
+};
 
-typedef struct LvnDescriptorSetWriteInfo
+struct LvnDescriptorSetWriteInfo
 {
     LvnDescriptorType                 descriptorType;
     uint32_t                          binding;
     LvnDescriptorSet*                 descriptorSet;
     const LvnDescriptorBufferInfo*    bufferInfo;
     const LvnDescriptorImageInfo*     imageInfo;
-} LvnDescriptorSetWriteInfo;
+};
 
-typedef struct LvnDescriptorSetCopyInfo
+struct LvnDescriptorSetCopyInfo
 {
     LvnDescriptorSet*                 srcDescriptorSet;
     uint32_t                          srcBinding;
@@ -447,15 +545,15 @@ typedef struct LvnDescriptorSetCopyInfo
     uint32_t                          dstBinding;
     uint32_t                          dstFirstIndex;
     uint32_t                          descriptorCount;
-} LvnDescriptorSetCopyInfo;
+};
 
-typedef struct LvnPipelineInputAssembly
+struct LvnPipelineInputAssembly
 {
     LvnTopologyType    topology;
     bool               primitiveRestartEnable;
-} LvnPipelineInputAssembly;
+};
 
-typedef struct LvnPipelineRasterizer
+struct LvnPipelineRasterizer
 {
     LvnCullFaceMode     cullMode;
     LvnCullFrontFace    frontFace;
@@ -467,9 +565,9 @@ typedef struct LvnPipelineRasterizer
     bool                depthBiasEnable;
     bool                depthClampEnable;
     bool                rasterizerDiscardEnable;
-} LvnPipelineRasterizer;
+};
 
-typedef struct LvnPipelineMultiSampling
+struct LvnPipelineMultiSampling
 {
     LvnSampleCountFlagBits    rasterizationSamples;
     float                     minSampleShading;
@@ -477,9 +575,9 @@ typedef struct LvnPipelineMultiSampling
     bool                      sampleShadingEnable;
     bool                      alphaToCoverageEnable;
     bool                      alphaToOneEnable;
-} LvnPipelineMultiSampling;
+};
 
-typedef struct LvnPipelineColorBlendAttachment
+struct LvnPipelineColorBlendAttachment
 {
     LvnColorComponentFlags    colorWriteMask;
     LvnColorBlendFactor       srcColorBlendFactor;
@@ -489,18 +587,18 @@ typedef struct LvnPipelineColorBlendAttachment
     LvnColorBlendFactor       dstAlphaBlendFactor;
     LvnColorBlendOperation    alphaBlendOp;
     bool                      blendEnable;
-} LvnPipelineColorBlendAttachment;
+};
 
-typedef struct LvnPipelineColorBlend
+struct LvnPipelineColorBlend
 {
     LvnPipelineColorBlendAttachment*    pColorBlendAttachments;
     uint32_t                            colorBlendAttachmentCount;
     float                               blendConstants[4];
     LvnLogicOperation                   logicOp;
     bool                                logicOpEnable;
-} LvnPipelineColorBlend;
+};
 
-typedef struct LvnPipelineStencilAttachment
+struct LvnPipelineStencilAttachment
 {
     LvnStencilOperation    failOp;
     LvnStencilOperation    passOp;
@@ -509,40 +607,40 @@ typedef struct LvnPipelineStencilAttachment
     uint32_t               compareMask;
     uint32_t               writeMask;
     uint32_t               reference;
-} LvnPipelineStencilAttachment;
+};
 
-typedef struct LvnPipelineDepthStencil
+struct LvnPipelineDepthStencil
 {
     LvnCompareOperation             depthOpCompare;
     LvnPipelineStencilAttachment    stencil;
     bool                            depthTestEnable;
     bool                            depthWriteEnable;
     bool                            stencilTestEnable;
-} LvnPipelineDepthStencil;
+};
 
-typedef struct LvnPipelineFixedFunctions
+struct LvnPipelineFixedFunctions
 {
     LvnPipelineInputAssembly    inputAssembly;
     LvnPipelineRasterizer       rasterizer;
     LvnPipelineMultiSampling    multisampling;
     LvnPipelineColorBlend       colorBlend;
     LvnPipelineDepthStencil     depthstencil;
-} LvnPipelineFixedFunctions;
+};
 
-typedef struct LvnVertexBindingDescription
+struct LvnVertexBindingDescription
 {
     uint32_t binding, stride;
-} LvnVertexBindingDescription;
+};
 
-typedef struct LvnVertexAttribute
+struct LvnVertexAttribute
 {
     uint32_t     binding;
     uint32_t     layout;
     LvnFormat    format;
     uint64_t     offset;
-} LvnVertexAttribute;
+};
 
-typedef struct LvnPipelineCreateInfo
+struct LvnPipelineCreateInfo
 {
     const LvnPipelineFixedFunctions*           pipelineFixedFunctions;
     uint32_t                                   vertexBindingDescriptionCount;
@@ -554,17 +652,17 @@ typedef struct LvnPipelineCreateInfo
     uint32_t                                   stageCount;
     LvnShader* const*                          pShaderStages;
     LvnRenderPass*                             renderPass;
-} LvnPipelineCreateInfo;
+};
 
-typedef struct LvnBufferCreateInfo
+struct LvnBufferCreateInfo
 {
     LvnBufferTypeFlags      type;
     LvnBufferMemoryUsage    usage;
     uint64_t                size;
     const void*             data;
-} LvnBufferCreateInfo;
+};
 
-typedef struct LvnSamplerCreateInfo
+struct LvnSamplerCreateInfo
 {
     LvnTextureFilter    minFilter;
     LvnTextureFilter    magFilter;
@@ -575,9 +673,9 @@ typedef struct LvnSamplerCreateInfo
     float               mipLodBias;
     float               minLod;
     float               maxLod;
-} LvnSamplerCreateInfo;
+};
 
-typedef struct LvnTextureCreateInfo
+struct LvnTextureCreateInfo
 {
     const LvnSampler*      sampler;
     LvnFormat              format;
@@ -585,43 +683,43 @@ typedef struct LvnTextureCreateInfo
     const uint8_t*         image;
     uint32_t               width;
     uint32_t               height;
-} LvnTextureCreateInfo;
+};
 
-typedef union LvnClearColorValue
+union LvnClearColorValue
 {
     float       float32[4];
     int32_t     int32[4];
     uint32_t    uint32[4];
-} LvnClearColorValue;
+};
 
-typedef struct LvnClearDepthStencilValue
+struct LvnClearDepthStencilValue
 {
     float       depth;
     uint32_t    stencil;
-} LvnClearDepthStencilValue;
+};
 
-typedef struct LvnExtent2D
+struct LvnExtent2D
 {
     uint32_t width, height;
-} LvnExtent2D;
+};
 
-typedef struct LvnOffset2D
+struct LvnOffset2D
 {
     int32_t x, y;
-} LvnOffset2D;
+};
 
-typedef struct LvnRenderArea
+struct LvnRenderArea
 {
     LvnExtent2D    extent;
     LvnOffset2D    offset;
-} LvnRenderArea;
+};
 
-typedef struct LvnViewport
+struct LvnViewport
 {
     float x, y, width, height, minDepth, maxDepth;
-} LvnViewport;
+};
 
-typedef struct LvnRenderPassBeginInfo
+struct LvnRenderPassBeginInfo
 {
     LvnRenderPass*                     renderPass;
     LvnFramebuffer*                    framebuffer;
@@ -629,9 +727,9 @@ typedef struct LvnRenderPassBeginInfo
     uint32_t                           clearColorValueCount;
     const LvnClearColorValue*          pClearColorValues;
     LvnClearDepthStencilValue          clearDepthStencilValue;
-} LvnRenderPassBeginInfo;
+};
 
-typedef struct LvnSubmitInfo
+struct LvnSubmitInfo
 {
     uint32_t                    waitSemaphoreCount;
     LvnSemaphore* const*        pWaitSemaphores;
@@ -639,30 +737,87 @@ typedef struct LvnSubmitInfo
     LvnSemaphore* const*        pSignalSemaphores;
     uint32_t                    commandBufferCount;
     LvnCommandBuffer* const*    pCommandBuffers;
-} LvnSubmitInfo;
+};
 
-typedef struct LvnPresentInfo
+struct LvnPresentInfo
 {
     uint32_t                waitSemaphoreCount;
     LvnSemaphore* const*    pWaitSemaphores;
     uint32_t                swapchainCount;
     LvnSwapchain* const*    pSwapchains;
     const uint32_t*         pImageIndices;
-} LvnPresentInfo;
+};
 
-typedef struct LvnGraphicsContextCreateInfo
+struct LvnGraphicsContextFunctions
 {
-    LvnGraphicsApi              graphicsapi;                      // graphics api backend
-    LvnPresentationModeFlags    presentationModeFlags;            // type of output the graphics api will render to
-    const LvnPlatformData*      platformData;                     // native platform data for surface creation
-    bool                        enableGraphicsApiDebugLogging;    // enable logging for graphics api layer debug logs
+    PFN_lvnCreateSurface                      createSurface;
+    PFN_lvnDestroySurface                     destroySurface;
+    PFN_lvnCreateSwapchain                    createSwapchain;
+    PFN_lvnDestroySwapchain                   destroySwapchain;
+    PFN_lvnCreateRenderPass                   createRenderPass;
+    PFN_lvnDestroyRenderPass                  destroyRenderPass;
+    PFN_lvnCreateFramebuffer                  createFramebuffer;
+    PFN_lvnDestroyFramebuffer                 destroyFramebuffer;
+    PFN_lvnCreateShader                       createShader;
+    PFN_lvnDestroyShader                      destroyShader;
+    PFN_lvnCreateDescriptorLayout             createDescriptorLayout;
+    PFN_lvnDestroyDescriptorLayout            destroyDescriptorLayout;
+    PFN_lvnCreateDescriptorPool               createDescriptorPool;
+    PFN_lvnDestroyDescriptorPool              destroyDescriptorPool;
+    PFN_lvnCreatePipeline                     createPipeline;
+    PFN_lvnDestroyPipeline                    destroyPipeline;
+    PFN_lvnCreateFence                        createFence;
+    PFN_lvnDestroyFence                       destroyFence;
+    PFN_lvnCreateSemaphore                    createSemaphore;
+    PFN_lvnDestroySemaphore                   destroySemaphore;
+    PFN_lvnCreateBuffer                       createBuffer;
+    PFN_lvnDestroyBuffer                      destroyBuffer;
+    PFN_lvnCreateSampler                      createSampler;
+    PFN_lvnDestroySampler                     destroySampler;
+    PFN_lvnCreateTexture                      createTexture;
+    PFN_lvnDestroyTexture                     destroyTexture;
+    PFN_lvnCreateCommandBuffer                createCommandBuffer;
+    PFN_lvnDestroyCommandBuffer               destroyCommandBuffer;
+    PFN_lvnAllocateDescriptorSets             allocateDescriptorSets;
+    PFN_lvnResetDescriptorPool                resetDescriptorPool;
+    PFN_lvnUpdateDescriptorSets               updateDescriptorSets;
+    PFN_lvnSurfaceGetSupportedFormats         surfaceGetSupportedFormats;
+    PFN_lvnSurfaceGetSupportedPresentModes    surfaceGetSupportedPresentModes;
+    PFN_lvnSwapchainResize                    swapchainResize;
+    PFN_lvnSwapchainAcquireNextImage          swapchainAcquireNextImage;
+    PFN_lvnFenceWait                          fenceWait;
+    PFN_lvnFenceReset                         fenceReset;
+    PFN_lvnBufferUpdate                       bufferUpdate;
+    PFN_lvnBeginCommandBuffer                 beginCommandBuffer;
+    PFN_lvnEndCommandBuffer                   endCommandBuffer;
+    PFN_lvnCmdBeginRenderPass                 cmdBeginRenderPass;
+    PFN_lvnCmdEndRenderPass                   cmdEndRenderPass;
+    PFN_lvnCmdBindPipeline                    cmdBindPipeline;
+    PFN_lvnCmdBindVertexBuffer                cmdBindVertexBuffer;
+    PFN_lvnCmdBindIndexBuffer                 cmdBindIndexBuffer;
+    PFN_lvnCmdBindDescriptorSets              cmdBindDescriptorSets;
+    PFN_lvnCmdSetViewport                     cmdSetViewport;
+    PFN_lvnCmdSetScissor                      cmdSetScissor;
+    PFN_lvnCmdDraw                            cmdDraw;
+    PFN_lvnCmdDrawIndexed                     cmdDrawIndexed;
+    PFN_lvnRenderSubmit                       renderSubmit;
+    PFN_lvnRenderPresent                      renderPresent;
+};
+
+struct LvnGraphicsContextCreateInfo
+{
+    LvnGraphicsApi                        graphicsapi;                      // graphics api backend
+    LvnPresentationModeFlags              presentationModeFlags;            // type of output the graphics api will render to
+    const LvnPlatformData*                platformData;                     // native platform data for surface creation
+    bool                                  enableGraphicsApiDebugLogging;    // enable logging for graphics api layer debug logs
+    const LvnGraphicsContextFunctions*    gctxFuncs;                        // use custom graphics functions instead of the supported graphics api functions, will only use if graphicsapi is set to none and gctxFuncs is not null
     struct
     {
-        size_t                  baseFrameArenaSize;               // base size of frame arena in bytes
-        size_t                  baseCmdBuffFrameArenaSize;        // base size of command buffer frame arena
-        size_t                  baseCmdBuffByteStreamSize;        // base size of command buffer byte stream
+        size_t                            baseFrameArenaSize;               // base size of frame arena in bytes
+        size_t                            baseCmdBuffFrameArenaSize;        // base size of command buffer frame arena
+        size_t                            baseCmdBuffByteStreamSize;        // base size of command buffer byte stream
     } memory;
-} LvnGraphicsContextCreateInfo;
+};
 
 
 #ifdef __cplusplus

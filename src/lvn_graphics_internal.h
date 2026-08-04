@@ -110,79 +110,73 @@ struct LvnSemaphore
 
 struct LvnGraphicsContext
 {
-    LvnGraphicsApi              graphicsapi;
-    const LvnContext*           ctx;
-    const LvnLogger*            coreLogger;
-    LvnPresentationModeFlags    presentModeFlags;
-    bool                        enableGraphicsApiDebugLogging;
+    LvnGraphicsApi                            graphicsapi;
+    const LvnContext*                         ctx;
+    const LvnLogger*                          coreLogger;
+    LvnPresentationModeFlags                  presentModeFlags;
+    bool                                      enableGraphicsApiDebugLogging;
 
     struct
     {
-        size_t                  baseFrameArenaSize;
-        size_t                  baseCmdBuffFrameArenaSize;
-        size_t                  baseCmdBuffByteStreamSize;
+        size_t                                baseFrameArenaSize;
+        size_t                                baseCmdBuffFrameArenaSize;
+        size_t                                baseCmdBuffByteStreamSize;
     } memory;
 
     // graphics implementation
-    void*                       implData;
-    LvnResult                   (*implCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
-    void                        (*implDestroySurface)(LvnSurface*);
-    LvnResult                   (*implCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
-    void                        (*implDestroySwapchain)(LvnSwapchain*);
-    LvnResult                   (*implCreateRenderPass)(const LvnGraphicsContext*, LvnRenderPass*, const LvnRenderPassCreateInfo*);
-    void                        (*implDestroyRenderPass)(LvnRenderPass*);
-    LvnResult                   (*implCreateFramebuffer)(const LvnGraphicsContext*, LvnFramebuffer*, const LvnFramebufferCreateInfo*);
-    void                        (*implDestroyFramebuffer)(LvnFramebuffer*);
-    LvnResult                   (*implCreateShader)(const LvnGraphicsContext*, LvnShader*, const LvnShaderCreateInfo*);
-    void                        (*implDestroyShader)(LvnShader*);
-    LvnResult                   (*implCreateDescriptorLayout)(const LvnGraphicsContext*, LvnDescriptorLayout*, const LvnDescriptorLayoutCreateInfo*);
-    void                        (*implDestroyDescriptorLayout)(LvnDescriptorLayout*);
-    LvnResult                   (*implCreateDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*, const LvnDescriptorPoolCreateInfo*);
-    void                        (*implDestroyDescriptorPool)(LvnDescriptorPool*);
-    LvnResult                   (*implCreatePipeline)(const LvnGraphicsContext*, LvnPipeline*, const LvnPipelineCreateInfo*);
-    void                        (*implDestroyPipeline)(LvnPipeline*);
-    LvnResult                   (*implCreateFence)(const LvnGraphicsContext*, LvnFence*, bool);
-    void                        (*implDestroyFence)(LvnFence*);
-    LvnResult                   (*implCreateSemaphore)(const LvnGraphicsContext*, LvnSemaphore*);
-    void                        (*implDestroySemaphore)(LvnSemaphore*);
-    LvnResult                   (*implCreateBuffer)(const LvnGraphicsContext*, LvnBuffer*, const LvnBufferCreateInfo*);
-    void                        (*implDestroyBuffer)(LvnBuffer*);
-    LvnResult                   (*implCreateSampler)(const LvnGraphicsContext*, LvnSampler*, const LvnSamplerCreateInfo*);
-    void                        (*implDestroySampler)(LvnSampler*);
-    LvnResult                   (*implCreateTexture)(const LvnGraphicsContext*, LvnTexture*, const LvnTextureCreateInfo*);
-    void                        (*implDestroyTexture)(LvnTexture*);
-    LvnResult                   (*implCreateCommandBuffer)(const LvnGraphicsContext*, LvnCommandBuffer*);
-    void                        (*implDestroyCommandBuffer)(LvnCommandBuffer*);
-
-    LvnResult                   (*implAllocateDescriptorSets)(const LvnGraphicsContext*, LvnDescriptorSet**, LvnDescriptorSetAllocateInfo*);
-    LvnResult                   (*implResetDescriptorPool)(const LvnGraphicsContext*, LvnDescriptorPool*);
-    LvnResult                   (*implUpdateDescriptorSets)(const LvnGraphicsContext*, uint32_t, const LvnDescriptorSetWriteInfo*, uint32_t, const LvnDescriptorSetCopyInfo*);
-
-    void                        (*implSurfaceGetSupportedFormats)(const LvnSurface*, uint32_t*, LvnFormat*);
-    void                        (*implSurfaceGetSupportedPresentModes)(const LvnSurface*, uint32_t*, LvnPresentMode*);
-
-    LvnResult                   (*implSwapchainResize)(LvnSwapchain*, uint32_t, uint32_t);
-    LvnResult                   (*implSwapchainAcquireNextImage)(LvnSwapchain*, LvnSemaphore*, LvnFence*, uint32_t*);
-
-    LvnResult                   (*implFenceWait)(LvnFence*, uint64_t);
-    LvnResult                   (*implFenceReset)(LvnFence*);
-
-    void                        (*implBufferUpdate)(LvnBuffer*, void*, uint64_t, uint64_t);
-
-    void                        (*implBeginCommandBuffer)(LvnCommandBuffer*);
-    void                        (*implEndCommandBuffer)(LvnCommandBuffer*);
-    void                        (*implCmdBeginRenderPass)(LvnCommandBuffer*, LvnRenderPassBeginInfo*);
-    void                        (*implCmdEndRenderPass)(LvnCommandBuffer*);
-    void                        (*implCmdBindPipeline)(LvnCommandBuffer*, LvnPipeline*);
-    void                        (*implCmdBindVertexBuffer)(LvnCommandBuffer*, uint32_t, uint32_t, LvnBuffer**, uint64_t*);
-    void                        (*implCmdBindIndexBuffer)(LvnCommandBuffer*, LvnBuffer*, uint64_t);
-    void                        (*implCmdBindDescriptorSets)(LvnCommandBuffer*, LvnPipeline*, uint32_t, uint32_t, LvnDescriptorSet* const*, uint32_t, const uint32_t*);
-    void                        (*implCmdSetViewport)(LvnCommandBuffer*, const LvnViewport*);
-    void                        (*implCmdSetScissor)(LvnCommandBuffer*, const LvnRenderArea*);
-    void                        (*implCmdDraw)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, uint32_t);
-    void                        (*implCmdDrawIndexed)(LvnCommandBuffer*, uint32_t, uint32_t, uint32_t, int32_t, uint32_t);
-    LvnResult                   (*implRenderSubmit)(const LvnGraphicsContext*, const LvnSubmitInfo*, uint32_t, LvnFence*);
-    LvnResult                   (*implRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
+    void*                                     implData;
+    PFN_lvnCreateSurface                      implCreateSurface;
+    PFN_lvnDestroySurface                     implDestroySurface;
+    PFN_lvnCreateSwapchain                    implCreateSwapchain;
+    PFN_lvnDestroySwapchain                   implDestroySwapchain;
+    PFN_lvnCreateRenderPass                   implCreateRenderPass;
+    PFN_lvnDestroyRenderPass                  implDestroyRenderPass;
+    PFN_lvnCreateFramebuffer                  implCreateFramebuffer;
+    PFN_lvnDestroyFramebuffer                 implDestroyFramebuffer;
+    PFN_lvnCreateShader                       implCreateShader;
+    PFN_lvnDestroyShader                      implDestroyShader;
+    PFN_lvnCreateDescriptorLayout             implCreateDescriptorLayout;
+    PFN_lvnDestroyDescriptorLayout            implDestroyDescriptorLayout;
+    PFN_lvnCreateDescriptorPool               implCreateDescriptorPool;
+    PFN_lvnDestroyDescriptorPool              implDestroyDescriptorPool;
+    PFN_lvnCreatePipeline                     implCreatePipeline;
+    PFN_lvnDestroyPipeline                    implDestroyPipeline;
+    PFN_lvnCreateFence                        implCreateFence;
+    PFN_lvnDestroyFence                       implDestroyFence;
+    PFN_lvnCreateSemaphore                    implCreateSemaphore;
+    PFN_lvnDestroySemaphore                   implDestroySemaphore;
+    PFN_lvnCreateBuffer                       implCreateBuffer;
+    PFN_lvnDestroyBuffer                      implDestroyBuffer;
+    PFN_lvnCreateSampler                      implCreateSampler;
+    PFN_lvnDestroySampler                     implDestroySampler;
+    PFN_lvnCreateTexture                      implCreateTexture;
+    PFN_lvnDestroyTexture                     implDestroyTexture;
+    PFN_lvnCreateCommandBuffer                implCreateCommandBuffer;
+    PFN_lvnDestroyCommandBuffer               implDestroyCommandBuffer;
+    PFN_lvnAllocateDescriptorSets             implAllocateDescriptorSets;
+    PFN_lvnResetDescriptorPool                implResetDescriptorPool;
+    PFN_lvnUpdateDescriptorSets               implUpdateDescriptorSets;
+    PFN_lvnSurfaceGetSupportedFormats         implSurfaceGetSupportedFormats;
+    PFN_lvnSurfaceGetSupportedPresentModes    implSurfaceGetSupportedPresentModes;
+    PFN_lvnSwapchainResize                    implSwapchainResize;
+    PFN_lvnSwapchainAcquireNextImage          implSwapchainAcquireNextImage;
+    PFN_lvnFenceWait                          implFenceWait;
+    PFN_lvnFenceReset                         implFenceReset;
+    PFN_lvnBufferUpdate                       implBufferUpdate;
+    PFN_lvnBeginCommandBuffer                 implBeginCommandBuffer;
+    PFN_lvnEndCommandBuffer                   implEndCommandBuffer;
+    PFN_lvnCmdBeginRenderPass                 implCmdBeginRenderPass;
+    PFN_lvnCmdEndRenderPass                   implCmdEndRenderPass;
+    PFN_lvnCmdBindPipeline                    implCmdBindPipeline;
+    PFN_lvnCmdBindVertexBuffer                implCmdBindVertexBuffer;
+    PFN_lvnCmdBindIndexBuffer                 implCmdBindIndexBuffer;
+    PFN_lvnCmdBindDescriptorSets              implCmdBindDescriptorSets;
+    PFN_lvnCmdSetViewport                     implCmdSetViewport;
+    PFN_lvnCmdSetScissor                      implCmdSetScissor;
+    PFN_lvnCmdDraw                            implCmdDraw;
+    PFN_lvnCmdDrawIndexed                     implCmdDrawIndexed;
+    PFN_lvnRenderSubmit                       implRenderSubmit;
+    PFN_lvnRenderPresent                      implRenderPresent;
 };
 
 

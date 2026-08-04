@@ -11,6 +11,7 @@
 
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api);
+static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
 
 static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
 {
@@ -23,6 +24,126 @@ static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
 
     LVN_ASSERT(false, "invalid graphics api enum value");
     return NULL;
+}
+
+static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+
+    if (!createInfo->gctxFuncs)
+        return Lvn_Result_Failure;
+
+    graphicsctx->implCreateSurface = createInfo->gctxFuncs->createSurface;
+    graphicsctx->implDestroySurface = createInfo->gctxFuncs->destroySurface;
+    graphicsctx->implCreateSwapchain = createInfo->gctxFuncs->createSwapchain;
+    graphicsctx->implDestroySwapchain = createInfo->gctxFuncs->destroySwapchain;
+    graphicsctx->implCreateRenderPass = createInfo->gctxFuncs->createRenderPass;
+    graphicsctx->implDestroyRenderPass = createInfo->gctxFuncs->destroyRenderPass;
+    graphicsctx->implCreateFramebuffer = createInfo->gctxFuncs->createFramebuffer;
+    graphicsctx->implDestroyFramebuffer = createInfo->gctxFuncs->destroyFramebuffer;
+    graphicsctx->implCreateShader = createInfo->gctxFuncs->createShader;
+    graphicsctx->implDestroyShader = createInfo->gctxFuncs->destroyShader;
+    graphicsctx->implCreateDescriptorLayout = createInfo->gctxFuncs->createDescriptorLayout;
+    graphicsctx->implDestroyDescriptorLayout = createInfo->gctxFuncs->destroyDescriptorLayout;
+    graphicsctx->implCreateDescriptorPool = createInfo->gctxFuncs->createDescriptorPool;
+    graphicsctx->implDestroyDescriptorPool = createInfo->gctxFuncs->destroyDescriptorPool;
+    graphicsctx->implCreatePipeline = createInfo->gctxFuncs->createPipeline;
+    graphicsctx->implDestroyPipeline = createInfo->gctxFuncs->destroyPipeline;
+    graphicsctx->implCreateFence = createInfo->gctxFuncs->createFence;
+    graphicsctx->implDestroyFence = createInfo->gctxFuncs->destroyFence;
+    graphicsctx->implCreateSemaphore = createInfo->gctxFuncs->createSemaphore;
+    graphicsctx->implDestroySemaphore = createInfo->gctxFuncs->destroySemaphore;
+    graphicsctx->implCreateBuffer = createInfo->gctxFuncs->createBuffer;
+    graphicsctx->implDestroyBuffer = createInfo->gctxFuncs->destroyBuffer;
+    graphicsctx->implCreateSampler = createInfo->gctxFuncs->createSampler;
+    graphicsctx->implDestroySampler = createInfo->gctxFuncs->destroySampler;
+    graphicsctx->implCreateTexture = createInfo->gctxFuncs->createTexture;
+    graphicsctx->implDestroyTexture = createInfo->gctxFuncs->destroyTexture;
+    graphicsctx->implCreateCommandBuffer = createInfo->gctxFuncs->createCommandBuffer;
+    graphicsctx->implDestroyCommandBuffer = createInfo->gctxFuncs->destroyCommandBuffer;
+    graphicsctx->implAllocateDescriptorSets = createInfo->gctxFuncs->allocateDescriptorSets;
+    graphicsctx->implResetDescriptorPool = createInfo->gctxFuncs->resetDescriptorPool;
+    graphicsctx->implUpdateDescriptorSets = createInfo->gctxFuncs->updateDescriptorSets;
+    graphicsctx->implSurfaceGetSupportedFormats = createInfo->gctxFuncs->surfaceGetSupportedFormats;
+    graphicsctx->implSurfaceGetSupportedPresentModes = createInfo->gctxFuncs->surfaceGetSupportedPresentModes;
+    graphicsctx->implSwapchainResize = createInfo->gctxFuncs->swapchainResize;
+    graphicsctx->implSwapchainAcquireNextImage = createInfo->gctxFuncs->swapchainAcquireNextImage;
+    graphicsctx->implFenceWait = createInfo->gctxFuncs->fenceWait;
+    graphicsctx->implFenceReset = createInfo->gctxFuncs->fenceReset;
+    graphicsctx->implBufferUpdate = createInfo->gctxFuncs->bufferUpdate;
+    graphicsctx->implBeginCommandBuffer = createInfo->gctxFuncs->beginCommandBuffer;
+    graphicsctx->implEndCommandBuffer = createInfo->gctxFuncs->endCommandBuffer;
+    graphicsctx->implCmdBeginRenderPass = createInfo->gctxFuncs->cmdBeginRenderPass;
+    graphicsctx->implCmdEndRenderPass = createInfo->gctxFuncs->cmdEndRenderPass;
+    graphicsctx->implCmdBindPipeline = createInfo->gctxFuncs->cmdBindPipeline;
+    graphicsctx->implCmdBindVertexBuffer = createInfo->gctxFuncs->cmdBindVertexBuffer;
+    graphicsctx->implCmdBindIndexBuffer = createInfo->gctxFuncs->cmdBindIndexBuffer;
+    graphicsctx->implCmdBindDescriptorSets = createInfo->gctxFuncs->cmdBindDescriptorSets;
+    graphicsctx->implCmdSetViewport = createInfo->gctxFuncs->cmdSetViewport;
+    graphicsctx->implCmdSetScissor = createInfo->gctxFuncs->cmdSetScissor;
+    graphicsctx->implCmdDraw = createInfo->gctxFuncs->cmdDraw;
+    graphicsctx->implCmdDrawIndexed = createInfo->gctxFuncs->cmdDrawIndexed;
+    graphicsctx->implRenderSubmit = createInfo->gctxFuncs->renderSubmit;
+    graphicsctx->implRenderPresent = createInfo->gctxFuncs->renderPresent;
+
+    if (!graphicsctx->implCreateSurface ||
+        !graphicsctx->implDestroySurface ||
+        !graphicsctx->implCreateSwapchain ||
+        !graphicsctx->implDestroySwapchain ||
+        !graphicsctx->implCreateRenderPass ||
+        !graphicsctx->implDestroyRenderPass ||
+        !graphicsctx->implCreateFramebuffer ||
+        !graphicsctx->implDestroyFramebuffer ||
+        !graphicsctx->implCreateShader ||
+        !graphicsctx->implDestroyShader ||
+        !graphicsctx->implCreateDescriptorLayout ||
+        !graphicsctx->implDestroyDescriptorLayout ||
+        !graphicsctx->implCreateDescriptorPool ||
+        !graphicsctx->implDestroyDescriptorPool ||
+        !graphicsctx->implCreatePipeline ||
+        !graphicsctx->implDestroyPipeline ||
+        !graphicsctx->implCreateFence ||
+        !graphicsctx->implDestroyFence ||
+        !graphicsctx->implCreateSemaphore ||
+        !graphicsctx->implDestroySemaphore ||
+        !graphicsctx->implCreateBuffer ||
+        !graphicsctx->implDestroyBuffer ||
+        !graphicsctx->implCreateSampler ||
+        !graphicsctx->implDestroySampler ||
+        !graphicsctx->implCreateTexture ||
+        !graphicsctx->implDestroyTexture ||
+        !graphicsctx->implCreateCommandBuffer ||
+        !graphicsctx->implDestroyCommandBuffer ||
+        !graphicsctx->implAllocateDescriptorSets ||
+        !graphicsctx->implResetDescriptorPool ||
+        !graphicsctx->implUpdateDescriptorSets ||
+        !graphicsctx->implSurfaceGetSupportedFormats ||
+        !graphicsctx->implSurfaceGetSupportedPresentModes ||
+        !graphicsctx->implSwapchainResize ||
+        !graphicsctx->implSwapchainAcquireNextImage ||
+        !graphicsctx->implFenceWait ||
+        !graphicsctx->implFenceReset ||
+        !graphicsctx->implBufferUpdate ||
+        !graphicsctx->implBeginCommandBuffer ||
+        !graphicsctx->implEndCommandBuffer ||
+        !graphicsctx->implCmdBeginRenderPass ||
+        !graphicsctx->implCmdEndRenderPass ||
+        !graphicsctx->implCmdBindPipeline ||
+        !graphicsctx->implCmdBindVertexBuffer ||
+        !graphicsctx->implCmdBindIndexBuffer ||
+        !graphicsctx->implCmdBindDescriptorSets ||
+        !graphicsctx->implCmdSetViewport ||
+        !graphicsctx->implCmdSetScissor ||
+        !graphicsctx->implCmdDraw ||
+        !graphicsctx->implCmdDrawIndexed ||
+        !graphicsctx->implRenderSubmit ||
+        !graphicsctx->implRenderPresent)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to set custom graphics context api functions");
+        return Lvn_Result_Failure;
+    }
+
+    return Lvn_Result_Success;
 }
 
 LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo)
@@ -60,9 +181,12 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     gctxPtr->memory.baseCmdBuffByteStreamSize = createInfo->memory.baseCmdBuffByteStreamSize;
 
     // setup graphics api
+    result = Lvn_Result_Failure;
     switch (createInfo->graphicsapi)
     {
         case Lvn_GraphicsApi_None:
+            if (createInfo->gctxFuncs)
+                result = lvn_setCustomGraphicsContextPfn(gctxPtr, createInfo);
             break;
         case Lvn_GraphicsApi_Opengl:
 #ifdef LVN_INCLUDE_OPENGL
