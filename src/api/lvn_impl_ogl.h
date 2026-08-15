@@ -396,16 +396,16 @@ typedef enum LvnOglVertexAttributeType
 
 typedef struct LvnOglSwapchainData
 {
-    LvnSurface*       surface;
-    uint32_t*         images;
-    uint32_t*         fboIds;
-    uint32_t          imageCount;
-    uint32_t          imageIndex;
-    uint32_t          width;
-    uint32_t          height;
-    LvnFormat         format;
-    LvnPresentMode    presentMode;
-    bool              srgb;
+    const LvnSurface*    surface;
+    uint32_t*            images;
+    uint32_t*            fboIds;
+    uint32_t             imageCount;
+    uint32_t             imageIndex;
+    uint32_t             width;
+    uint32_t             height;
+    LvnFormat            format;
+    LvnPresentMode       presentMode;
+    bool                 srgb;
 } LvnOglSwapchainData;
 
 typedef struct LvnOglRenderpassData
@@ -681,9 +681,11 @@ typedef struct LvnOpenglBackends
 
     LvnResult                                               (*ogllCreateSurface)(const struct LvnOpenglBackends*, LvnSurface*, const LvnSurfaceCreateInfo*);
     void                                                    (*ogllDestroySurface)(const struct LvnOpenglBackends*, LvnSurface*);
-    void                                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, LvnSurface*);
-    void                                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, LvnSurface*);
+    void                                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, const LvnSurface*);
+    void                                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, const LvnSurface*);
     void                                                    (*ogllSwapInterval)(const struct LvnOpenglBackends*, int);
+
+    LvnSurface                                              defaultSurface;
 
     PFNGLGETSTRINGPROC                                      glGetString;
     PFNGLGETERRORPROC                                       glGetError;
@@ -766,77 +768,78 @@ typedef struct LvnOpenglBackends
     PFNGLSCISSORPROC                                        glScissor;
 } LvnOpenglBackends;
 
-LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
-void      lvnImplOglTerminate(LvnGraphicsContext* graphicsctx);
+LvnResult         lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
+void              lvnImplOglTerminate(LvnGraphicsContext* graphicsctx);
+const LvnSurface* lvnImplOglGetSurface(const LvnGraphicsContext* graphicsctx);
 
-LvnResult lvnImplOglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
-void      lvnImplOglDestroySurface(LvnSurface* surface);
-LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo);
-void      lvnImplOglDestroySwapchain(LvnSwapchain* swapchain);
-LvnResult lvnImplOglCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo);
-void      lvnImplOglDestroyRenderPass(LvnRenderPass* renderpass);
-LvnResult lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo);
-void      lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer);
-LvnResult lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
-void      lvnImplOglDestroyShader(LvnShader* shader);
-LvnResult lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
-void      lvnImplOglDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
-LvnResult lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
-void      lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
-LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
-void      lvnImplOglDestroyPipeline(LvnPipeline* pipeline);
-LvnResult lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
-void      lvnImplOglDestroyFence(LvnFence* fence);
-LvnResult lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
-void      lvnImplOglDestroySemaphore(LvnSemaphore* semaphore);
-LvnResult lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
-void      lvnImplOglDestroyBuffer(LvnBuffer* buffer);
-LvnResult lvnImplOglCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
-void      lvnImplOglDestroySampler(LvnSampler* sampler);
-LvnResult lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
-void      lvnImplOglDestroyTexture(LvnTexture* texture);
-LvnResult lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
-void      lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
+LvnResult         lvnImplOglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
+void              lvnImplOglDestroySurface(LvnSurface* surface);
+LvnResult         lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo);
+void              lvnImplOglDestroySwapchain(LvnSwapchain* swapchain);
+LvnResult         lvnImplOglCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo);
+void              lvnImplOglDestroyRenderPass(LvnRenderPass* renderpass);
+LvnResult         lvnImplOglCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo);
+void              lvnImplOglDestroyFramebuffer(LvnFramebuffer* framebuffer);
+LvnResult         lvnImplOglCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
+void              lvnImplOglDestroyShader(LvnShader* shader);
+LvnResult         lvnImplOglCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
+void              lvnImplOglDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
+LvnResult         lvnImplOglCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
+void              lvnImplOglDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
+LvnResult         lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
+void              lvnImplOglDestroyPipeline(LvnPipeline* pipeline);
+LvnResult         lvnImplOglCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
+void              lvnImplOglDestroyFence(LvnFence* fence);
+LvnResult         lvnImplOglCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
+void              lvnImplOglDestroySemaphore(LvnSemaphore* semaphore);
+LvnResult         lvnImplOglCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
+void              lvnImplOglDestroyBuffer(LvnBuffer* buffer);
+LvnResult         lvnImplOglCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
+void              lvnImplOglDestroySampler(LvnSampler* sampler);
+LvnResult         lvnImplOglCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
+void              lvnImplOglDestroyTexture(LvnTexture* texture);
+LvnResult         lvnImplOglCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
+void              lvnImplOglDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
-LvnResult lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
-LvnResult lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
-LvnResult lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
+LvnResult         lvnImplOglAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
+LvnResult         lvnImplOglResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
+LvnResult         lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
 
-void      lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
-void      lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
+void              lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
+void              lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
 
-LvnResult lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
-LvnResult lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
+LvnResult         lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
+LvnResult         lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 
-LvnResult lvnImplOglFenceWait(LvnFence* fence, uint64_t timeout);
-LvnResult lvnImplOglFenceReset(LvnFence* fence);
+LvnResult         lvnImplOglFenceWait(LvnFence* fence, uint64_t timeout);
+LvnResult         lvnImplOglFenceReset(LvnFence* fence);
 
-void      lvnImplOglBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
+void              lvnImplOglBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 
-void      lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
-void      lvnImplOglEndCommandBuffer(LvnCommandBuffer* commandBuffer);
-void      lvnImplOglCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo);
-void      lvnImplOglCmdEndRenderPass(LvnCommandBuffer* commandBuffer);
-void      lvnImplOglCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
-void      lvnImplOglCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
-void      lvnImplOglCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
-void      lvnImplOglCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
-void      lvnImplOglCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
-void      lvnImplOglCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
-void      lvnImplOglCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
-void      lvnImplOglCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-LvnResult lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
-LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
+void              lvnImplOglBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
+void              lvnImplOglEndCommandBuffer(LvnCommandBuffer* commandBuffer);
+void              lvnImplOglCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo);
+void              lvnImplOglCmdEndRenderPass(LvnCommandBuffer* commandBuffer);
+void              lvnImplOglCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
+void              lvnImplOglCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
+void              lvnImplOglCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
+void              lvnImplOglCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
+void              lvnImplOglCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
+void              lvnImplOglCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
+void              lvnImplOglCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+void              lvnImplOglCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+LvnResult         lvnImplOglRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LvnResult         lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
-void      lvnCmdBuffImplOglCmdBeginRenderPass(void* data);
-void      lvnCmdBuffImplOglCmdEndRenderPass(void* data);
-void      lvnCmdBuffImplOglCmdBindPipeline(void* data);
-void      lvnCmdBuffImplOglCmdBindVertexBuffer(void* data);
-void      lvnCmdBuffImplOglCmdBindIndexBuffer(void* data);
-void      lvnCmdBuffImplOglCmdBindDescriptorSets(void* data);
-void      lvnCmdBuffImplOglCmdSetViewport(void* data);
-void      lvnCmdBuffImplOglCmdSetScissor(void* data);
-void      lvnCmdBuffImplOglCmdDraw(void* data);
-void      lvnCmdBuffImplOglCmdDrawIndexed(void* data);
+void              lvnCmdBuffImplOglCmdBeginRenderPass(void* data);
+void              lvnCmdBuffImplOglCmdEndRenderPass(void* data);
+void              lvnCmdBuffImplOglCmdBindPipeline(void* data);
+void              lvnCmdBuffImplOglCmdBindVertexBuffer(void* data);
+void              lvnCmdBuffImplOglCmdBindIndexBuffer(void* data);
+void              lvnCmdBuffImplOglCmdBindDescriptorSets(void* data);
+void              lvnCmdBuffImplOglCmdSetViewport(void* data);
+void              lvnCmdBuffImplOglCmdSetScissor(void* data);
+void              lvnCmdBuffImplOglCmdDraw(void* data);
+void              lvnCmdBuffImplOglCmdDrawIndexed(void* data);
 
 #endif // !HG_LVN_IMPL_OGL_H

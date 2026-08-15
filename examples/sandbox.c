@@ -233,12 +233,7 @@ int main(int argc, char** argv)
     LvnGraphicsContext* graphicsctx;
     lvnCreateGraphicsContext(ctx, &graphicsctx, &graphicsCreateInfo);
 
-    LvnSurfaceCreateInfo sci = {0};
-    sci.ndh = nativeDisplay;
-    sci.nwh = (void*)nativeWindow;
-
-    LvnSurface* surface;
-    lvnCreateSurface(graphicsctx, &surface, &sci);
+    const LvnSurface* surface = lvnGetSurface(graphicsctx);
 
     uint32_t formatCount;
     lvnSurfaceGetSupportedFormats(surface, &formatCount, NULL);
@@ -682,7 +677,6 @@ int main(int argc, char** argv)
         lvnDestroyFramebuffer(swapchainFramebuffers[i]);
     lvnDestroyRenderPass(renderPass);
     lvnDestroySwapchain(swapchain);
-    lvnDestroySurface(surface);
     lvnDestroyGraphicsContext(graphicsctx);
 
     lvnDestroyContext(ctx);

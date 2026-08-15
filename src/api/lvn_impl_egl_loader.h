@@ -14,7 +14,6 @@ typedef struct LvnEglLoader
     PFNEGLINITIALIZEPROC              eglInitialize;
     PFNEGLQUERYSTRINGPROC             eglQueryString;
     PFNEGLCHOOSECONFIGPROC            eglChooseConfig;
-    PFNEGLCREATEPBUFFERSURFACEPROC    eglCreatePbufferSurface;
     PFNEGLCREATEWINDOWSURFACEPROC     eglCreateWindowSurface;
     PFNEGLCREATECONTEXTPROC           eglCreateContext;
     PFNEGLMAKECURRENTPROC             eglMakeCurrent;
@@ -39,12 +38,12 @@ typedef struct LvnEglLoader
 } LvnEglLoader;
 
 
-LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display);
+LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData* platformData);
 void      lvnEglLoaderTerminate(LvnOpenglBackends* oglBackends);
 LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
 void      lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
-void      lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
-void      lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, LvnSurface* surface);
+void      lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, const LvnSurface* surface);
+void      lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, const LvnSurface* surface);
 void      lvnEglSwapInterval(const LvnOpenglBackends* oglBackends, int interval);
 
 

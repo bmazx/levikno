@@ -144,7 +144,7 @@ static LvnResult lvn_loadOglLoader(LvnOpenglBackends* oglBackends, const LvnGrap
     LvnResult result = Lvn_Result_Failure;
 
 #if defined(LVN_INCLUDE_EGL)
-    result = lvnEglLoaderInit(oglBackends, createInfo->platformData->ndh);
+    result = lvnEglLoaderInit(oglBackends, createInfo->platformData);
 #endif
 
     return result;
@@ -532,6 +532,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     oglBackends->glGetIntegerv(GL_MAX_DRAW_BUFFERS, &oglBackends->capabilities.maxDrawBuffers);
 
     // set opengl implementation function pointers
+    graphicsctx->implGetSurface = lvnImplOglGetSurface;
     graphicsctx->implCreateSurface = lvnImplOglCreateSurface;
     graphicsctx->implDestroySurface = lvnImplOglDestroySurface;
     graphicsctx->implCreateSwapchain = lvnImplOglCreateSwapchain;
@@ -607,6 +608,13 @@ void lvnImplOglTerminate(LvnGraphicsContext* graphicsctx)
 
     lvn_free(oglBackends);
     graphicsctx->implData = NULL;
+}
+
+const LvnSurface* lvnImplOglGetSurface(const LvnGraphicsContext* graphicsctx)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+    return &oglBackends->defaultSurface;
 }
 
 LvnResult lvnImplOglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)

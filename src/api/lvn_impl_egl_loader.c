@@ -45,9 +45,9 @@ static LvnResult lvn_eglCreateSurface(
     return Lvn_Result_Failure;
 }
 
-LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
+LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData* platformData)
 {
-    LVN_ASSERT(oglBackends && display, "oglBackends, display, and window cannot be null");
+    LVN_ASSERT(oglBackends && platformData, "oglBackends and platformData cannot be null");
 
     LvnEglLoader* eglLoader = (LvnEglLoader*) lvn_calloc(sizeof(LvnEglLoader));
 
@@ -80,8 +80,6 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglQueryString");
     eglLoader->eglChooseConfig = (PFNEGLCHOOSECONFIGPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglChooseConfig");
-    eglLoader->eglCreatePbufferSurface = (PFNEGLCREATEPBUFFERSURFACEPROC)
-        lvn_platformGetModuleSymbol(eglLoader->handle, "eglCreatePbufferSurface");
     eglLoader->eglCreateWindowSurface = (PFNEGLCREATEWINDOWSURFACEPROC)
         lvn_platformGetModuleSymbol(eglLoader->handle, "eglCreateWindowSurface");
     eglLoader->eglCreateContext = (PFNEGLCREATECONTEXTPROC)
@@ -107,7 +105,6 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         !eglLoader->eglInitialize ||
         !eglLoader->eglQueryString ||
         !eglLoader->eglChooseConfig ||
-        !eglLoader->eglCreatePbufferSurface ||
         !eglLoader->eglCreateWindowSurface ||
         !eglLoader->eglCreateContext ||
         !eglLoader->eglMakeCurrent ||
@@ -139,7 +136,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
         goto fail_cleanup;
     }
 
-    eglLoader->display = eglLoader->eglGetPlatformDisplay(platformEnum, display, NULL);
+    eglLoader->display = eglLoader->eglGetPlatformDisplay(platformEnum, platformData->ndh, NULL);
     if (eglLoader->display == EGL_NO_DISPLAY)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
@@ -186,20 +183,17 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, void* display)
     eglLoader->eglChooseConfig(eglLoader->display, configAttribs, &eglLoader->config, 1, &numConfigs);
 
     // create surface
-    EGLint pbufferAttribs[] =
-    {
-        EGL_WIDTH, 1,
-        EGL_HEIGHT, 1,
-        EGL_NONE
-    };
-
-    eglLoader->surface = eglLoader->eglCreatePbufferSurface(eglLoader->display, eglLoader->config, pbufferAttribs);
-    if (!eglLoader->surface)
+    if (lvn_eglCreateSurface(eglLoader, &eglLoader->surface, eglLoader->display, eglLoader->config, platformData->nwh, 1, 1) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
-                      "[egl] failed to create egl pbuffer surface");
+                      "[egl] failed to create egl surface");
         goto fail_cleanup;
     }
+
+    oglBackends->defaultSurface = (LvnSurface){
+        .graphicsctx = oglBackends->graphicsctx,
+        .surfaceData = eglLoader->surface,
+    };
 
     // bind egl api
     if (!eglLoader->eglBindAPI(EGL_OPENGL_API))
@@ -463,7 +457,7 @@ void lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surf
     surface->surfaceData = NULL;
 }
 
-void lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, LvnSurface* surface)
+void lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, const LvnSurface* surface)
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
@@ -472,7 +466,7 @@ void lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, LvnSurface* surface
     eglLoader->eglMakeCurrent(eglLoader->display, eglSurface, eglSurface, eglLoader->context);
 }
 
-void lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, LvnSurface* surface)
+void lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, const LvnSurface* surface)
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;

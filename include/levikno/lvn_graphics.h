@@ -303,7 +303,6 @@ typedef struct LvnPipeline LvnPipeline;
 typedef struct LvnCommandBuffer LvnCommandBuffer;
 typedef struct LvnFence LvnFence;
 typedef struct LvnSemaphore LvnSemaphore;
-typedef struct LvnPlatformData LvnPlatformData;
 typedef struct LvnResolveAttachment LvnResolveAttachment;
 typedef struct LvnColorAttachment LvnColorAttachment;
 typedef struct LvnDepthStencilAttachment LvnDepthStencilAttachment;
@@ -348,9 +347,12 @@ typedef struct LvnGraphicsContextCreateInfo LvnGraphicsContextCreateInfo;
 
 typedef union LvnClearColorValue LvnClearColorValue;
 
+typedef LvnSurfaceCreateInfo LvnPlatformData;
+
 struct LvnContext;
 
 
+typedef const LvnSurface* (*PFN_lvnGetSurface)(const LvnGraphicsContext*);
 typedef LvnResult (*PFN_lvnCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
 typedef void      (*PFN_lvnDestroySurface)(LvnSurface*);
 typedef LvnResult (*PFN_lvnCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
@@ -405,12 +407,6 @@ typedef LvnResult (*PFN_lvnRenderSubmit)(const LvnGraphicsContext*, const LvnSub
 typedef LvnResult (*PFN_lvnRenderPresent)(const LvnGraphicsContext*, const LvnPresentInfo*);
 
 
-struct LvnPlatformData
-{
-    void*    ndh;
-    void*    nwh;
-};
-
 struct LvnSurfaceCreateInfo
 {
     void*    ndh;
@@ -419,12 +415,12 @@ struct LvnSurfaceCreateInfo
 
 struct LvnSwapchainCreateInfo
 {
-    LvnSurface*       surface;
-    LvnFormat         surfaceFormat;
-    LvnPresentMode    presentMode;
-    uint32_t          minImageCount;
-    uint32_t          width;
-    uint32_t          height;
+    const LvnSurface*    surface;
+    LvnFormat            surfaceFormat;
+    LvnPresentMode       presentMode;
+    uint32_t             minImageCount;
+    uint32_t             width;
+    uint32_t             height;
 };
 
 struct LvnResolveAttachment
@@ -750,6 +746,7 @@ struct LvnPresentInfo
 
 struct LvnGraphicsContextFunctions
 {
+    PFN_lvnGetSurface                         getSurface;
     PFN_lvnCreateSurface                      createSurface;
     PFN_lvnDestroySurface                     destroySurface;
     PFN_lvnCreateSwapchain                    createSwapchain;
@@ -826,6 +823,7 @@ extern "C" {
 
 LVN_API LvnResult                   lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
 LVN_API void                        lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx);                                                                         // destroy the graphics context
+LVN_API const LvnSurface*           lvnGetSurface(const LvnGraphicsContext* graphicsctx);
 
 LVN_API LvnResult                   lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
 LVN_API void                        lvnDestroySurface(LvnSurface* surface);

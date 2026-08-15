@@ -125,6 +125,7 @@ struct LvnGraphicsContext
 
     // graphics implementation
     void*                                     implData;
+    PFN_lvnGetSurface                         implGetSurface;
     PFN_lvnCreateSurface                      implCreateSurface;
     PFN_lvnDestroySurface                     implDestroySurface;
     PFN_lvnCreateSwapchain                    implCreateSwapchain;

@@ -4,66 +4,67 @@
 #include "lvn_graphics_internal.h"
 #include "levikno_internal.h"
 
-LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
-void      lvnImplVkTerminate(LvnGraphicsContext* graphicsctx);
+LvnResult   lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
+void        lvnImplVkTerminate(LvnGraphicsContext* graphicsctx);
+const LvnSurface* lvnImplVkGetSurface(const LvnGraphicsContext* graphicsctx);
 
-LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
-void      lvnImplVkDestroySurface(LvnSurface* surface);
-LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo);
-void      lvnImplVkDestroySwapchain(LvnSwapchain* swapchain);
-LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo);
-void      lvnImplVkDestroyRenderPass(LvnRenderPass* renderpass);
-LvnResult lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo);
-void      lvnImplVkDestroyFramebuffer(LvnFramebuffer* framebuffer);
-LvnResult lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
-void      lvnImplVkDestroyShader(LvnShader* shader);
-LvnResult lvnImplVkCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
-void      lvnImplVkDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
-LvnResult lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
-void      lvnImplVkDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
-LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
-void      lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
-LvnResult lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
-void      lvnImplVkDestroyFence(LvnFence* fence);
-LvnResult lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
-void      lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
-LvnResult lvnImplVkCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
-void      lvnImplVkDestroyBuffer(LvnBuffer* buffer);
-LvnResult lvnImplVkCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
-void      lvnImplVkDestroySampler(LvnSampler* sampler);
-LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
-void      lvnImplVkDestroyTexture(LvnTexture* texture);
-LvnResult lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
-void      lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
+LvnResult   lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
+void        lvnImplVkDestroySurface(LvnSurface* surface);
+LvnResult   lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swapchain, const LvnSwapchainCreateInfo* createInfo);
+void        lvnImplVkDestroySwapchain(LvnSwapchain* swapchain);
+LvnResult   lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo);
+void        lvnImplVkDestroyRenderPass(LvnRenderPass* renderpass);
+LvnResult   lvnImplVkCreateFramebuffer(const LvnGraphicsContext* graphicsctx, LvnFramebuffer* framebuffer, const LvnFramebufferCreateInfo* createInfo);
+void        lvnImplVkDestroyFramebuffer(LvnFramebuffer* framebuffer);
+LvnResult   lvnImplVkCreateShader(const LvnGraphicsContext* graphicsctx, LvnShader* shader, const LvnShaderCreateInfo* createInfo);
+void        lvnImplVkDestroyShader(LvnShader* shader);
+LvnResult   lvnImplVkCreateDescriptorLayout(const LvnGraphicsContext* graphicsctx, LvnDescriptorLayout* descriptorLayout, const LvnDescriptorLayoutCreateInfo* createInfo);
+void        lvnImplVkDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout);
+LvnResult   lvnImplVkCreateDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool, const LvnDescriptorPoolCreateInfo* createInfo);
+void        lvnImplVkDestroyDescriptorPool(LvnDescriptorPool* descriptorPool);
+LvnResult   lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipeline* pipeline, const LvnPipelineCreateInfo* createInfo);
+void        lvnImplVkDestroyPipeline(LvnPipeline* pipeline);
+LvnResult   lvnImplVkCreateFence(const LvnGraphicsContext* graphicsctx, LvnFence* fence, bool signaled);
+void        lvnImplVkDestroyFence(LvnFence* fence);
+LvnResult   lvnImplVkCreateSemaphore(const LvnGraphicsContext* graphicsctx, LvnSemaphore* semaphore);
+void        lvnImplVkDestroySemaphore(LvnSemaphore* semaphore);
+LvnResult   lvnImplVkCreateBuffer(const LvnGraphicsContext* graphicsctx, LvnBuffer* buffer, const LvnBufferCreateInfo* createInfo);
+void        lvnImplVkDestroyBuffer(LvnBuffer* buffer);
+LvnResult   lvnImplVkCreateSampler(const LvnGraphicsContext* graphicsctx, LvnSampler* sampler, const LvnSamplerCreateInfo* createInfo);
+void        lvnImplVkDestroySampler(LvnSampler* sampler);
+LvnResult   lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture* texture, const LvnTextureCreateInfo* createInfo);
+void        lvnImplVkDestroyTexture(LvnTexture* texture);
+LvnResult   lvnImplVkCreateCommandBuffer(const LvnGraphicsContext* graphicsctx, LvnCommandBuffer* commandBuffer);
+void        lvnImplVkDestroyCommandBuffer(LvnCommandBuffer* commandBuffer);
 
-LvnResult lvnImplVkAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
-LvnResult lvnImplVkResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
-LvnResult lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
+LvnResult   lvnImplVkAllocateDescriptorSets(const LvnGraphicsContext* graphicsctx, LvnDescriptorSet** pDescriptorSets, LvnDescriptorSetAllocateInfo* allocInfo);
+LvnResult   lvnImplVkResetDescriptorPool(const LvnGraphicsContext* graphicsctx, LvnDescriptorPool* descriptorPool);
+LvnResult   lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx, uint32_t descriptorWriteCount, const LvnDescriptorSetWriteInfo* pDescriptorWrites, uint32_t descriptorCopyCount, const LvnDescriptorSetCopyInfo* pDescriptorCopies);
 
-void      lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
-void      lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
+void        lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
+void        lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
 
-LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
-LvnResult lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
+LvnResult   lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
+LvnResult   lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 
-LvnResult lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);
-LvnResult lvnImplVkFenceReset(LvnFence* fence);
+LvnResult   lvnImplVkFenceWait(LvnFence* fence, uint64_t timeout);
+LvnResult   lvnImplVkFenceReset(LvnFence* fence);
 
-void      lvnImplVkBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
+void        lvnImplVkBufferUpdate(LvnBuffer* buffer, void* data, uint64_t size, uint64_t offset);
 
-void      lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
-void      lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
-void      lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo);
-void      lvnImplVkCmdEndRenderPass(LvnCommandBuffer* commandBuffer);
-void      lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
-void      lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
-void      lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
-void      lvnImplVkCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
-void      lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
-void      lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
-void      lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
-void      lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-LvnResult lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
-LvnResult lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
+void        lvnImplVkBeginCommandBuffer(LvnCommandBuffer* commandBuffer);
+void        lvnImplVkEndCommandBuffer(LvnCommandBuffer* commandBuffer);
+void        lvnImplVkCmdBeginRenderPass(LvnCommandBuffer* commandBuffer, LvnRenderPassBeginInfo* beginInfo);
+void        lvnImplVkCmdEndRenderPass(LvnCommandBuffer* commandBuffer);
+void        lvnImplVkCmdBindPipeline(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline);
+void        lvnImplVkCmdBindVertexBuffer(LvnCommandBuffer* commandBuffer, uint32_t firstBinding, uint32_t bindingCount, LvnBuffer** pBuffers, uint64_t* pOffsets);
+void        lvnImplVkCmdBindIndexBuffer(LvnCommandBuffer* commandBuffer, LvnBuffer* buffer, uint64_t offset);
+void        lvnImplVkCmdBindDescriptorSets(LvnCommandBuffer* commandBuffer, LvnPipeline* pipeline, uint32_t firstSet, uint32_t descriptorSetCount, LvnDescriptorSet* const* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
+void        lvnImplVkCmdSetViewport(LvnCommandBuffer* commandBuffer, const LvnViewport* viewport);
+void        lvnImplVkCmdSetScissor(LvnCommandBuffer* commandBuffer, const LvnRenderArea* scissor);
+void        lvnImplVkCmdDraw(LvnCommandBuffer* commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+void        lvnImplVkCmdDrawIndexed(LvnCommandBuffer* commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+LvnResult   lvnImplVkRenderSubmit(const LvnGraphicsContext* graphicsctx, const LvnSubmitInfo* pSubmits, uint32_t submitCount, LvnFence* fence);
+LvnResult   lvnImplVkRenderPresent(const LvnGraphicsContext* graphicsctx, const LvnPresentInfo* presentInfo);
 
 #endif // !HG_LVN_IMPL_VK_H

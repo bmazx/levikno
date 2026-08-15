@@ -33,6 +33,7 @@ static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx
     if (!createInfo->gctxFuncs)
         return Lvn_Result_Failure;
 
+    graphicsctx->implGetSurface = createInfo->gctxFuncs->getSurface;
     graphicsctx->implCreateSurface = createInfo->gctxFuncs->createSurface;
     graphicsctx->implDestroySurface = createInfo->gctxFuncs->destroySurface;
     graphicsctx->implCreateSwapchain = createInfo->gctxFuncs->createSwapchain;
@@ -247,6 +248,16 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
     LVN_LOG_TRACE(graphicsctx->coreLogger, "graphics context terminated: (%p)", graphicsctx);
 
     lvn_free(graphicsctx);
+}
+
+const LvnSurface* lvnGetSurface(const LvnGraphicsContext* graphicsctx)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+
+    if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
+        return graphicsctx->implGetSurface(graphicsctx);
+    else
+        return NULL;
 }
 
 LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo)

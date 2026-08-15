@@ -1211,7 +1211,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     const char** extensionNames = NULL;
     VkExtensionProperties* extensionProps = NULL;
     VkLayerProperties* availableLayers = NULL;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     LvnVulkanBackends* vkBackends = (LvnVulkanBackends*) lvn_calloc(sizeof(LvnVulkanBackends));
     graphicsctx->implData = vkBackends;
@@ -1544,16 +1543,21 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     // create surface
     if (graphicsctx->presentModeFlags & Lvn_PresentationModeFlag_Surface)
     {
-        if (lvn_createPlatformSurface(vkBackends, &surface, createInfo->platformData) != Lvn_Result_Success)
+        if (lvn_createPlatformSurface(vkBackends, &vkBackends->surface, createInfo->platformData) != Lvn_Result_Success)
         {
             LVN_LOG_ERROR(graphicsctx->coreLogger,
                           "[vulkan] failed to create temporary surface during vulkan init");
             goto fail_cleanup;
         }
+
+        vkBackends->defaultSurface = (LvnSurface){
+            .graphicsctx = graphicsctx,
+            .surfaceData = vkBackends->surface,
+        };
     }
 
-    // get default physical device without surface support
-    vkBackends->physicalDevice = lvn_getBestPhysicalDevice(vkBackends, surface);
+    // get default physical device
+    vkBackends->physicalDevice = lvn_getBestPhysicalDevice(vkBackends, vkBackends->surface);
 
     if (vkBackends->physicalDevice == VK_NULL_HANDLE)
     {
@@ -1574,7 +1578,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
                   deviceProperties.apiVersion);
 
     // create logical device
-    vkBackends->queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, surface);
+    vkBackends->queueFamilyIndices = lvn_findQueueFamilies(vkBackends, vkBackends->physicalDevice, vkBackends->surface);
     float queuePriority = 1.0f;
 
     VkDeviceQueueCreateInfo queueCreateInfo = {0};
@@ -1908,6 +1912,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
     // set vulkan implementation function pointers
+    graphicsctx->implGetSurface = lvnImplVkGetSurface;
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
     graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
     graphicsctx->implCreateSwapchain = lvnImplVkCreateSwapchain;
@@ -1962,7 +1967,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implRenderSubmit = lvnImplVkRenderSubmit;
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
 
-    vkBackends->vkDestroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1970,7 +1974,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     return Lvn_Result_Success;
 
 fail_cleanup:
-    vkBackends->vkDestroySurfaceKHR(vkBackends->instance, surface, NULL);
     lvn_free(extensionProps);
     lvn_free(extensionNames);
     lvn_free(availableLayers);
@@ -1994,6 +1997,8 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
         vkBackends->vkDestroyCommandPool(vkBackends->device, vkBackends->commandPool, NULL);
     if (vkBackends->device)
         vkBackends->vkDestroyDevice(vkBackends->device, NULL);
+    if (vkBackends->surface)
+        vkBackends->vkDestroySurfaceKHR(vkBackends->instance, vkBackends->surface, NULL);
     if (vkBackends->debugMessenger)
         vkBackends->vkDestroyDebugUtilsMessengerEXT(vkBackends->instance, vkBackends->debugMessenger, NULL);
     if (vkBackends->instance)
@@ -2006,19 +2011,21 @@ void lvnImplVkTerminate(LvnGraphicsContext* graphicsctx)
     graphicsctx->implData = NULL;
 }
 
+const LvnSurface* lvnImplVkGetSurface(const LvnGraphicsContext* graphicsctx)
+{
+    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+    return &vkBackends->defaultSurface;
+}
+
 LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
 
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
 
-    LvnPlatformData platformData = {
-        .ndh = createInfo->ndh,
-        .nwh = createInfo->nwh,
-    };
-
     VkSurfaceKHR vkSurface;
-    if (lvn_createPlatformSurface(vkBackends, &vkSurface, &platformData) != Lvn_Result_Success)
+    if (lvn_createPlatformSurface(vkBackends, &vkSurface, createInfo) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to create VkSurfaceKHR for surface %p", surface);
         return Lvn_Result_Failure;

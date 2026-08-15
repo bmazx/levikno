@@ -91,6 +91,7 @@ typedef struct LvnVulkanBackends
     bool                                             enableValidationLayers;
     VkInstance                                       instance;
     VkDebugUtilsMessengerEXT                         debugMessenger;
+    VkSurfaceKHR                                     surface;
     VkPhysicalDevice                                 physicalDevice;
     LvnVkQueueFamilyIndices                          queueFamilyIndices;
     VkDevice                                         device;
@@ -99,6 +100,8 @@ typedef struct LvnVulkanBackends
     VkCommandPool                                    commandPool;
     VmaAllocator                                     vmaAllocator;
     LvnMemoryArena                                   frameArena;
+
+    LvnSurface                                       defaultSurface;
 
     struct
     {
@@ -113,7 +116,6 @@ typedef struct LvnVulkanBackends
     } ext;
 
     void*                                            handle;
-
     PFN_vkGetInstanceProcAddr                        vkGetInstanceProcAddr;
     PFN_vkEnumerateInstanceVersion                   vkEnumerateInstanceVersion;
     PFN_vkEnumerateInstanceExtensionProperties       vkEnumerateInstanceExtensionProperties;
