@@ -209,6 +209,65 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
         goto fail_cleanup;
     }
 
+    if (!gctxPtr->implGetSurface ||
+        !gctxPtr->implCreateSurface ||
+        !gctxPtr->implDestroySurface ||
+        !gctxPtr->implCreateSwapchain ||
+        !gctxPtr->implDestroySwapchain ||
+        !gctxPtr->implCreateRenderPass ||
+        !gctxPtr->implDestroyRenderPass ||
+        !gctxPtr->implCreateFramebuffer ||
+        !gctxPtr->implDestroyFramebuffer ||
+        !gctxPtr->implCreateShader ||
+        !gctxPtr->implDestroyShader ||
+        !gctxPtr->implCreateDescriptorLayout ||
+        !gctxPtr->implDestroyDescriptorLayout ||
+        !gctxPtr->implCreateDescriptorPool ||
+        !gctxPtr->implDestroyDescriptorPool ||
+        !gctxPtr->implCreatePipeline ||
+        !gctxPtr->implDestroyPipeline ||
+        !gctxPtr->implCreateFence ||
+        !gctxPtr->implDestroyFence ||
+        !gctxPtr->implCreateSemaphore ||
+        !gctxPtr->implDestroySemaphore ||
+        !gctxPtr->implCreateBuffer ||
+        !gctxPtr->implDestroyBuffer ||
+        !gctxPtr->implCreateSampler ||
+        !gctxPtr->implDestroySampler ||
+        !gctxPtr->implCreateTexture ||
+        !gctxPtr->implDestroyTexture ||
+        !gctxPtr->implCreateCommandBuffer ||
+        !gctxPtr->implDestroyCommandBuffer ||
+        !gctxPtr->implAllocateDescriptorSets ||
+        !gctxPtr->implResetDescriptorPool ||
+        !gctxPtr->implUpdateDescriptorSets ||
+        !gctxPtr->implSurfaceGetSupportedFormats ||
+        !gctxPtr->implSurfaceGetSupportedPresentModes ||
+        !gctxPtr->implSwapchainResize ||
+        !gctxPtr->implSwapchainAcquireNextImage ||
+        !gctxPtr->implFenceWait ||
+        !gctxPtr->implFenceReset ||
+        !gctxPtr->implBufferUpdate ||
+        !gctxPtr->implBeginCommandBuffer ||
+        !gctxPtr->implEndCommandBuffer ||
+        !gctxPtr->implCmdBeginRenderPass ||
+        !gctxPtr->implCmdEndRenderPass ||
+        !gctxPtr->implCmdBindPipeline ||
+        !gctxPtr->implCmdBindVertexBuffer ||
+        !gctxPtr->implCmdBindIndexBuffer ||
+        !gctxPtr->implCmdBindDescriptorSets ||
+        !gctxPtr->implCmdSetViewport ||
+        !gctxPtr->implCmdSetScissor ||
+        !gctxPtr->implCmdDraw ||
+        !gctxPtr->implCmdDrawIndexed ||
+        !gctxPtr->implRenderSubmit ||
+        !gctxPtr->implRenderPresent)
+    {
+        LVN_LOG_ERROR(gctxPtr->coreLogger,
+                      "failed to create graphics context, failed to load graphics api impl function symbols");
+        goto fail_cleanup;
+    }
+
     LVN_LOG_TRACE(gctxPtr->coreLogger,
                   "graphics context created: (%p), graphics api: %s",
                   *graphicsctx,
