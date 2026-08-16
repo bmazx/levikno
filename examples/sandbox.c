@@ -476,7 +476,7 @@ int main(int argc, char** argv)
     LvnLoadImageInfo loadImageInfo = {
         .filepath = "res/images/debug.png",
         .forceChannels = 4,
-        .flipVertically = false,
+        .flipVertically = true,
     };
 
     LvnImage image = lvnLoadImage(&loadImageInfo);
@@ -548,15 +548,19 @@ int main(int argc, char** argv)
 
         // uniform buffer
         LvnMat4 proj;
-        lvn_orthoRHZO(proj, -aspect, aspect, -1.0f, 1.0f, -1.0f, 1.0f);
+        lvn_perspectiveRHZO(proj, lvn_rad(60.0f), aspect, 0.01f, 1000.0f);
+        proj[1][1] *= -1;
+        LvnMat4 view;
+        lvn_lookAtRH(view, (LvnVec3){0.0f, 2.0f, 2.0f}, (LvnVec3){0.0f, 0.0f, 0.0f}, (LvnVec3){0.0f, 1.0f, 0.0f});
         LvnMat4 model;
         lvn_mat4_identity(model);
-        lvn_translate(model, (LvnVec3){1.0f * sin(currTime), 0.0f, 0.0f});
-        lvn_rotate(model, lvn_rad(currTime * 20), (LvnVec3){0.0f, 0.0f, 1.0f});
-        lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
+        // lvn_translate(model, (LvnVec3){1.0f * sin(currTime), 0.0f, 0.0f});
+        lvn_rotate(model, lvn_rad(currTime * 20), (LvnVec3){0.0f, 1.0f, 0.0f});
+        // lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
 
-        LvnMat4 camera;
-        lvn_mat4_mult(proj, model, camera);
+        LvnMat4 camera, temp;
+        lvn_mat4_mult(view, model, temp);
+        lvn_mat4_mult(proj, temp, camera);
 
         lvn_mat4_copy(camera, uboData.matrix);
         lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);

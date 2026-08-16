@@ -2128,14 +2128,23 @@ void lvn_normalize2(LvnVec2 v);
 void lvn_normalize3(LvnVec3 v);
 void lvn_normalize4(LvnVec4 v);
 
+void lvn_translate(LvnMat4 m, const LvnVec3 v);
+void lvn_scale(LvnMat4 m, const LvnVec3 v);
+void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis);
+
 void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 
-void lvn_translate(LvnMat4 m, const LvnVec3 v);
-void lvn_scale(LvnMat4 m, const LvnVec3 v);
-void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis);
+void lvn_perspectiveRHZO(LvnMat4 m, float fovy, float aspect, float near, float far);
+void lvn_perspectiveRHNO(LvnMat4 m, float fovy, float aspect, float near, float far);
+void lvn_perspectiveLHZO(LvnMat4 m, float fovy, float aspect, float near, float far);
+void lvn_perspectiveLHNO(LvnMat4 m, float fovy, float aspect, float near, float far);
+
+void lvn_lookAtRH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up);
+void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up);
+
 
 #ifdef LVN_GMATH_IMPL
 
@@ -2416,50 +2425,6 @@ void lvn_normalize4(LvnVec4 v) {
     v[3] *= u;
 }
 
-void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
-    memset(m, 0, sizeof(LvnMat4));
-    m[0][0] =  (float)(2) / (right - left);
-    m[1][1] =  (float)(2) / (top - bottom);
-    m[2][2] = -(float)(1) / (far - near);
-    m[3][0] = -(right + left) / (right - left);
-    m[3][1] = -(top + bottom) / (top - bottom);
-    m[3][2] = -near / (far - near);
-    m[3][3] =  (float)(1);
-}
-
-void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
-    memset(m, 0, sizeof(LvnMat4));
-    m[0][0] =  (float)(2) / (right - left);
-    m[1][1] =  (float)(2) / (top - bottom);
-    m[2][2] = -(float)(2) / (far - near);
-    m[3][0] = -(right + left) / (right - left);
-    m[3][1] = -(top + bottom) / (top - bottom);
-    m[3][2] = -(far + near) / (far - near);
-    m[3][3] =  (float)(1);
-}
-
-void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
-    memset(m, 0, sizeof(LvnMat4));
-    m[0][0] = (float)(2) / (right - left);
-    m[1][1] = (float)(2) / (top - bottom);
-    m[2][2] = (float)(1) / (far - near);
-    m[3][0] = -(right + left) / (right - left);
-    m[3][1] = -(top + bottom) / (top - bottom);
-    m[3][2] = -near / (far - near);
-    m[3][3] =  (float)(1);
-}
-
-void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
-    memset(m, 0, sizeof(LvnMat4));
-    m[0][0] = (float)(2) / (right - left);
-    m[1][1] = (float)(2) / (top - bottom);
-    m[2][2] = (float)(2) / (far - near);
-    m[3][0] = -(right + left) / (right - left);
-    m[3][1] = -(top + bottom) / (top - bottom);
-    m[3][2] = -(far + near) / (far - near);
-    m[3][3] =  (float)(1);
-}
-
 void lvn_translate(LvnMat4 m, const LvnVec3 v) {
     LvnMat4 translate;
     lvn_mat4_identity(translate);
@@ -2512,6 +2477,144 @@ void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis) {
     LvnMat4 temp;
     lvn_mat4_copy(m, temp);
     lvn_mat4_mult(temp, rotate, m);
+}
+
+void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] =  (float)(2) / (right - left);
+    m[1][1] =  (float)(2) / (top - bottom);
+    m[2][2] = -(float)(1) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -near / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] =  (float)(2) / (right - left);
+    m[1][1] =  (float)(2) / (top - bottom);
+    m[2][2] = -(float)(2) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -(far + near) / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] = (float)(2) / (right - left);
+    m[1][1] = (float)(2) / (top - bottom);
+    m[2][2] = (float)(1) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -near / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    m[0][0] = (float)(2) / (right - left);
+    m[1][1] = (float)(2) / (top - bottom);
+    m[2][2] = (float)(2) / (far - near);
+    m[3][0] = -(right + left) / (right - left);
+    m[3][1] = -(top + bottom) / (top - bottom);
+    m[3][2] = -(far + near) / (far - near);
+    m[3][3] =  (float)(1);
+}
+
+void lvn_perspectiveRHZO(LvnMat4 m, float fovy, float aspect, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    const float tanHalfFov = (float)tan(fovy / (float)2);
+    m[0][0] = (float)(1) / (aspect * tanHalfFov);
+    m[1][1] = (float)(1) / (tanHalfFov);
+    m[2][2] = far / (near - far);
+    m[2][3] = -(float)(1);
+    m[3][2] = -(far * near) / (far - near);
+}
+
+void lvn_perspectiveRHNO(LvnMat4 m, float fovy, float aspect, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    const float tanHalfFov = (float)tan(fovy / (float)2);
+    m[0][0] = (float)(1) / (aspect * tanHalfFov);
+    m[1][1] = (float)(1) / (tanHalfFov);
+    m[2][2] = -(far + near) / (far - near);
+    m[2][3] = -(float)(1);
+    m[3][2] = -((float)(2) * far * near) / (far - near);
+}
+
+void lvn_perspectiveLHZO(LvnMat4 m, float fovy, float aspect, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    const float tanHalfFov = (float)tan(fovy / (float)2);
+    m[0][0] = (float)(1) / (aspect * tanHalfFov);
+    m[1][1] = (float)(1) / (tanHalfFov);
+    m[2][2] = far / (far - near);
+    m[2][3] = (float)(1);
+    m[3][2] = -(far * near) / (far - near);
+}
+
+void lvn_perspectiveLHNO(LvnMat4 m, float fovy, float aspect, float near, float far) {
+    memset(m, 0, sizeof(LvnMat4));
+    const float tanHalfFov = (float)tan(fovy / (float)2);
+    m[0][0] = (float)(1) / (aspect * tanHalfFov);
+    m[1][1] = (float)(1) / (tanHalfFov);
+    m[2][2] = (far + near) / (far - near);
+    m[2][3] = (float)(1);
+    m[3][2] = -((float)(2) * far * near) / (far - near);
+}
+
+void lvn_lookAtRH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up) {
+    LvnVec3 f;
+    lvn_vec3_sub((LvnVec3){center[0],center[1],center[2]}, (LvnVec3){eye[0],eye[1],eye[2]}, f);
+    lvn_normalize3(f);
+
+    LvnVec3 s;
+    lvn_vec3_f_cross(f, (LvnVec3){up[0],up[1],up[2]}, s);
+    lvn_normalize3(s);
+
+    LvnVec3 u;
+    lvn_vec3_f_cross(s, f, u);
+
+    lvn_mat4_identity(m);
+    m[0][0] =  s[0];
+    m[1][0] =  s[1];
+    m[2][0] =  s[2];
+    m[0][1] =  u[0];
+    m[1][1] =  u[1];
+    m[2][1] =  u[2];
+    m[0][2] = -f[0];
+    m[1][2] = -f[1];
+    m[2][2] = -f[2];
+    m[3][0] = -lvn_vec3_dot(s, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][1] = -lvn_vec3_dot(u, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][2] =  lvn_vec3_dot(f, (LvnVec3){eye[0],eye[1],eye[2]});
+}
+
+void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up) {
+    LvnVec3 f;
+    lvn_vec3_sub((LvnVec3){center[0],center[1],center[2]}, (LvnVec3){eye[0],eye[1],eye[2]}, f);
+    lvn_normalize3(f);
+
+    LvnVec3 s;
+    lvn_vec3_f_cross((LvnVec3){up[0],up[1],up[2]}, f, s);
+    lvn_normalize3(s);
+
+    LvnVec3 u;
+    lvn_vec3_f_cross(f, s, u);
+
+    lvn_mat4_identity(m);
+    m[0][0] =  s[0];
+    m[1][0] =  s[1];
+    m[2][0] =  s[2];
+    m[0][1] =  u[0];
+    m[1][1] =  u[1];
+    m[2][1] =  u[2];
+    m[0][2] = -f[0];
+    m[1][2] = -f[1];
+    m[2][2] = -f[2];
+    m[3][0] = -lvn_vec3_dot(s, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][1] = -lvn_vec3_dot(u, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][2] = -lvn_vec3_dot(f, (LvnVec3){eye[0],eye[1],eye[2]});
 }
 
 #endif // LVN_GMATH_IMPL
