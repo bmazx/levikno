@@ -1861,7 +1861,7 @@ void lvn_mat##n##i_divsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst
 void lvn_mat##n##ui(uint32_t* v, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32(v, dst); }                               \
 void lvn_mat##n##ui_zero(LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_zero(dst); }                                     \
 void lvn_mat##n##ui_identity(LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_identity(dst); }                             \
-void lvn_mat##n##ui_copy(LvnMat##n##x##n##ui src, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_copy(src, src); }       \
+void lvn_mat##n##ui_copy(LvnMat##n##x##n##ui src, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_copy(src, dst); }       \
 void lvn_mat##n##ui_inv(LvnMat##n##x##n##ui mat, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_inv(mat, dst); }         \
 void lvn_mat##n##ui_transpose_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_transpose_to(m, dst); }\
 void lvn_mat##n##ui_transpose(LvnMat##n##x##n##ui m) { lvn_mat##n##_ui32_transpose(m); }                               \
@@ -2119,10 +2119,23 @@ LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(4)
 LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(4)
 #endif
 
+float lvn_radians(float deg);
+float lvn_degrees(float rad);
+float lvn_rad(float deg);
+float lvn_deg(float rad);
+
+void lvn_normalize2(LvnVec2 v);
+void lvn_normalize3(LvnVec3 v);
+void lvn_normalize4(LvnVec4 v);
+
 void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoRHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoLHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
 void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far);
+
+void lvn_translate(LvnMat4 m, const LvnVec3 v);
+void lvn_scale(LvnMat4 m, const LvnVec3 v);
+void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis);
 
 #ifdef LVN_GMATH_IMPL
 
@@ -2366,6 +2379,43 @@ LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(4)
 LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(4)
 #endif
 
+float lvn_radians(float deg) {
+    return lvn_rad(deg);
+}
+
+float lvn_degrees(float rad) {
+    return lvn_deg(rad);
+}
+
+float lvn_rad(float deg) {
+    return deg * 0.0174532925199f;
+}
+
+float lvn_deg(float rad) {
+    return rad * 57.2957795131f;
+}
+
+void lvn_normalize2(LvnVec2 v) {
+    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1]);
+    v[0] *= u;
+    v[1] *= u;
+}
+
+void lvn_normalize3(LvnVec3 v) {
+    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    v[0] *= u;
+    v[1] *= u;
+    v[2] *= u;
+}
+
+void lvn_normalize4(LvnVec4 v) {
+    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+    v[0] *= u;
+    v[1] *= u;
+    v[2] *= u;
+    v[3] *= u;
+}
+
 void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
     memset(m, 0, sizeof(LvnMat4));
     m[0][0] =  (float)(2) / (right - left);
@@ -2410,6 +2460,59 @@ void lvn_orthoLHNO(LvnMat4 m, float left, float right, float bottom, float top, 
     m[3][3] =  (float)(1);
 }
 
+void lvn_translate(LvnMat4 m, const LvnVec3 v) {
+    LvnMat4 translate;
+    lvn_mat4_identity(translate);
+
+    translate[3][0] = v[0];
+    translate[3][1] = v[1];
+    translate[3][2] = v[2];
+
+    LvnMat4 temp;
+    lvn_mat4_copy(m, temp);
+    lvn_mat4_mult(temp, translate, m);
+}
+
+void lvn_scale(LvnMat4 m, const LvnVec3 v) {
+    LvnMat4 scale;
+    lvn_mat4_identity(scale);
+
+    scale[0][0] = v[0];
+    scale[1][1] = v[1];
+    scale[2][2] = v[2];
+
+    LvnMat4 temp;
+    lvn_mat4_copy(m, temp);
+    lvn_mat4_mult(temp, scale, m);
+}
+
+void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis) {
+    const float c = cos(angle);
+    const float s = sin(angle);
+    const float nc = (float)(1) - cos(angle);
+
+    LvnVec3 a = { axis[0], axis[1], axis[2] };
+    lvn_normalize3(a);
+
+    LvnMat4 rotate;
+    lvn_mat4_identity(rotate);
+
+    rotate[0][0] = c + a[0] * a[0] * nc;
+    rotate[0][1] = a[0] * a[1] * nc + a[2] * s;
+    rotate[0][2] = a[0] * a[2] * nc - a[1] * s;
+
+    rotate[1][0] = a[0] * a[1] * nc - a[2] * s;
+    rotate[1][1] = c + a[1] * a[1] * nc;
+    rotate[1][2] = a[1] * a[2] * nc + a[0] * s;
+
+    rotate[2][0] = a[0] * a[2] * nc + a[1] * s;
+    rotate[2][1] = a[1] * a[2] * nc - a[0] * s;
+    rotate[2][2] = c + a[2] * a[2] * nc;
+
+    LvnMat4 temp;
+    lvn_mat4_copy(m, temp);
+    lvn_mat4_mult(temp, rotate, m);
+}
 
 #endif // LVN_GMATH_IMPL
 

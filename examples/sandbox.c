@@ -549,10 +549,14 @@ int main(int argc, char** argv)
         // uniform buffer
         LvnMat4 proj;
         lvn_orthoRHZO(proj, -aspect, aspect, -1.0f, 1.0f, -1.0f, 1.0f);
-        LvnMat4 view;
-        lvn_mat4_identity(view);
+        LvnMat4 model;
+        lvn_mat4_identity(model);
+        lvn_translate(model, (LvnVec3){1.0f * sin(currTime), 0.0f, 0.0f});
+        lvn_rotate(model, lvn_rad(currTime * 20), (LvnVec3){0.0f, 0.0f, 1.0f});
+        lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
+
         LvnMat4 camera;
-        lvn_mat4_mult(proj, view, camera);
+        lvn_mat4_mult(proj, model, camera);
 
         lvn_mat4_copy(camera, uboData.matrix);
         lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);
