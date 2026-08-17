@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     printMat2(mat2b);
 
     LvnMat2 mat2c;
-    lvn_mat2_mult(mat2a, mat2b, mat2c);
+    lvn_mat2_mul(mat2a, mat2b, mat2c);
 
     printMat2(mat2c);
 

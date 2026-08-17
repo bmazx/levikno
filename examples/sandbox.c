@@ -247,6 +247,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    glfwSetWindowSizeLimits(window, 400, 300, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
     WindowData winData = {0};
     glfwSetWindowUserPointer(window, &winData);
 
@@ -609,8 +611,8 @@ int main(int argc, char** argv)
         // lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
 
         LvnMat4 camera, temp;
-        lvn_mat4_mult(view, model, temp);
-        lvn_mat4_mult(proj, temp, camera);
+        lvn_mat4_mul(view, model, temp);
+        lvn_mat4_mul(proj, temp, camera);
 
         lvn_mat4_copy(camera, uboData.matrix);
         lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);

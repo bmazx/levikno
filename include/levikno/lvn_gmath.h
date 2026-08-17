@@ -173,19 +173,19 @@ void lvn_vec2_##t##_negate(LvnVec2_##t v);                                      
 void lvn_vec2_##t##_negate_to(LvnVec2_##t v, LvnVec2_##t dst);                                                         \
 void lvn_vec2_##t##_add(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_sub(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst);                                              \
-void lvn_vec2_##t##_mult(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst);                                             \
+void lvn_vec2_##t##_mul(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_div(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_addvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_subvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst);                                              \
-void lvn_vec2_##t##_multvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst);                                             \
+void lvn_vec2_##t##_mulvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_divvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_addsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_subsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst);                                              \
-void lvn_vec2_##t##_multsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst);                                             \
+void lvn_vec2_##t##_mulsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_divsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst);                                              \
 void lvn_vec2_##t##_addpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
 void lvn_vec2_##t##_subpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
-void lvn_vec2_##t##_multpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                        \
+void lvn_vec2_##t##_mulpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
 void lvn_vec2_##t##_divpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst);                                         \
 LvnType_##t lvn_vec2_##t##_dot(LvnVec2_##t v1, LvnVec2_##t v2);
 
@@ -199,19 +199,19 @@ void lvn_vec3_##t##_negate(LvnVec3_##t v);                                      
 void lvn_vec3_##t##_negate_to(LvnVec3_##t v, LvnVec3_##t dst);                                                         \
 void lvn_vec3_##t##_add(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_sub(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                              \
-void lvn_vec3_##t##_mult(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                             \
+void lvn_vec3_##t##_mul(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_div(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_addvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_subvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst);                                              \
-void lvn_vec3_##t##_multvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst);                                             \
+void lvn_vec3_##t##_mulvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_divvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_addsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_subsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst);                                              \
-void lvn_vec3_##t##_multsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst);                                             \
+void lvn_vec3_##t##_mulsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_divsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst);                                              \
 void lvn_vec3_##t##_addpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                         \
 void lvn_vec3_##t##_subpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                         \
-void lvn_vec3_##t##_multpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                        \
+void lvn_vec3_##t##_mulpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                         \
 void lvn_vec3_##t##_divpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst);                                         \
 void lvn_vec3_##t##_cross(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst);                                            \
 LvnType_##t lvn_vec3_##t##_dot(LvnVec3_##t v1, LvnVec3_##t v2);
@@ -226,19 +226,19 @@ void lvn_vec4_##t##_negate(LvnVec4_##t v);                                      
 void lvn_vec4_##t##_negate_to(LvnVec4_##t v, LvnVec4_##t dst);                                                         \
 void lvn_vec4_##t##_add(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_sub(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst);                                              \
-void lvn_vec4_##t##_mult(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst);                                             \
+void lvn_vec4_##t##_mul(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_div(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_addvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_subvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst);                                              \
-void lvn_vec4_##t##_multvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst);                                             \
+void lvn_vec4_##t##_mulvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_divvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_addsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_subsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst);                                              \
-void lvn_vec4_##t##_multsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst);                                             \
+void lvn_vec4_##t##_mulsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_divsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst);                                              \
 void lvn_vec4_##t##_addpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
 void lvn_vec4_##t##_subpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
-void lvn_vec4_##t##_multpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                        \
+void lvn_vec4_##t##_mulpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
 void lvn_vec4_##t##_divpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst);                                         \
 LvnType_##t lvn_vec4_##t##_dot(LvnVec4_##t v1, LvnVec4_##t v2);
 
@@ -254,16 +254,16 @@ void lvn_mat2_##t##_negate_to(LvnMat2x2_##t m, LvnMat2x2_##t dst);              
 void lvn_mat2_##t##_negate(LvnMat2x2_##t m);                                                                           \
 void lvn_mat2_##t##_add(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
 void lvn_mat2_##t##_sub(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
-void lvn_mat2_##t##_mult(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                       \
-void lvn_mat2_##t##_multmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst);                                           \
-void lvn_mat2_##t##_multvm(LvnVec2_##t v, LvnMat2x2_##t m, LvnVec2_##t dst);                                           \
+void lvn_mat2_##t##_mul(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
+void lvn_mat2_##t##_mulmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst);                                            \
+void lvn_mat2_##t##_mulvm(LvnVec2_##t v, LvnMat2x2_##t m, LvnVec2_##t dst);                                            \
 void lvn_mat2_##t##_addms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                          \
 void lvn_mat2_##t##_subms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                          \
-void lvn_mat2_##t##_multms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                         \
+void lvn_mat2_##t##_mulms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                          \
 void lvn_mat2_##t##_divms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                          \
 void lvn_mat2_##t##_addsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst);                                          \
 void lvn_mat2_##t##_subsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst);                                          \
-void lvn_mat2_##t##_multsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst);                                         \
+void lvn_mat2_##t##_mulsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst);                                          \
 void lvn_mat2_##t##_divsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst);
 
 #define LVN_DEFINE_MAT3_TYPE_MATH_DECL(t)                                                                              \
@@ -278,16 +278,16 @@ void lvn_mat3_##t##_negate_to(LvnMat3x3_##t m, LvnMat3x3_##t dst);              
 void lvn_mat3_##t##_negate(LvnMat3x3_##t m);                                                                           \
 void lvn_mat3_##t##_add(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
 void lvn_mat3_##t##_sub(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
-void lvn_mat3_##t##_mult(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                       \
-void lvn_mat3_##t##_multmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst);                                           \
-void lvn_mat3_##t##_multvm(LvnVec3_##t v, LvnMat3x3_##t m, LvnVec3_##t dst);                                           \
+void lvn_mat3_##t##_mul(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
+void lvn_mat3_##t##_mulmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst);                                            \
+void lvn_mat3_##t##_mulvm(LvnVec3_##t v, LvnMat3x3_##t m, LvnVec3_##t dst);                                            \
 void lvn_mat3_##t##_addms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                          \
 void lvn_mat3_##t##_subms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                          \
-void lvn_mat3_##t##_multms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                         \
+void lvn_mat3_##t##_mulms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                          \
 void lvn_mat3_##t##_divms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                          \
 void lvn_mat3_##t##_addsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst);                                          \
 void lvn_mat3_##t##_subsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst);                                          \
-void lvn_mat3_##t##_multsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst);                                         \
+void lvn_mat3_##t##_mulsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst);                                          \
 void lvn_mat3_##t##_divsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst);
 
 #define LVN_DEFINE_MAT4_TYPE_MATH_DECL(t)                                                                              \
@@ -302,16 +302,16 @@ void lvn_mat4_##t##_negate_to(LvnMat4x4_##t m, LvnMat4x4_##t dst);              
 void lvn_mat4_##t##_negate(LvnMat4x4_##t m);                                                                           \
 void lvn_mat4_##t##_add(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
 void lvn_mat4_##t##_sub(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
-void lvn_mat4_##t##_mult(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                       \
-void lvn_mat4_##t##_multmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst);                                           \
-void lvn_mat4_##t##_multvm(LvnVec4_##t v, LvnMat4x4_##t m, LvnVec4_##t dst);                                           \
+void lvn_mat4_##t##_mul(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
+void lvn_mat4_##t##_mulmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst);                                            \
+void lvn_mat4_##t##_mulvm(LvnVec4_##t v, LvnMat4x4_##t m, LvnVec4_##t dst);                                            \
 void lvn_mat4_##t##_addms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                          \
 void lvn_mat4_##t##_subms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                          \
-void lvn_mat4_##t##_multms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                         \
+void lvn_mat4_##t##_mulms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                          \
 void lvn_mat4_##t##_divms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                          \
 void lvn_mat4_##t##_addsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst);                                          \
 void lvn_mat4_##t##_subsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst);                                          \
-void lvn_mat4_##t##_multsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst);                                         \
+void lvn_mat4_##t##_mulsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst);                                          \
 void lvn_mat4_##t##_divsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst);
 
 #define LVN_DEFINE_VEC_F_TYPE_MATH_DECL(n)                                                                             \
@@ -324,19 +324,19 @@ void lvn_vec##n##_negate(LvnVec##n v);                                          
 void lvn_vec##n##_negate_to(LvnVec##n v, LvnVec##n dst);                                                               \
 void lvn_vec##n##_add(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst);                                                      \
 void lvn_vec##n##_sub(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst);                                                      \
-void lvn_vec##n##_mult(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst);                                                     \
+void lvn_vec##n##_mul(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst);                                                      \
 void lvn_vec##n##_div(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst);                                                      \
 void lvn_vec##n##_addvs(LvnVec##n v, float s, LvnVec##n dst);                                                          \
 void lvn_vec##n##_subvs(LvnVec##n v, float s, LvnVec##n dst);                                                          \
-void lvn_vec##n##_multvs(LvnVec##n v, float s, LvnVec##n dst);                                                         \
+void lvn_vec##n##_mulvs(LvnVec##n v, float s, LvnVec##n dst);                                                          \
 void lvn_vec##n##_divvs(LvnVec##n v, float s, LvnVec##n dst);                                                          \
 void lvn_vec##n##_addsv(float s, LvnVec##n v, LvnVec##n dst);                                                          \
 void lvn_vec##n##_subsv(float s, LvnVec##n v, LvnVec##n dst);                                                          \
-void lvn_vec##n##_multsv(float s, LvnVec##n v, LvnVec##n dst);                                                         \
+void lvn_vec##n##_mulsv(float s, LvnVec##n v, LvnVec##n dst);                                                          \
 void lvn_vec##n##_divsv(float s, LvnVec##n v, LvnVec##n dst);                                                          \
 void lvn_vec##n##_addpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst);                                               \
 void lvn_vec##n##_subpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst);                                               \
-void lvn_vec##n##_multpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst);                                              \
+void lvn_vec##n##_mulpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst);                                               \
 void lvn_vec##n##_divpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst);                                               \
 float lvn_vec##n##_mag(LvnVec##n v);                                                                                   \
 float lvn_vec##n##_mag2(LvnVec##n v);                                                                                  \
@@ -352,19 +352,19 @@ void lvn_vec##n##i_negate(LvnVec##n##i v);                                      
 void lvn_vec##n##i_negate_to(LvnVec##n##i v, LvnVec##n##i dst);                                                        \
 void lvn_vec##n##i_add(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
 void lvn_vec##n##i_sub(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
-void lvn_vec##n##i_mult(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                           \
+void lvn_vec##n##i_mul(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
 void lvn_vec##n##i_div(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
 void lvn_vec##n##i_addvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_subvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_multvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                \
+void lvn_vec##n##i_mulvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_divvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_addsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_subsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_multsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                \
+void lvn_vec##n##i_mulsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_divsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
 void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
 void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-void lvn_vec##n##i_multpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                       \
+void lvn_vec##n##i_mulpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
 void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
 int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2);                                                           \
 
@@ -378,19 +378,19 @@ void lvn_vec##n##ui_negate(LvnVec##n##ui v);                                    
 void lvn_vec##n##ui_negate_to(LvnVec##n##ui v, LvnVec##n##ui dst);                                                     \
 void lvn_vec##n##ui_add(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
 void lvn_vec##n##ui_sub(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
-void lvn_vec##n##ui_mult(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                       \
+void lvn_vec##n##ui_mul(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
 void lvn_vec##n##ui_div(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
 void lvn_vec##n##ui_addvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_subvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_multvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                            \
+void lvn_vec##n##ui_mulvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_divvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_addsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_subsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_multsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                            \
+void lvn_vec##n##ui_mulsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_divsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
 void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
 void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-void lvn_vec##n##ui_multpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                    \
+void lvn_vec##n##ui_mulpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
 void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
 uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2);                                                       \
 
@@ -406,16 +406,16 @@ void lvn_mat##n##_negate_to(LvnMat##n##x##n m, LvnMat##n##x##n dst);            
 void lvn_mat##n##_negate(LvnMat##n##x##n m);                                                                           \
 void lvn_mat##n##_add(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
 void lvn_mat##n##_sub(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
-void lvn_mat##n##_mult(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                   \
-void lvn_mat##n##_multmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst);                                               \
-void lvn_mat##n##_multvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst);                                               \
+void lvn_mat##n##_mul(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
+void lvn_mat##n##_mulmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst);                                                \
+void lvn_mat##n##_mulvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst);                                                \
 void lvn_mat##n##_addms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_subms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                              \
-void lvn_mat##n##_multms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                             \
+void lvn_mat##n##_mulms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_divms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_addsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_subsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                              \
-void lvn_mat##n##_multsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                             \
+void lvn_mat##n##_mulsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_divsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);
 
 #define LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(n)                                                                           \
@@ -430,16 +430,16 @@ void lvn_mat##n##i_negate_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);     
 void lvn_mat##n##i_negate(LvnMat##n##x##n##i m);                                                                       \
 void lvn_mat##n##i_add(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
 void lvn_mat##n##i_sub(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
-void lvn_mat##n##i_mult(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                         \
-void lvn_mat##n##i_multmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst);                                     \
-void lvn_mat##n##i_multvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst);                                     \
+void lvn_mat##n##i_mul(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
+void lvn_mat##n##i_mulmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst);                                      \
+void lvn_mat##n##i_mulvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst);                                      \
 void lvn_mat##n##i_addms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
 void lvn_mat##n##i_subms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_multms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                    \
+void lvn_mat##n##i_mulms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
 void lvn_mat##n##i_divms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
 void lvn_mat##n##i_addsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
 void lvn_mat##n##i_subsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_multsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                    \
+void lvn_mat##n##i_mulsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
 void lvn_mat##n##i_divsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);
 
 #define LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(n)                                                                          \
@@ -454,16 +454,16 @@ void lvn_mat##n##ui_negate_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);  
 void lvn_mat##n##ui_negate(LvnMat##n##x##n##ui m);                                                                     \
 void lvn_mat##n##ui_add(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
 void lvn_mat##n##ui_sub(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
-void lvn_mat##n##ui_mult(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                     \
-void lvn_mat##n##ui_multmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst);                                 \
-void lvn_mat##n##ui_multvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst);                                 \
+void lvn_mat##n##ui_mul(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
+void lvn_mat##n##ui_mulmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst);                                  \
+void lvn_mat##n##ui_mulvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst);                                  \
 void lvn_mat##n##ui_addms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
 void lvn_mat##n##ui_subms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_multms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                \
+void lvn_mat##n##ui_mulms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
 void lvn_mat##n##ui_divms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
 void lvn_mat##n##ui_addsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
 void lvn_mat##n##ui_subsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_multsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                \
+void lvn_mat##n##ui_mulsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
 void lvn_mat##n##ui_divsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);
 
 
@@ -505,7 +505,7 @@ void lvn_vec2_##t##_sub(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst) {      
     dst[0] = v1[0] - v2[0];                                                                                            \
     dst[1] = v1[1] - v2[1];                                                                                            \
 }                                                                                                                      \
-void lvn_vec2_##t##_mult(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst) {                                            \
+void lvn_vec2_##t##_mul(LvnVec2_##t v1, LvnVec2_##t v2, LvnVec2_##t dst) {                                             \
     dst[0] = v1[0] * v2[0];                                                                                            \
     dst[1] = v1[1] * v2[1];                                                                                            \
 }                                                                                                                      \
@@ -521,7 +521,7 @@ void lvn_vec2_##t##_subvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst) {      
     dst[0] = v[0] - s;                                                                                                 \
     dst[1] = v[1] - s;                                                                                                 \
 }                                                                                                                      \
-void lvn_vec2_##t##_multvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst) {                                            \
+void lvn_vec2_##t##_mulvs(LvnVec2_##t v, LvnType_##t s, LvnVec2_##t dst) {                                             \
     dst[0] = v[0] * s;                                                                                                 \
     dst[1] = v[1] * s;                                                                                                 \
 }                                                                                                                      \
@@ -537,7 +537,7 @@ void lvn_vec2_##t##_subsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst) {      
     dst[0] = s - v[0];                                                                                                 \
     dst[1] = s - v[1];                                                                                                 \
 }                                                                                                                      \
-void lvn_vec2_##t##_multsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst) {                                            \
+void lvn_vec2_##t##_mulsv(LvnType_##t s, LvnVec2_##t v, LvnVec2_##t dst) {                                             \
     dst[0] = s * v[0];                                                                                                 \
     dst[1] = s * v[1];                                                                                                 \
 }                                                                                                                      \
@@ -563,7 +563,7 @@ void lvn_vec2_##t##_subpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst) { 
         dst[1] -= (*(pv[i]))[1];                                                                                       \
     }                                                                                                                  \
 }                                                                                                                      \
-void lvn_vec2_##t##_multpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst) {                                       \
+void lvn_vec2_##t##_mulpv(LvnVec2_##t* pv[], uint32_t count, LvnVec2_##t dst) {                                        \
     if (!count) { return; }                                                                                            \
     dst[0] = (*(pv[0]))[0];                                                                                            \
     dst[1] = (*(pv[0]))[1];                                                                                            \
@@ -637,7 +637,7 @@ void lvn_vec3_##t##_sub(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst) {      
     dst[1] = v1[1] - v2[1];                                                                                            \
     dst[2] = v1[2] - v2[2];                                                                                            \
 }                                                                                                                      \
-void lvn_vec3_##t##_mult(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst) {                                            \
+void lvn_vec3_##t##_mul(LvnVec3_##t v1, LvnVec3_##t v2, LvnVec3_##t dst) {                                             \
     dst[0] = v1[0] * v2[0];                                                                                            \
     dst[1] = v1[1] * v2[1];                                                                                            \
     dst[2] = v1[2] * v2[2];                                                                                            \
@@ -657,7 +657,7 @@ void lvn_vec3_##t##_subvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst) {      
     dst[1] = v[1] - s;                                                                                                 \
     dst[2] = v[2] - s;                                                                                                 \
 }                                                                                                                      \
-void lvn_vec3_##t##_multvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst) {                                            \
+void lvn_vec3_##t##_mulvs(LvnVec3_##t v, LvnType_##t s, LvnVec3_##t dst) {                                             \
     dst[0] = v[0] * s;                                                                                                 \
     dst[1] = v[1] * s;                                                                                                 \
     dst[2] = v[2] * s;                                                                                                 \
@@ -677,7 +677,7 @@ void lvn_vec3_##t##_subsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst) {      
     dst[1] = s - v[1];                                                                                                 \
     dst[2] = s - v[2];                                                                                                 \
 }                                                                                                                      \
-void lvn_vec3_##t##_multsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst) {                                            \
+void lvn_vec3_##t##_mulsv(LvnType_##t s, LvnVec3_##t v, LvnVec3_##t dst) {                                             \
     dst[0] = s * v[0];                                                                                                 \
     dst[1] = s * v[1];                                                                                                 \
     dst[2] = s * v[2];                                                                                                 \
@@ -709,7 +709,7 @@ void lvn_vec3_##t##_subpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst) { 
         dst[2] -= (*(pv[i]))[2];                                                                                       \
     }                                                                                                                  \
 }                                                                                                                      \
-void lvn_vec3_##t##_multpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst) {                                       \
+void lvn_vec3_##t##_mulpv(LvnVec3_##t* pv[], uint32_t count, LvnVec3_##t dst) {                                        \
     if (!count) { return; }                                                                                            \
     dst[0] = (*(pv[0]))[0];                                                                                            \
     dst[1] = (*(pv[0]))[1];                                                                                            \
@@ -801,7 +801,7 @@ void lvn_vec4_##t##_sub(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst) {      
     dst[2] = v1[2] - v2[2];                                                                                            \
     dst[3] = v1[3] - v2[3];                                                                                            \
 }                                                                                                                      \
-void lvn_vec4_##t##_mult(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst) {                                            \
+void lvn_vec4_##t##_mul(LvnVec4_##t v1, LvnVec4_##t v2, LvnVec4_##t dst) {                                             \
     dst[0] = v1[0] * v2[0];                                                                                            \
     dst[1] = v1[1] * v2[1];                                                                                            \
     dst[2] = v1[2] * v2[2];                                                                                            \
@@ -825,7 +825,7 @@ void lvn_vec4_##t##_subvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst) {      
     dst[2] = v[2] - s;                                                                                                 \
     dst[3] = v[3] - s;                                                                                                 \
 }                                                                                                                      \
-void lvn_vec4_##t##_multvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst) {                                            \
+void lvn_vec4_##t##_mulvs(LvnVec4_##t v, LvnType_##t s, LvnVec4_##t dst) {                                             \
     dst[0] = v[0] * s;                                                                                                 \
     dst[1] = v[1] * s;                                                                                                 \
     dst[2] = v[2] * s;                                                                                                 \
@@ -849,7 +849,7 @@ void lvn_vec4_##t##_subsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst) {      
     dst[2] = s - v[2];                                                                                                 \
     dst[3] = s - v[3];                                                                                                 \
 }                                                                                                                      \
-void lvn_vec4_##t##_multsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst) {                                            \
+void lvn_vec4_##t##_mulsv(LvnType_##t s, LvnVec4_##t v, LvnVec4_##t dst) {                                             \
     dst[0] = s * v[0];                                                                                                 \
     dst[1] = s * v[1];                                                                                                 \
     dst[2] = s * v[2];                                                                                                 \
@@ -887,7 +887,7 @@ void lvn_vec4_##t##_subpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst) { 
         dst[3] -= (*(pv[i]))[3];                                                                                       \
     }                                                                                                                  \
 }                                                                                                                      \
-void lvn_vec4_##t##_multpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst) {                                       \
+void lvn_vec4_##t##_mulpv(LvnVec4_##t* pv[], uint32_t count, LvnVec4_##t dst) {                                        \
     if (!count) { return; }                                                                                            \
     dst[0] = (*(pv[0]))[0];                                                                                            \
     dst[1] = (*(pv[0]))[1];                                                                                            \
@@ -996,17 +996,17 @@ void lvn_mat2_##t##_sub(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst) {
     dst[1][0] = m1[1][0] - m2[1][0];                                                                                   \
     dst[1][1] = m1[1][1] - m2[1][1];                                                                                   \
 }                                                                                                                      \
-void lvn_mat2_##t##_mult(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst) {                                      \
+void lvn_mat2_##t##_mul(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst) {                                       \
     dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1];                                                             \
     dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1];                                                             \
     dst[1][0] = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1];                                                             \
     dst[1][1] = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1];                                                             \
 }                                                                                                                      \
-void lvn_mat2_##t##_multmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst) {                                          \
+void lvn_mat2_##t##_mulmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1];                                                                          \
     dst[1] = m[0][1] * v[0] + m[1][1] * v[1];                                                                          \
 }                                                                                                                      \
-void lvn_mat2_##t##_multvm(LvnVec2_##t v, LvnMat2x2_##t m, LvnVec2_##t dst) {                                          \
+void lvn_mat2_##t##_mulvm(LvnVec2_##t v, LvnMat2x2_##t m, LvnVec2_##t dst) {                                           \
     dst[0] = v[0] * m[0][0] + v[1] * m[0][1];                                                                          \
     dst[1] = v[0] * m[1][0] + v[1] * m[1][1];                                                                          \
 }                                                                                                                      \
@@ -1022,7 +1022,7 @@ void lvn_mat2_##t##_subms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst) {  
     dst[1][0] = m[1][0] - s;                                                                                           \
     dst[1][1] = m[1][1] - s;                                                                                           \
 }                                                                                                                      \
-void lvn_mat2_##t##_multms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst) {                                        \
+void lvn_mat2_##t##_mulms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst) {                                         \
     dst[0][0] = m[0][0] * s;                                                                                           \
     dst[0][1] = m[0][1] * s;                                                                                           \
     dst[1][0] = m[1][0] * s;                                                                                           \
@@ -1046,7 +1046,7 @@ void lvn_mat2_##t##_subsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst) {  
     dst[1][0] = s - m[1][0];                                                                                           \
     dst[1][1] = s - m[1][1];                                                                                           \
 }                                                                                                                      \
-void lvn_mat2_##t##_multsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst) {                                        \
+void lvn_mat2_##t##_mulsm(LvnType_##t s, LvnMat2x2_##t m, LvnMat2x2_##t dst) {                                         \
     dst[0][0] = s * m[0][0];                                                                                           \
     dst[0][1] = s * m[0][1];                                                                                           \
     dst[1][0] = s * m[1][0];                                                                                           \
@@ -1201,7 +1201,7 @@ void lvn_mat3_##t##_sub(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) {
     dst[2][1] = m1[2][1] - m2[2][1];                                                                                   \
     dst[2][2] = m1[2][2] - m2[2][2];                                                                                   \
 }                                                                                                                      \
-void lvn_mat3_##t##_mult(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) {                                      \
+void lvn_mat3_##t##_mul(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) {                                       \
     dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2];                                       \
     dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2];                                       \
     dst[0][2] = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2];                                       \
@@ -1212,12 +1212,12 @@ void lvn_mat3_##t##_mult(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) 
     dst[2][1] = m1[0][1] * m2[2][0] + m1[1][1] * m2[2][1] + m1[2][1] * m2[2][2];                                       \
     dst[2][2] = m1[0][2] * m2[2][0] + m1[1][2] * m2[2][1] + m1[2][2] * m2[2][2];                                       \
 }                                                                                                                      \
-void lvn_mat3_##t##_multmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst) {                                          \
+void lvn_mat3_##t##_mulmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2];                                                         \
     dst[1] = m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2];                                                         \
     dst[2] = m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2];                                                         \
 }                                                                                                                      \
-void lvn_mat3_##t##_multvm(LvnVec3_##t v, LvnMat3x3_##t m, LvnVec3_##t dst) {                                          \
+void lvn_mat3_##t##_mulvm(LvnVec3_##t v, LvnMat3x3_##t m, LvnVec3_##t dst) {                                           \
     dst[0] = v[0] * m[0][0] + v[1] * m[0][1] + v[2] * m[0][2];                                                         \
     dst[1] = v[0] * m[1][0] + v[1] * m[1][1] + v[2] * m[1][2];                                                         \
     dst[2] = v[0] * m[2][0] + v[1] * m[2][1] + v[2] * m[2][2];                                                         \
@@ -1244,7 +1244,7 @@ void lvn_mat3_##t##_subms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst) {  
     dst[2][1] = m[2][1] - s;                                                                                           \
     dst[2][2] = m[2][2] - s;                                                                                           \
 }                                                                                                                      \
-void lvn_mat3_##t##_multms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst) {                                        \
+void lvn_mat3_##t##_mulms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst) {                                         \
     dst[0][0] = m[0][0] * s;                                                                                           \
     dst[0][1] = m[0][1] * s;                                                                                           \
     dst[0][2] = m[0][2] * s;                                                                                           \
@@ -1288,7 +1288,7 @@ void lvn_mat3_##t##_subsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst) {  
     dst[2][1] = s - m[2][1];                                                                                           \
     dst[2][2] = s - m[2][2];                                                                                           \
 }                                                                                                                      \
-void lvn_mat3_##t##_multsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst) {                                        \
+void lvn_mat3_##t##_mulsm(LvnType_##t s, LvnMat3x3_##t m, LvnMat3x3_##t dst) {                                         \
     dst[0][0] = s * m[0][0];                                                                                           \
     dst[0][1] = s * m[0][1];                                                                                           \
     dst[0][2] = s * m[0][2];                                                                                           \
@@ -1553,7 +1553,7 @@ void lvn_mat4_##t##_sub(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) {
     dst[3][2] = m1[3][2] - m2[3][2];                                                                                   \
     dst[3][3] = m1[3][3] - m2[3][3];                                                                                   \
 }                                                                                                                      \
-void lvn_mat4_##t##_mult(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) {                                      \
+void lvn_mat4_##t##_mul(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) {                                       \
     dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2] + m1[3][0] * m2[0][3];                 \
     dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2] + m1[3][1] * m2[0][3];                 \
     dst[0][2] = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2] + m1[3][2] * m2[0][3];                 \
@@ -1571,13 +1571,13 @@ void lvn_mat4_##t##_mult(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) 
     dst[3][2] = m1[0][2] * m2[3][0] + m1[1][2] * m2[3][1] + m1[2][2] * m2[3][2] + m1[3][2] * m2[3][3];                 \
     dst[3][3] = m1[0][3] * m2[3][0] + m1[1][3] * m2[3][1] + m1[2][3] * m2[3][2] + m1[3][3] * m2[3][3];                 \
 }                                                                                                                      \
-void lvn_mat4_##t##_multmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst) {                                          \
+void lvn_mat4_##t##_mulmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2] + m[3][0] * v[3];                                        \
     dst[1] = m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2] + m[3][1] * v[3];                                        \
     dst[2] = m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2] + m[3][2] * v[3];                                        \
     dst[3] = m[0][3] * v[0] + m[1][3] * v[1] + m[2][3] * v[2] + m[3][3] * v[3];                                        \
 }                                                                                                                      \
-void lvn_mat4_##t##_multvm(LvnVec4_##t v, LvnMat4x4_##t m, LvnVec4_##t dst) {                                          \
+void lvn_mat4_##t##_mulvm(LvnVec4_##t v, LvnMat4x4_##t m, LvnVec4_##t dst) {                                           \
     dst[0] = v[0] * m[0][0] + v[1] * m[0][1] + v[2] * m[0][2] + v[3] * m[0][3];                                        \
     dst[1] = v[0] * m[1][0] + v[1] * m[1][1] + v[2] * m[1][2] + v[3] * m[1][3];                                        \
     dst[2] = v[0] * m[2][0] + v[1] * m[2][1] + v[2] * m[2][2] + v[3] * m[2][3];                                        \
@@ -1619,7 +1619,7 @@ void lvn_mat4_##t##_subms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst) {  
     dst[3][2] = m[3][2] - s;                                                                                           \
     dst[3][3] = m[3][3] - s;                                                                                           \
 }                                                                                                                      \
-void lvn_mat4_##t##_multms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst) {                                        \
+void lvn_mat4_##t##_mulms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst) {                                         \
     dst[0][0] = m[0][0] * s;                                                                                           \
     dst[0][1] = m[0][1] * s;                                                                                           \
     dst[0][2] = m[0][2] * s;                                                                                           \
@@ -1691,7 +1691,7 @@ void lvn_mat4_##t##_subsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst) {  
     dst[3][2] = s - m[3][2];                                                                                           \
     dst[3][3] = s - m[3][3];                                                                                           \
 }                                                                                                                      \
-void lvn_mat4_##t##_multsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst) {                                        \
+void lvn_mat4_##t##_mulsm(LvnType_##t s, LvnMat4x4_##t m, LvnMat4x4_##t dst) {                                         \
     dst[0][0] = s * m[0][0];                                                                                           \
     dst[0][1] = s * m[0][1];                                                                                           \
     dst[0][2] = s * m[0][2];                                                                                           \
@@ -1739,19 +1739,19 @@ void lvn_vec##n##_negate(LvnVec##n v) { lvn_vec##n##_f_negate(v); }             
 void lvn_vec##n##_negate_to(LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_negate_to(v, dst); }                          \
 void lvn_vec##n##_add(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst) { lvn_vec##n##_f_add(v1, v2, dst); }                  \
 void lvn_vec##n##_sub(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst) { lvn_vec##n##_f_sub(v1, v2, dst); }                  \
-void lvn_vec##n##_mult(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst) { lvn_vec##n##_f_mult(v1, v2, dst); }                \
+void lvn_vec##n##_mul(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst) { lvn_vec##n##_f_mul(v1, v2, dst); }                  \
 void lvn_vec##n##_div(LvnVec##n v1, LvnVec##n v2, LvnVec##n dst) { lvn_vec##n##_f_div(v1, v2, dst); }                  \
 void lvn_vec##n##_addvs(LvnVec##n v, float s, LvnVec##n dst) { lvn_vec##n##_f_addvs(v, s, dst); }                      \
 void lvn_vec##n##_subvs(LvnVec##n v, float s, LvnVec##n dst) { lvn_vec##n##_f_subvs(v, s, dst); }                      \
-void lvn_vec##n##_multvs(LvnVec##n v, float s, LvnVec##n dst) { lvn_vec##n##_f_multvs(v, s, dst); }                    \
+void lvn_vec##n##_mulvs(LvnVec##n v, float s, LvnVec##n dst) { lvn_vec##n##_f_mulvs(v, s, dst); }                      \
 void lvn_vec##n##_divvs(LvnVec##n v, float s, LvnVec##n dst) { lvn_vec##n##_f_divvs(v, s, dst); }                      \
 void lvn_vec##n##_addsv(float s, LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_addsv(s, v, dst); }                      \
 void lvn_vec##n##_subsv(float s, LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_subsv(s, v, dst); }                      \
-void lvn_vec##n##_multsv(float s, LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_multsv(s, v, dst); }                    \
+void lvn_vec##n##_mulsv(float s, LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_mulsv(s, v, dst); }                      \
 void lvn_vec##n##_divsv(float s, LvnVec##n v, LvnVec##n dst) { lvn_vec##n##_f_divsv(s, v, dst); }                      \
 void lvn_vec##n##_addpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst) { lvn_vec##n##_f_addpv(pv, count, dst); }      \
 void lvn_vec##n##_subpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst) { lvn_vec##n##_f_subpv(pv, count, dst); }      \
-void lvn_vec##n##_multpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst) { lvn_vec##n##_f_multpv(pv, count, dst); }    \
+void lvn_vec##n##_mulpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst) { lvn_vec##n##_f_mulpv(pv, count, dst); }      \
 void lvn_vec##n##_divpv(LvnVec##n* pv[], uint32_t count, LvnVec##n dst) { lvn_vec##n##_f_divpv(pv, count, dst); }      \
 float lvn_vec##n##_mag(LvnVec##n v) { return lvn_vec##n##_f_mag(v); }                                                  \
 float lvn_vec##n##_mag2(LvnVec##n v) { return lvn_vec##n##_f_mag2(v); }                                                \
@@ -1767,19 +1767,19 @@ void lvn_vec##n##i_negate(LvnVec##n##i v) { lvn_vec##n##_i32_negate(v); }       
 void lvn_vec##n##i_negate_to(LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_negate_to(v, dst); }                 \
 void lvn_vec##n##i_add(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_add(v1, v2, dst); }      \
 void lvn_vec##n##i_sub(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_sub(v1, v2, dst); }      \
-void lvn_vec##n##i_mult(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_mult(v1, v2, dst); }    \
+void lvn_vec##n##i_mul(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_mul(v1, v2, dst); }      \
 void lvn_vec##n##i_div(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_div(v1, v2, dst); }      \
 void lvn_vec##n##i_addvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_addvs(v, s, dst); }           \
 void lvn_vec##n##i_subvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_subvs(v, s, dst); }           \
-void lvn_vec##n##i_multvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_multvs(v, s, dst); }         \
+void lvn_vec##n##i_mulvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_mulvs(v, s, dst); }           \
 void lvn_vec##n##i_divvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_divvs(v, s, dst); }           \
 void lvn_vec##n##i_addsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_addsv(s, v, dst); }           \
 void lvn_vec##n##i_subsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_subsv(s, v, dst); }           \
-void lvn_vec##n##i_multsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_multsv(s, v, dst); }         \
+void lvn_vec##n##i_mulsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_mulsv(s, v, dst); }           \
 void lvn_vec##n##i_divsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_divsv(s, v, dst); }           \
 void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_addpv(pv, count, dst); }\
 void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_subpv(pv, count, dst); }\
-void lvn_vec##n##i_multpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_multpv(pv, count, dst); }\
+void lvn_vec##n##i_mulpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_mulpv(pv, count, dst); }\
 void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_divpv(pv, count, dst); }\
 int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2) { return lvn_vec##n##_i32_dot(v1, v2); }
 
@@ -1793,19 +1793,19 @@ void lvn_vec##n##ui_negate(LvnVec##n##ui v) { lvn_vec##n##_ui32_negate(v); }    
 void lvn_vec##n##ui_negate_to(LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_negate_to(v, dst); }             \
 void lvn_vec##n##ui_add(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_add(v1, v2, dst); } \
 void lvn_vec##n##ui_sub(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_sub(v1, v2, dst); } \
-void lvn_vec##n##ui_mult(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mult(v1, v2, dst); }\
+void lvn_vec##n##ui_mul(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mul(v1, v2, dst); } \
 void lvn_vec##n##ui_div(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_div(v1, v2, dst); } \
 void lvn_vec##n##ui_addvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addvs(v, s, dst); }      \
 void lvn_vec##n##ui_subvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subvs(v, s, dst); }      \
-void lvn_vec##n##ui_multvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_multvs(v, s, dst); }    \
+void lvn_vec##n##ui_mulvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulvs(v, s, dst); }      \
 void lvn_vec##n##ui_divvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divvs(v, s, dst); }      \
 void lvn_vec##n##ui_addsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addsv(s, v, dst); }      \
 void lvn_vec##n##ui_subsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subsv(s, v, dst); }      \
-void lvn_vec##n##ui_multsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_multsv(s, v, dst); }    \
+void lvn_vec##n##ui_mulsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulsv(s, v, dst); }      \
 void lvn_vec##n##ui_divsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divsv(s, v, dst); }      \
 void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addpv(pv, count, dst); }\
 void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subpv(pv, count, dst); }\
-void lvn_vec##n##ui_multpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_multpv(pv, count, dst); }\
+void lvn_vec##n##ui_mulpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulpv(pv, count, dst); }\
 void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divpv(pv, count, dst); }\
 uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2) { return lvn_vec##n##_ui32_dot(v1, v2); }
 
@@ -1821,16 +1821,16 @@ void lvn_mat##n##_negate_to(LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n
 void lvn_mat##n##_negate(LvnMat##n##x##n m) { lvn_mat##n##_f_negate(m); }                                              \
 void lvn_mat##n##_add(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_add(m1, m2, dst); }\
 void lvn_mat##n##_sub(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_sub(m1, m2, dst); }\
-void lvn_mat##n##_mult(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_mult(m1, m2, dst); }\
-void lvn_mat##n##_multmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst) { lvn_mat##n##_f_multmv(m, v, dst); }          \
-void lvn_mat##n##_multvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst) { lvn_mat##n##_f_multvm(v, m, dst); }          \
+void lvn_mat##n##_mul(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_mul(m1, m2, dst); }\
+void lvn_mat##n##_mulmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst) { lvn_mat##n##_f_mulmv(m, v, dst); }            \
+void lvn_mat##n##_mulvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst) { lvn_mat##n##_f_mulvm(v, m, dst); }            \
 void lvn_mat##n##_addms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_addms(m, s, dst); }          \
 void lvn_mat##n##_subms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_subms(m, s, dst); }          \
-void lvn_mat##n##_multms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_multms(m, s, dst); }        \
+void lvn_mat##n##_mulms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_mulms(m, s, dst); }          \
 void lvn_mat##n##_divms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_divms(m, s, dst); }          \
 void lvn_mat##n##_addsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_addsm(s, m, dst); }          \
 void lvn_mat##n##_subsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_subsm(s, m, dst); }          \
-void lvn_mat##n##_multsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_multsm(s, m, dst); }        \
+void lvn_mat##n##_mulsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_mulsm(s, m, dst); }          \
 void lvn_mat##n##_divsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_divsm(s, m, dst); }
 
 #define LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(n)                                                                           \
@@ -1845,16 +1845,16 @@ void lvn_mat##n##i_negate_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn
 void lvn_mat##n##i_negate(LvnMat##n##x##n##i m) { lvn_mat##n##_i32_negate(m); }                                        \
 void lvn_mat##n##i_add(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_add(m1, m2, dst); }\
 void lvn_mat##n##i_sub(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_sub(m1, m2, dst); }\
-void lvn_mat##n##i_mult(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mult(m1, m2, dst); }\
-void lvn_mat##n##i_multmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst) { lvn_mat##n##_i32_multmv(m, v, dst); }\
-void lvn_mat##n##i_multvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst) { lvn_mat##n##_i32_multvm(v, m, dst); }\
+void lvn_mat##n##i_mul(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mul(m1, m2, dst); }\
+void lvn_mat##n##i_mulmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst) { lvn_mat##n##_i32_mulmv(m, v, dst); }\
+void lvn_mat##n##i_mulvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst) { lvn_mat##n##_i32_mulvm(v, m, dst); }\
 void lvn_mat##n##i_addms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_addms(m, s, dst); }\
 void lvn_mat##n##i_subms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_subms(m, s, dst); }\
-void lvn_mat##n##i_multms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_multms(m, s, dst); }\
+void lvn_mat##n##i_mulms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mulms(m, s, dst); }\
 void lvn_mat##n##i_divms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_divms(m, s, dst); }\
 void lvn_mat##n##i_addsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_addsm(s, m, dst); }\
 void lvn_mat##n##i_subsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_subsm(s, m, dst); }\
-void lvn_mat##n##i_multsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_multsm(s, m, dst); }\
+void lvn_mat##n##i_mulsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mulsm(s, m, dst); }\
 void lvn_mat##n##i_divsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_divsm(s, m, dst); }
 
 #define LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(n)                                                                          \
@@ -1869,16 +1869,16 @@ void lvn_mat##n##ui_negate_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { 
 void lvn_mat##n##ui_negate(LvnMat##n##x##n##ui m) { lvn_mat##n##_ui32_negate(m); }                                     \
 void lvn_mat##n##ui_add(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_add(m1, m2, dst); }\
 void lvn_mat##n##ui_sub(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_sub(m1, m2, dst); }\
-void lvn_mat##n##ui_mult(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mult(m1, m2, dst); }\
-void lvn_mat##n##ui_multmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_mat##n##_ui32_multmv(m, v, dst); }\
-void lvn_mat##n##ui_multvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst) { lvn_mat##n##_ui32_multvm(v, m, dst); }\
+void lvn_mat##n##ui_mul(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mul(m1, m2, dst); }\
+void lvn_mat##n##ui_mulmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_mat##n##_ui32_mulmv(m, v, dst); }\
+void lvn_mat##n##ui_mulvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst) { lvn_mat##n##_ui32_mulvm(v, m, dst); }\
 void lvn_mat##n##ui_addms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_addms(m, s, dst); }\
 void lvn_mat##n##ui_subms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_subms(m, s, dst); }\
-void lvn_mat##n##ui_multms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_multms(m, s, dst); }\
+void lvn_mat##n##ui_mulms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mulms(m, s, dst); }\
 void lvn_mat##n##ui_divms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_divms(m, s, dst); }\
 void lvn_mat##n##ui_addsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_addsm(s, m, dst); }\
 void lvn_mat##n##ui_subsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_subsm(s, m, dst); }\
-void lvn_mat##n##ui_multsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_multsm(s, m, dst); }\
+void lvn_mat##n##ui_mulsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mulsm(s, m, dst); }\
 void lvn_mat##n##ui_divsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_divsm(s, m, dst); }
 
 #ifdef LVN_GMATH_INCLUDE_VEC2_F
@@ -2435,7 +2435,7 @@ void lvn_translate(LvnMat4 m, const LvnVec3 v) {
 
     LvnMat4 temp;
     lvn_mat4_copy(m, temp);
-    lvn_mat4_mult(temp, translate, m);
+    lvn_mat4_mul(temp, translate, m);
 }
 
 void lvn_scale(LvnMat4 m, const LvnVec3 v) {
@@ -2448,7 +2448,7 @@ void lvn_scale(LvnMat4 m, const LvnVec3 v) {
 
     LvnMat4 temp;
     lvn_mat4_copy(m, temp);
-    lvn_mat4_mult(temp, scale, m);
+    lvn_mat4_mul(temp, scale, m);
 }
 
 void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis) {
@@ -2476,7 +2476,7 @@ void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis) {
 
     LvnMat4 temp;
     lvn_mat4_copy(m, temp);
-    lvn_mat4_mult(temp, rotate, m);
+    lvn_mat4_mul(temp, rotate, m);
 }
 
 void lvn_orthoRHZO(LvnMat4 m, float left, float right, float bottom, float top, float near, float far) {
