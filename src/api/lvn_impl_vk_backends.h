@@ -20,6 +20,7 @@ typedef struct LvnVkSwapChainCreateInfo
     VkPhysicalDevice                  physicalDevice;
     VkSurfaceKHR                      surface;
     VkFormat                          surfaceFormat;
+    VkFormat                          depthFormat;
     VkPresentModeKHR                  presentMode;
     const LvnVkQueueFamilyIndices*    queueFamilyIndices;
     uint32_t                          width;
@@ -27,16 +28,25 @@ typedef struct LvnVkSwapChainCreateInfo
     uint32_t                          minImageCount;
 } LvnVkSwapChainCreateInfo;
 
+struct LvnVkTextureData;
 typedef struct LvnVkSwapchainData
 {
-    VkSurfaceKHR        surface;
-    VkSwapchainKHR      swapchain, oldSwapchain;
-    VkExtent2D          swapchainExtent;
-    VkFormat            swapchainFormat;
-    VkPresentModeKHR    presentMode;
-    uint32_t            swapchainImageCount;
-    VkImage*            swapchainImages;
-    VkImageView*        swapchainImageViews;
+    VkSurfaceKHR                surface;
+    VkSwapchainKHR              swapchain, oldSwapchain;
+    VkExtent2D                  swapchainExtent;
+    VkFormat                    swapchainFormat;
+    VkFormat                    depthFormat;
+    VkPresentModeKHR            presentMode;
+    uint32_t                    swapchainImageCount;
+    VkImage*                    swapchainImages;
+    VkImageView*                swapchainImageViews;
+    VkImage                     depthImage;
+    VkImageView                 depthImageView;
+    VmaAllocation               depthImageMemory;
+
+    struct LvnVkTextureData*    pTextureDatas;
+    LvnTexture*                 pSwapchainTextures;
+    LvnTexture                  depthTexture;
 } LvnVkSwapchainData;
 
 typedef struct LvnVkRenderpassData
@@ -78,7 +88,6 @@ typedef struct LvnVkTextureData
     VkImage          image;
     VkImageView      imageView;
     VmaAllocation    imageMemory;
-    VkSampler        sampler;
     uint32_t         width;
     uint32_t         height;
 } LvnVkTextureData;

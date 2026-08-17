@@ -382,6 +382,10 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
         eglLoader->eglGetProcAddress("glViewport");
     oglBackends->glScissor = (PFNGLSCISSORPROC)
         eglLoader->eglGetProcAddress("glScissor");
+    oglBackends->glDepthMask = (PFNGLDEPTHMASKPROC)
+        eglLoader->eglGetProcAddress("glDepthMask");
+    oglBackends->glDepthFunc = (PFNGLDEPTHFUNCPROC)
+        eglLoader->eglGetProcAddress("glDepthFunc");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

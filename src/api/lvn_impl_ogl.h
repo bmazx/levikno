@@ -84,6 +84,7 @@
 #define GL_DEPTH 0x1801
 #define GL_STENCIL 0x1802
 #define GL_DEPTH_STENCIL 0x84F9
+#define GL_DEPTH_TEST 0x0B71
 #define GL_CONTEXT_FLAGS 0x821E
 #define GL_CONTEXT_FLAG_DEBUG_BIT 0x00000002
 #define GL_DEBUG_SOURCE_API 0x8246
@@ -370,6 +371,8 @@ typedef void (GLAPIENTRY *PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC)(
 typedef void (GLAPIENTRY *PFNGLDEPTHRANGEPROC)(GLdouble n, GLdouble f);
 typedef void (GLAPIENTRY *PFNGLVIEWPORTPROC)(GLint x, GLint y, GLsizei width, GLsizei height);
 typedef void (GLAPIENTRY *PFNGLSCISSORPROC)(GLint x, GLint y, GLsizei width, GLsizei height);
+typedef void (GLAPIENTRY *PFNGLDEPTHMASKPROC)(GLboolean flag);
+typedef void (GLAPIENTRY *PFNGLDEPTHFUNCPROC)(GLenum func);
 
 typedef void (*LvnOglCmdBuffFnCallback)(void*);
 
@@ -394,18 +397,26 @@ typedef enum LvnOglVertexAttributeType
     Lvn_VertexAttribute_L,
 } LvnOglVertexAttributeType;
 
+struct LvnOglTextureData;
 typedef struct LvnOglSwapchainData
 {
-    const LvnSurface*    surface;
-    uint32_t*            images;
-    uint32_t*            fboIds;
-    uint32_t             imageCount;
-    uint32_t             imageIndex;
-    uint32_t             width;
-    uint32_t             height;
-    LvnFormat            format;
-    LvnPresentMode       presentMode;
-    bool                 srgb;
+    const LvnSurface*            surface;
+    uint32_t*                    images;
+    uint32_t*                    fboIds;
+    uint32_t                     depthImage;
+    uint32_t                     imageCount;
+    uint32_t                     imageIndex;
+    uint32_t                     width;
+    uint32_t                     height;
+    LvnFormat                    format;
+    LvnFormat                    depthFormat;
+    LvnPresentMode               presentMode;
+    bool                         srgb;
+    bool                         hasDepth;
+
+    struct LvnOglTextureData*    pTextureDatas;
+    LvnTexture*                  pSwapchainTextures;
+    LvnTexture                   depthTexture;
 } LvnOglSwapchainData;
 
 typedef struct LvnOglRenderpassData
@@ -766,6 +777,8 @@ typedef struct LvnOpenglBackends
     PFNGLDEPTHRANGEPROC                                     glDepthRange;
     PFNGLVIEWPORTPROC                                       glViewport;
     PFNGLSCISSORPROC                                        glScissor;
+    PFNGLDEPTHMASKPROC                                      glDepthMask;
+    PFNGLDEPTHFUNCPROC                                      glDepthFunc;
 } LvnOpenglBackends;
 
 LvnResult         lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
@@ -808,6 +821,9 @@ LvnResult         lvnImplOglUpdateDescriptorSets(const LvnGraphicsContext* graph
 void              lvnImplOglSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 void              lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
 
+uint32_t          lvnImplOglSwapchainGetImageCount(const LvnSwapchain* swapchain);
+LvnTexture*       lvnImplOglSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex);
+LvnTexture*       lvnImplOglSwapchainGetDepthImage(LvnSwapchain* swapchain);
 LvnResult         lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
 LvnResult         lvnImplOglSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 

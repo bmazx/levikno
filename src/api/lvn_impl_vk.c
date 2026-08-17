@@ -41,7 +41,8 @@ static LvnResult                   lvn_createPlatformSurface(const LvnVulkanBack
 static LvnVkQueueFamilyIndices     lvn_findQueueFamilies(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, VkSurfaceKHR surface);
 static bool                        lvn_checkDeviceExtensionSupport(const LvnVulkanBackends* vkBackends, VkPhysicalDevice device, const char** requiredExtensions, uint32_t requiredExtensionCount);
 static VkPhysicalDevice            lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBackends, VkSurfaceKHR surface);
-static LvnResult                   lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
+static LvnResult                   lvn_createSwapchainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo);
+static void                        lvn_cleanSwapchainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData);
 static VkShaderStageFlagBits       lvn_getVkShaderStageEnum(LvnShaderStageFlagBits stage);
 static VkShaderStageFlags          lvn_getVkShaderStageFlagsEnum(LvnShaderStageFlags stageFlags);
 static VkDescriptorType            lvn_getVkDescriptorTypeEnum(LvnDescriptorType type);
@@ -316,7 +317,7 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     return bestDevice;
 }
 
-static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo)
+static LvnResult lvn_createSwapchainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData, const LvnVkSwapChainCreateInfo* createInfo)
 {
     LVN_ASSERT(vkBackends && swapchainData && createInfo, "vkBackends, swapchain, and createInfo cannot be null");
     LVN_ASSERT(createInfo->surface && createInfo->physicalDevice && createInfo->queueFamilyIndices, "createInfo->surface, createInfo->physicalDevice, and createInfo->queueFamilyIndices cannot be null");
@@ -325,6 +326,9 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     VkImage* swapchainImages = NULL;
     VkImageView* swapchainImageViews = NULL;
     uint32_t swapchainImageCount = 0;
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkImageView depthImageView = VK_NULL_HANDLE;
+    VmaAllocation depthImageMemory = NULL;
 
     // check for swapchain capabilitie support
     VkSurfaceCapabilitiesKHR capabilities;
@@ -384,20 +388,21 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
     }
 
     // create swapchain
-    VkSwapchainCreateInfoKHR swapchainCreateInfo = {0};
-    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainCreateInfo.surface = createInfo->surface;
-    swapchainCreateInfo.minImageCount = imageCount;
-    swapchainCreateInfo.imageFormat = createInfo->surfaceFormat;
-    swapchainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // NOTE: support other colorspace in future?
-    swapchainCreateInfo.imageExtent = extent;
-    swapchainCreateInfo.imageArrayLayers = 1;
-    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainCreateInfo.preTransform = capabilities.currentTransform;
-    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainCreateInfo.presentMode = createInfo->presentMode;
-    swapchainCreateInfo.clipped = VK_TRUE;
-    swapchainCreateInfo.oldSwapchain = swapchainData->oldSwapchain; // use for recreating swapchain on window resize
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = createInfo->surface,
+        .minImageCount = imageCount,
+        .imageFormat = createInfo->surfaceFormat,
+        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, /* NOTE: support other colorspace in future? */
+        .imageExtent = extent,
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = createInfo->presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = swapchainData->oldSwapchain, /* use for recreating swapchain on window resize */
+    };
 
     uint32_t queueFamilyIndices[] = { createInfo->queueFamilyIndices->graphicsIndex, createInfo->queueFamilyIndices->presentIndex };
     if (createInfo->queueFamilyIndices->graphicsIndex != createInfo->queueFamilyIndices->presentIndex)
@@ -450,14 +455,54 @@ static LvnResult lvn_createSwapChainData(const LvnVulkanBackends* vkBackends, Lv
         }
     }
 
+    // swapchain depth image
+    if (createInfo->depthFormat != VK_FORMAT_UNDEFINED)
+    {
+        if (lvn_createImage(vkBackends, &depthImage, &depthImageMemory,
+                        extent.width, extent.height, createInfo->depthFormat,
+                        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_SAMPLE_COUNT_1_BIT, VMA_MEMORY_USAGE_GPU_ONLY) != Lvn_Result_Success)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create depth image");
+            goto fail_cleanup;
+        }
+
+        VkImageViewCreateInfo depthViewCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = depthImage,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = createInfo->depthFormat,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+        };
+
+        if(vkBackends->vkCreateImageView(vkBackends->device, &depthViewCreateInfo, NULL, &depthImageView) != VK_SUCCESS)
+        {
+            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger, "[vulkan] failed to create depth image view");
+            goto fail_cleanup;
+        }
+
+        lvn_transitionImageLayout(vkBackends, depthImage, createInfo->depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+    }
+
     swapchainData->surface = createInfo->surface;
     swapchainData->swapchain = swapchain;
     swapchainData->swapchainFormat = createInfo->surfaceFormat;
+    swapchainData->depthFormat = createInfo->depthFormat;
     swapchainData->presentMode = createInfo->presentMode;
     swapchainData->swapchainExtent = extent;
     swapchainData->swapchainImageCount = swapchainImageCount;
     swapchainData->swapchainImages = swapchainImages;
     swapchainData->swapchainImageViews = swapchainImageViews;
+    swapchainData->depthImage = depthImage;
+    swapchainData->depthImageView = depthImageView;
+    swapchainData->depthImageMemory = depthImageMemory;
 
     return Lvn_Result_Success;
 
@@ -465,9 +510,44 @@ fail_cleanup:
     for (uint32_t i = 0; i < swapchainImageCount; i++)
         vkBackends->vkDestroyImageView(vkBackends->device, swapchainImageViews[i], NULL);
     vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchain, NULL);
+    vkBackends->vkDestroyImageView(vkBackends->device, depthImageView, NULL);
+    vkBackends->vkDestroyImage(vkBackends->device, depthImage, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, depthImageMemory);
     lvn_free(swapchainImageViews);
     lvn_free(swapchainImages);
     return Lvn_Result_Failure;
+}
+
+static void lvn_cleanSwapchainData(const LvnVulkanBackends* vkBackends, LvnVkSwapchainData* swapchainData)
+{
+    LVN_ASSERT(vkBackends && swapchainData, "vkBackends and swapchainData cannot be null");
+
+    vkBackends->vkDeviceWaitIdle(vkBackends->device);
+
+    // swapchain image views
+    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
+
+    // swapchain images
+    lvn_free(swapchainData->swapchainImageViews);
+    lvn_free(swapchainData->swapchainImages);
+
+    // depth image/view
+    vkBackends->vkDestroyImage(vkBackends->device, swapchainData->depthImage, NULL);
+    vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->depthImageView, NULL);
+    vmaFreeMemory(vkBackends->vmaAllocator, swapchainData->depthImageMemory);
+
+    // swapchain data
+    lvn_free(swapchainData->pTextureDatas);
+    lvn_free(swapchainData->pSwapchainTextures);
+
+    swapchainData->swapchainImages = NULL;
+    swapchainData->swapchainImageViews = NULL;
+    swapchainData->depthImage = VK_NULL_HANDLE;
+    swapchainData->depthImageView = VK_NULL_HANDLE;
+    swapchainData->depthImageMemory = NULL;
+    swapchainData->pTextureDatas = NULL;
+    swapchainData->pSwapchainTextures = NULL;
 }
 
 static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStageFlagBits stage)
@@ -1114,7 +1194,8 @@ static LvnResult lvn_createImage(
     VmaAllocation* imageMemory,
     uint32_t width,
     uint32_t height,
-    VkFormat format, VkImageTiling tiling,
+    VkFormat format,
+    VkImageTiling tiling,
     VkImageUsageFlags usage,
     VkSampleCountFlagBits samples,
     VmaMemoryUsage memUsage)
@@ -1946,6 +2027,9 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implUpdateDescriptorSets = lvnImplVkUpdateDescriptorSets;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplVkSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplVkSurfaceGetSupportedPresentModes;
+    graphicsctx->implSwapchainGetImageCount = lvnImplVkSwapchainGetImageCount;
+    graphicsctx->implSwapchainGetImage = lvnImplVkSwapchainGetImage;
+    graphicsctx->implSwapchainGetDepthImage = lvnImplVkSwapchainGetDepthImage;
     graphicsctx->implSwapchainResize = lvnImplVkSwapchainResize;
     graphicsctx->implSwapchainAcquireNextImage = lvnImplVkSwapchainAcquireNextImage;
     graphicsctx->implFenceWait = lvnImplVkFenceWait;
@@ -2057,12 +2141,12 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
 
     LvnResult errResult = Lvn_Result_Failure;
     LvnVkSwapchainData* swapchainData = NULL;
-    LvnTexture* swapchainImages = NULL;
 
     LvnVkSwapChainCreateInfo swapchainCreateInfo = {
         .physicalDevice = vkBackends->physicalDevice,
         .surface = vkSurface,
         .surfaceFormat = lvn_getVkFormatEnum(createInfo->surfaceFormat),
+        .depthFormat = lvn_getVkFormatEnum(createInfo->depthFormat),
         .presentMode = lvn_getVkPresentModeEnum(createInfo->presentMode),
         .queueFamilyIndices = &vkBackends->queueFamilyIndices,
         .width = createInfo->width,
@@ -2078,7 +2162,7 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
         goto fail_cleanup;
     }
 
-    LvnResult result = lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo);
+    LvnResult result = lvn_createSwapchainData(vkBackends, swapchainData, &swapchainCreateInfo);
 
     if (result != Lvn_Result_Success)
     {
@@ -2087,8 +2171,18 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
         goto fail_cleanup;
     }
 
-    swapchainImages = (LvnTexture*) lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnTexture));
-    if (!swapchainImages)
+    // create textures
+    swapchainData->pTextureDatas = (LvnVkTextureData*)
+        lvn_calloc((swapchainData->swapchainImageCount + (swapchainData->depthFormat != VK_FORMAT_UNDEFINED ? 1 : 0)) * sizeof(LvnVkTextureData));
+    if (!swapchainData->pTextureDatas)
+    {
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for texture data for images in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    swapchainData->pSwapchainTextures = (LvnTexture*) lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnTexture));
+    if (!swapchainData->pSwapchainTextures)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for swapchain image views in swapchain %p", swapchain);
         errResult = Lvn_Result_OutOfMemory;
@@ -2097,30 +2191,33 @@ LvnResult lvnImplVkCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwa
 
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
-        swapchainImages[i].textureData = lvn_calloc(sizeof(LvnVkTextureData));
+        swapchainData->pTextureDatas[i].image = swapchainData->swapchainImages[i];
+        swapchainData->pTextureDatas[i].imageView = swapchainData->swapchainImageViews[i];
+        swapchainData->pTextureDatas[i].width = swapchainData->swapchainExtent.width;
+        swapchainData->pTextureDatas[i].height = swapchainData->swapchainExtent.height;
 
-        if (!swapchainImages[i].textureData)
-        {
-            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] failed to allocate memory for texture data for image in swapchain %p", swapchain);
-            errResult = Lvn_Result_OutOfMemory;
-            goto fail_cleanup;
-        }
+        swapchainData->pSwapchainTextures[i].graphicsctx = graphicsctx;
+        swapchainData->pSwapchainTextures[i].textureData = &swapchainData->pTextureDatas[i];
+        swapchainData->pSwapchainTextures[i].width = swapchainData->swapchainExtent.width;
+        swapchainData->pSwapchainTextures[i].height = swapchainData->swapchainExtent.height;
+    }
 
-        LvnVkTextureData* textureData = (LvnVkTextureData*) swapchainImages[i].textureData;
+    if (swapchainData->depthFormat != VK_FORMAT_UNDEFINED)
+    {
+        // use last texture data in pTextureDatas as depth texture data using swapchainImageCount
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].image = swapchainData->depthImage;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].imageView = swapchainData->depthImageView;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].width = swapchainData->swapchainExtent.width;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].height = swapchainData->swapchainExtent.height;
 
-        textureData->image = swapchainData->swapchainImages[i];
-        textureData->imageView = swapchainData->swapchainImageViews[i];
-        textureData->width = swapchainData->swapchainExtent.width;
-        textureData->height = swapchainData->swapchainExtent.height;
-
-        swapchainImages[i].width = swapchainData->swapchainExtent.width;
-        swapchainImages[i].height = swapchainData->swapchainExtent.height;
+        swapchainData->depthTexture.graphicsctx = graphicsctx;
+        swapchainData->depthTexture.textureData = &swapchainData->pTextureDatas[swapchainData->swapchainImageCount];
+        swapchainData->depthTexture.width = swapchainData->swapchainExtent.width;
+        swapchainData->depthTexture.height = swapchainData->swapchainExtent.height;
     }
 
     swapchain->swapchainData = swapchainData;
-    swapchain->pSwapchainImages = swapchainImages;
-    swapchain->swapchainImageCount = swapchainData->swapchainImageCount;
-    swapchain->swapchainColorFormat = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
+    swapchain->format = lvn_getLvnFormatEnum(swapchainData->swapchainFormat);
     swapchain->extent.width = swapchainData->swapchainExtent.width;
     swapchain->extent.height = swapchainData->swapchainExtent.height;
 
@@ -2132,16 +2229,16 @@ fail_cleanup:
         vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
 
         for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-        {
-            if (swapchainImages[i].textureData)
-                lvn_free(swapchainImages[i].textureData);
-
             vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
-        }
 
-        lvn_free(swapchainImages);
-        lvn_free(swapchainData->swapchainImages);
+        vkBackends->vkDestroyImage(vkBackends->device, swapchainData->depthImage, NULL);
+        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->depthImageView, NULL);
+        vmaFreeMemory(vkBackends->vmaAllocator, swapchainData->depthImageMemory);
+
         lvn_free(swapchainData->swapchainImageViews);
+        lvn_free(swapchainData->swapchainImages);
+        lvn_free(swapchainData->pTextureDatas);
+        lvn_free(swapchainData->pSwapchainTextures);
         lvn_free(swapchainData);
     }
     return errResult;
@@ -2156,26 +2253,15 @@ void lvnImplVkDestroySwapchain(LvnSwapchain* swapchain)
 
     vkBackends->vkDeviceWaitIdle(vkBackends->device);
 
-    // swapchain image views
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-    {
-        lvn_free(swapchain->pSwapchainImages[i].textureData);
-        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
-    }
-    lvn_free(swapchainData->swapchainImageViews);
-
-    // swapchain images
-    lvn_free(swapchainData->swapchainImages);
+    lvn_cleanSwapchainData(vkBackends, swapchainData);
 
     // swapchain
     vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->swapchain, NULL);
 
     // swapchain data struct
     lvn_free(swapchain->swapchainData);
-    lvn_free(swapchain->pSwapchainImages);
+
     swapchain->swapchainData = NULL;
-    swapchain->pSwapchainImages = NULL;
-    swapchain->swapchainImageCount = 0;
 }
 
 LvnResult lvnImplVkCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo)
@@ -3416,7 +3502,6 @@ LvnResult lvnImplVkCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTextu
     textureData->image = textureImage;
     textureData->imageView = imageView;
     textureData->imageMemory = textureImageMemory;
-    textureData->sampler = createInfo->sampler->samplerData;
 
     texture->textureData = textureData;
 
@@ -3811,6 +3896,28 @@ void lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_
     lvn_free(presentModes);
 }
 
+uint32_t lvnImplVkSwapchainGetImageCount(const LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
+    return swapchainData->swapchainImageCount;
+}
+
+LvnTexture* lvnImplVkSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
+    LVN_ASSERT(imageIndex < swapchainData->swapchainImageCount, "image index out of bounds");
+    return &swapchainData->pSwapchainTextures[imageIndex];
+}
+
+LvnTexture* lvnImplVkSwapchainGetDepthImage(LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
+    return (swapchainData->depthFormat != VK_FORMAT_UNDEFINED) ? &swapchainData->depthTexture : NULL;
+}
+
 LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
@@ -3823,17 +3930,8 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     LvnVkSwapchainData* swapchainData = (LvnVkSwapchainData*) swapchain->swapchainData;
     VkSurfaceKHR surface = (VkSurfaceKHR) swapchainData->surface;
 
-    // destroy swapchain resources
-    for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
-    {
-        lvn_free(swapchain->pSwapchainImages[i].textureData);
-        vkBackends->vkDestroyImageView(vkBackends->device, swapchainData->swapchainImageViews[i], NULL);
-    }
-    lvn_free(swapchainData->swapchainImages);
-    lvn_free(swapchainData->swapchainImageViews);
-    swapchainData->swapchainImages = NULL;
-    swapchainData->swapchainImageViews = NULL;
-    memset(swapchain->pSwapchainImages, 0, swapchain->swapchainImageCount * sizeof(LvnTexture));
+    // clean swapchain resources
+    lvn_cleanSwapchainData(vkBackends, swapchainData);
 
     // set current swapchain to old swapchain
     swapchainData->oldSwapchain = swapchainData->swapchain;
@@ -3843,6 +3941,7 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
         .physicalDevice = vkBackends->physicalDevice,
         .surface = surface,
         .surfaceFormat = swapchainData->swapchainFormat,
+        .depthFormat = swapchainData->depthFormat,
         .presentMode = swapchainData->presentMode,
         .queueFamilyIndices = &vkBackends->queueFamilyIndices,
         .width = width,
@@ -3851,7 +3950,7 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     };
 
     // create new swapchain
-    if (lvn_createSwapChainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
+    if (lvn_createSwapchainData(vkBackends, swapchainData, &swapchainCreateInfo) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
                       "[vulkan] failed to recreate swapchain %p",
@@ -3863,31 +3962,49 @@ LvnResult lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint
     vkBackends->vkDestroySwapchainKHR(vkBackends->device, swapchainData->oldSwapchain, NULL);
     swapchainData->oldSwapchain = VK_NULL_HANDLE;
 
-    if (swapchain->swapchainImageCount != swapchainData->swapchainImageCount)
+    // update image views
+    swapchainData->pTextureDatas = (LvnVkTextureData*)
+        lvn_calloc((swapchainData->swapchainImageCount + (swapchainData->depthFormat != VK_FORMAT_UNDEFINED ? 1 : 0)) * sizeof(LvnVkTextureData));
+    if (!swapchainData->pTextureDatas)
     {
-        swapchain->swapchainImageCount = swapchainData->swapchainImageCount;
-        swapchain->pSwapchainImages = lvn_realloc(swapchain->pSwapchainImages, swapchainData->swapchainImageCount * sizeof(LvnTexture*));
+        LVN_LOG_ERROR(swapchain->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for texture data for images in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
     }
 
-    // update image views
+    swapchainData->pSwapchainTextures = (LvnTexture*) lvn_calloc(swapchainData->swapchainImageCount * sizeof(LvnTexture));
+    if (!swapchainData->pSwapchainTextures)
+    {
+        LVN_LOG_ERROR(swapchain->graphicsctx->coreLogger, "[vulkan] failed to allocate memory for swapchain image views in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
     for (uint32_t i = 0; i < swapchainData->swapchainImageCount; i++)
     {
-        swapchain->pSwapchainImages[i].textureData = lvn_calloc(sizeof(LvnVkTextureData));
-        if (!swapchain->pSwapchainImages[i].textureData)
-        {
-            LVN_LOG_ERROR(vkBackends->graphicsctx->coreLogger,
-                          "[vulkan] failed to allocate memory for texture data for image in swapchain %p",
-                          swapchain);
-            errResult = Lvn_Result_OutOfMemory;
-            goto fail_cleanup;
-        }
+        swapchainData->pTextureDatas[i].image = swapchainData->swapchainImages[i];
+        swapchainData->pTextureDatas[i].imageView = swapchainData->swapchainImageViews[i];
+        swapchainData->pTextureDatas[i].width = swapchainData->swapchainExtent.width;
+        swapchainData->pTextureDatas[i].height = swapchainData->swapchainExtent.height;
 
-        LvnVkTextureData* textureData = (LvnVkTextureData*) swapchain->pSwapchainImages[i].textureData;
+        swapchainData->pSwapchainTextures[i].graphicsctx = swapchain->graphicsctx;
+        swapchainData->pSwapchainTextures[i].textureData = &swapchainData->pTextureDatas[i];
+        swapchainData->pSwapchainTextures[i].width = swapchainData->swapchainExtent.width;
+        swapchainData->pSwapchainTextures[i].height = swapchainData->swapchainExtent.height;
+    }
 
-        textureData->image = swapchainData->swapchainImages[i];
-        textureData->imageView = swapchainData->swapchainImageViews[i];
-        textureData->width = swapchainData->swapchainExtent.width;
-        textureData->height = swapchainData->swapchainExtent.height;
+    if (swapchainData->depthFormat != VK_FORMAT_UNDEFINED)
+    {
+        // use last texture data in pTextureDatas as depth texture data using swapchainImageCount
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].image = swapchainData->depthImage;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].imageView = swapchainData->depthImageView;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].width = swapchainData->swapchainExtent.width;
+        swapchainData->pTextureDatas[swapchainData->swapchainImageCount].height = swapchainData->swapchainExtent.height;
+
+        swapchainData->depthTexture.graphicsctx = swapchain->graphicsctx;
+        swapchainData->depthTexture.textureData = &swapchainData->pTextureDatas[swapchainData->swapchainImageCount];
+        swapchainData->depthTexture.width = swapchainData->swapchainExtent.width;
+        swapchainData->depthTexture.height = swapchainData->swapchainExtent.height;
     }
 
     // update extent

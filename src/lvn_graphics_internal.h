@@ -52,9 +52,7 @@ struct LvnSwapchain
 {
     const LvnGraphicsContext*    graphicsctx;
     void*                        swapchainData;
-    LvnTexture*                  pSwapchainImages;
-    uint32_t                     swapchainImageCount;
-    LvnFormat                    swapchainColorFormat;
+    LvnFormat                    format;
     LvnExtent2D                  extent;
 };
 
@@ -159,6 +157,9 @@ struct LvnGraphicsContext
     PFN_lvnUpdateDescriptorSets               implUpdateDescriptorSets;
     PFN_lvnSurfaceGetSupportedFormats         implSurfaceGetSupportedFormats;
     PFN_lvnSurfaceGetSupportedPresentModes    implSurfaceGetSupportedPresentModes;
+    PFN_lvnSwapchainGetImageCount             implSwapchainGetImageCount;
+    PFN_lvnSwapchainGetImage                  implSwapchainGetImage;
+    PFN_lvnSwapchainGetDepthImage             implSwapchainGetDepthImage;
     PFN_lvnSwapchainResize                    implSwapchainResize;
     PFN_lvnSwapchainAcquireNextImage          implSwapchainAcquireNextImage;
     PFN_lvnFenceWait                          implFenceWait;

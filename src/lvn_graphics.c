@@ -67,6 +67,9 @@ static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx
     graphicsctx->implUpdateDescriptorSets = createInfo->gctxFuncs->updateDescriptorSets;
     graphicsctx->implSurfaceGetSupportedFormats = createInfo->gctxFuncs->surfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = createInfo->gctxFuncs->surfaceGetSupportedPresentModes;
+    graphicsctx->implSwapchainGetImageCount = createInfo->gctxFuncs->swapchainGetImageCount;
+    graphicsctx->implSwapchainGetImage = createInfo->gctxFuncs->swapchainGetImage;
+    graphicsctx->implSwapchainGetDepthImage = createInfo->gctxFuncs->swapchainGetDepthImage;
     graphicsctx->implSwapchainResize = createInfo->gctxFuncs->swapchainResize;
     graphicsctx->implSwapchainAcquireNextImage = createInfo->gctxFuncs->swapchainAcquireNextImage;
     graphicsctx->implFenceWait = createInfo->gctxFuncs->fenceWait;
@@ -86,63 +89,6 @@ static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx
     graphicsctx->implCmdDrawIndexed = createInfo->gctxFuncs->cmdDrawIndexed;
     graphicsctx->implRenderSubmit = createInfo->gctxFuncs->renderSubmit;
     graphicsctx->implRenderPresent = createInfo->gctxFuncs->renderPresent;
-
-    if (!graphicsctx->implCreateSurface ||
-        !graphicsctx->implDestroySurface ||
-        !graphicsctx->implCreateSwapchain ||
-        !graphicsctx->implDestroySwapchain ||
-        !graphicsctx->implCreateRenderPass ||
-        !graphicsctx->implDestroyRenderPass ||
-        !graphicsctx->implCreateFramebuffer ||
-        !graphicsctx->implDestroyFramebuffer ||
-        !graphicsctx->implCreateShader ||
-        !graphicsctx->implDestroyShader ||
-        !graphicsctx->implCreateDescriptorLayout ||
-        !graphicsctx->implDestroyDescriptorLayout ||
-        !graphicsctx->implCreateDescriptorPool ||
-        !graphicsctx->implDestroyDescriptorPool ||
-        !graphicsctx->implCreatePipeline ||
-        !graphicsctx->implDestroyPipeline ||
-        !graphicsctx->implCreateFence ||
-        !graphicsctx->implDestroyFence ||
-        !graphicsctx->implCreateSemaphore ||
-        !graphicsctx->implDestroySemaphore ||
-        !graphicsctx->implCreateBuffer ||
-        !graphicsctx->implDestroyBuffer ||
-        !graphicsctx->implCreateSampler ||
-        !graphicsctx->implDestroySampler ||
-        !graphicsctx->implCreateTexture ||
-        !graphicsctx->implDestroyTexture ||
-        !graphicsctx->implCreateCommandBuffer ||
-        !graphicsctx->implDestroyCommandBuffer ||
-        !graphicsctx->implAllocateDescriptorSets ||
-        !graphicsctx->implResetDescriptorPool ||
-        !graphicsctx->implUpdateDescriptorSets ||
-        !graphicsctx->implSurfaceGetSupportedFormats ||
-        !graphicsctx->implSurfaceGetSupportedPresentModes ||
-        !graphicsctx->implSwapchainResize ||
-        !graphicsctx->implSwapchainAcquireNextImage ||
-        !graphicsctx->implFenceWait ||
-        !graphicsctx->implFenceReset ||
-        !graphicsctx->implBufferUpdate ||
-        !graphicsctx->implBeginCommandBuffer ||
-        !graphicsctx->implEndCommandBuffer ||
-        !graphicsctx->implCmdBeginRenderPass ||
-        !graphicsctx->implCmdEndRenderPass ||
-        !graphicsctx->implCmdBindPipeline ||
-        !graphicsctx->implCmdBindVertexBuffer ||
-        !graphicsctx->implCmdBindIndexBuffer ||
-        !graphicsctx->implCmdBindDescriptorSets ||
-        !graphicsctx->implCmdSetViewport ||
-        !graphicsctx->implCmdSetScissor ||
-        !graphicsctx->implCmdDraw ||
-        !graphicsctx->implCmdDrawIndexed ||
-        !graphicsctx->implRenderSubmit ||
-        !graphicsctx->implRenderPresent)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to set custom graphics context api functions");
-        return Lvn_Result_Failure;
-    }
 
     return Lvn_Result_Success;
 }
@@ -243,6 +189,9 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
         !gctxPtr->implUpdateDescriptorSets ||
         !gctxPtr->implSurfaceGetSupportedFormats ||
         !gctxPtr->implSurfaceGetSupportedPresentModes ||
+        !gctxPtr->implSwapchainGetImageCount ||
+        !gctxPtr->implSwapchainGetImage ||
+        !gctxPtr->implSwapchainGetDepthImage ||
         !gctxPtr->implSwapchainResize ||
         !gctxPtr->implSwapchainAcquireNextImage ||
         !gctxPtr->implFenceWait ||
@@ -967,22 +916,9 @@ LvnResult lvnCreateTexture(const LvnGraphicsContext* graphicsctx, LvnTexture** t
 {
     LVN_ASSERT(graphicsctx && texture && createInfo, "graphicsctx, texture, and createInfo cannot be null");
 
-    // createInfo validation
-    if (!createInfo->image)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create texture at %p | createInfo->image cannot be null", texture);
-        return Lvn_Result_Failure;
-    }
-    if (!createInfo->sampler)
-    {
-        LVN_LOG_ERROR(graphicsctx->coreLogger, "failed to create texture at %p | createInfo->sampler cannot be null", texture);
-        return Lvn_Result_Failure;
-    }
-
     LvnResult errResult = Lvn_Result_Failure;
     *texture = NULL;
 
-    // allocate texture
     *texture = (LvnTexture*) lvn_calloc(sizeof(LvnTexture));
     if (!*texture)
     {
@@ -1164,26 +1100,34 @@ void lvnSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* pre
 LvnFormat lvnSwapchainGetFormat(const LvnSwapchain* swapchain)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
-    return swapchain->swapchainColorFormat;
-}
-
-LvnTexture* lvnSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex)
-{
-    LVN_ASSERT(swapchain, "swapchain cannot be null");
-    LVN_ASSERT(imageIndex < swapchain->swapchainImageCount, "imageIndex out of index bounds");
-    return &swapchain->pSwapchainImages[imageIndex];
-}
-
-uint32_t lvnSwapchainGetImageCount(const LvnSwapchain* swapchain)
-{
-    LVN_ASSERT(swapchain, "swapchain cannot be null");
-    return swapchain->swapchainImageCount;
+    return swapchain->format;
 }
 
 LvnExtent2D lvnSwapchainGetExtent(const LvnSwapchain* swapchain)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
     return swapchain->extent;
+}
+
+uint32_t lvnSwapchainGetImageCount(const LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    return graphicsctx->implSwapchainGetImageCount(swapchain);
+}
+
+LvnTexture* lvnSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    return graphicsctx->implSwapchainGetImage(swapchain, imageIndex);
+}
+
+LvnTexture* lvnSwapchainGetDepthImage(LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
+    return graphicsctx->implSwapchainGetDepthImage(swapchain);
 }
 
 LvnResult lvnSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)

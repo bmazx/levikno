@@ -44,6 +44,9 @@ LvnResult   lvnImplVkUpdateDescriptorSets(const LvnGraphicsContext* graphicsctx,
 void        lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* formatCount, LvnFormat* pSurfaceFormats);
 void        lvnImplVkSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32_t* presentModeCount, LvnPresentMode* pPresentModes);
 
+uint32_t    lvnImplVkSwapchainGetImageCount(const LvnSwapchain* swapchain);
+LvnTexture* lvnImplVkSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex);
+LvnTexture* lvnImplVkSwapchainGetDepthImage(LvnSwapchain* swapchain);
 LvnResult   lvnImplVkSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height);
 LvnResult   lvnImplVkSwapchainAcquireNextImage(LvnSwapchain* swapchain, LvnSemaphore* semaphore, LvnFence* fence, uint32_t* imageIndex);
 

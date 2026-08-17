@@ -502,7 +502,9 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glDrawElementsInstancedBaseVertexBaseInstance ||
         !oglBackends->glDepthRange ||
         !oglBackends->glViewport ||
-        !oglBackends->glScissor)
+        !oglBackends->glScissor ||
+        !oglBackends->glDepthMask ||
+        !oglBackends->glDepthFunc)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -566,6 +568,9 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     graphicsctx->implUpdateDescriptorSets = lvnImplOglUpdateDescriptorSets;
     graphicsctx->implSurfaceGetSupportedFormats = lvnImplOglSurfaceGetSupportedFormats;
     graphicsctx->implSurfaceGetSupportedPresentModes = lvnImplOglSurfaceGetSupportedPresentModes;
+    graphicsctx->implSwapchainGetImageCount = lvnImplOglSwapchainGetImageCount;
+    graphicsctx->implSwapchainGetImage = lvnImplOglSwapchainGetImage;
+    graphicsctx->implSwapchainGetDepthImage = lvnImplOglSwapchainGetDepthImage;
     graphicsctx->implSwapchainResize = lvnImplOglSwapchainResize;
     graphicsctx->implSwapchainAcquireNextImage = lvnImplOglSwapchainAcquireNextImage;
     graphicsctx->implFenceWait = lvnImplOglFenceWait;
@@ -683,46 +688,80 @@ LvnResult lvnImplOglCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSw
         goto fail_cleanup;
     }
 
+    GLenum internalFormat = s_OglFormatTypes[createInfo->surfaceFormat].internalFormat;
+    GLenum depthInternalFormat = s_OglFormatTypes[createInfo->depthFormat].internalFormat;
+
     oglBackends->glCreateTextures(GL_TEXTURE_2D, createInfo->minImageCount, swapchainData->images);
     oglBackends->glCreateFramebuffers(createInfo->minImageCount, swapchainData->fboIds);
 
-    GLenum internalFormat = s_OglFormatTypes[createInfo->surfaceFormat].internalFormat;
+    if (swapchainData->hasDepth)
+    {
+        oglBackends->glCreateTextures(GL_TEXTURE_2D, 1, &swapchainData->depthImage);
+        oglBackends->glTextureStorage2D(swapchainData->depthImage, 1, depthInternalFormat, createInfo->width, createInfo->height);
+    }
 
     for (uint32_t i = 0; i < createInfo->minImageCount; i++)
     {
         oglBackends->glTextureStorage2D(swapchainData->images[i], 1, internalFormat, createInfo->width, createInfo->height);
         oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], GL_COLOR_ATTACHMENT0, swapchainData->images[i], 0);
-    }
 
+        if (swapchainData->hasDepth)
+        {
+            GLenum attachment = lvn_getOglDepthStencilAttachmentTypeEnum(createInfo->depthFormat);
+            oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], attachment, swapchainData->depthImage, 0);
+        }
+    }
 
     swapchainData->surface = createInfo->surface;
     swapchainData->imageCount = createInfo->minImageCount;
     swapchainData->width = createInfo->width;
     swapchainData->height = createInfo->height;
     swapchainData->format = createInfo->surfaceFormat;
+    swapchainData->depthFormat = createInfo->depthFormat;
     swapchainData->presentMode = createInfo->presentMode;
     swapchainData->srgb = lvn_isOglFormatSrgb(createInfo->surfaceFormat);
+    swapchainData->hasDepth = createInfo->depthFormat != Lvn_Format_Undefined;
 
     // swapchain images
-    swapchain->pSwapchainImages = (LvnTexture*) lvn_calloc(createInfo->minImageCount * sizeof(LvnTexture));
-    if (!swapchain->pSwapchainImages)
+    swapchainData->pTextureDatas = (LvnOglTextureData*)
+        lvn_calloc((swapchainData->imageCount + (swapchainData->depthFormat != Lvn_Format_Undefined ? 1 : 0)) * sizeof(LvnOglTextureData));
+    if (!swapchainData->pTextureDatas)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[opengl] failed to allocate memory for swapchain images <LvnTexture> in swapchain %p",
-                      swapchain);
+        LVN_LOG_ERROR(swapchain->graphicsctx->coreLogger, "[opengl] failed to allocate memory for texture data for images in swapchain %p", swapchain);
+        errResult = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    swapchainData->pSwapchainTextures = (LvnTexture*) lvn_calloc(swapchainData->imageCount * sizeof(LvnTexture));
+    if (!swapchainData->pSwapchainTextures)
+    {
+        LVN_LOG_ERROR(swapchain->graphicsctx->coreLogger, "[opengl] failed to allocate memory for swapchain image views in swapchain %p", swapchain);
         errResult = Lvn_Result_OutOfMemory;
         goto fail_cleanup;
     }
 
     for (uint32_t i = 0; i < createInfo->minImageCount; i++)
     {
-        swapchain->pSwapchainImages[i].textureData = lvn_calloc(sizeof(LvnOglTextureData));
-        LvnOglTextureData* textureData = (LvnOglTextureData*) swapchain->pSwapchainImages[i].textureData;
-        textureData->textureId = swapchainData->images[i];
+        swapchainData->pTextureDatas[i].textureId = swapchainData->images[i];
+
+        swapchainData->pSwapchainTextures[i].graphicsctx = graphicsctx;
+        swapchainData->pSwapchainTextures[i].textureData = &swapchainData->pTextureDatas[i];
+        swapchainData->pSwapchainTextures[i].width = swapchainData->width;
+        swapchainData->pSwapchainTextures[i].height = swapchainData->height;
+    }
+
+    if (swapchainData->hasDepth)
+    {
+        swapchainData->pTextureDatas[swapchainData->imageCount].textureId = swapchainData->depthImage;
+
+        swapchainData->depthTexture.graphicsctx = graphicsctx;
+        swapchainData->depthTexture.textureData = &swapchainData->pTextureDatas[swapchainData->imageCount];
+        swapchainData->depthTexture.width = swapchainData->width;
+        swapchainData->depthTexture.height = swapchainData->height;
     }
 
     swapchain->swapchainData = swapchainData;
-    swapchain->swapchainImageCount = createInfo->minImageCount;
+    swapchain->format = swapchainData->format;
     swapchain->extent = (LvnExtent2D){ .width = createInfo->width, .height = createInfo->height };
 
     return Lvn_Result_Success;
@@ -738,13 +777,9 @@ fail_cleanup:
             lvn_free(swapchainData->fboIds);
         }
 
+        lvn_free(swapchainData->pTextureDatas);
+        lvn_free(swapchainData->pSwapchainTextures);
         lvn_free(swapchainData);
-    }
-    if (swapchain->pSwapchainImages)
-    {
-        for (uint32_t i = 0; i < createInfo->minImageCount; i++)
-            lvn_free(swapchain->pSwapchainImages[i].textureData);
-        lvn_free(swapchain->pSwapchainImages);
     }
     return errResult;
 }
@@ -758,21 +793,15 @@ void lvnImplOglDestroySwapchain(LvnSwapchain* swapchain)
     LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
 
     oglBackends->glDeleteTextures(swapchainData->imageCount, swapchainData->images);
+    oglBackends->glDeleteFramebuffers(swapchainData->imageCount, swapchainData->fboIds);
 
     lvn_free(swapchainData->images);
     lvn_free(swapchainData->fboIds);
+    lvn_free(swapchainData->pTextureDatas);
+    lvn_free(swapchainData->pSwapchainTextures);
     lvn_free(swapchainData);
 
-    if (swapchain->pSwapchainImages)
-    {
-        for (uint32_t i = 0; i < swapchain->swapchainImageCount; i++)
-            lvn_free(swapchain->pSwapchainImages[i].textureData);
-        lvn_free(swapchain->pSwapchainImages);
-    }
-
     swapchain->swapchainData = NULL;
-    swapchain->pSwapchainImages = NULL;
-    swapchain->swapchainImageCount = 0;
 }
 
 LvnResult lvnImplOglCreateRenderPass(const LvnGraphicsContext* graphicsctx, LvnRenderPass* renderpass, const LvnRenderPassCreateInfo* createInfo)
@@ -1867,6 +1896,28 @@ void lvnImplOglSurfaceGetSupportedPresentModes(const LvnSurface* surface, uint32
     pPresentModes[2] = Lvn_PresentMode_Mailbox;
 }
 
+uint32_t lvnImplOglSwapchainGetImageCount(const LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
+    return swapchainData->imageCount;
+}
+
+LvnTexture* lvnImplOglSwapchainGetImage(LvnSwapchain* swapchain, uint32_t imageIndex)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
+    LVN_ASSERT(imageIndex < swapchainData->imageCount, "image index out of bounds");
+    return &swapchainData->pSwapchainTextures[imageIndex];
+}
+
+LvnTexture* lvnImplOglSwapchainGetDepthImage(LvnSwapchain* swapchain)
+{
+    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
+    return (swapchainData->hasDepth) ? &swapchainData->depthTexture : NULL;
+}
+
 LvnResult lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uint32_t height)
 {
     LVN_ASSERT(swapchain, "swapchain cannot be null");
@@ -1874,25 +1925,48 @@ LvnResult lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uin
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) swapchain->graphicsctx->implData;
     LvnOglSwapchainData* swapchainData = (LvnOglSwapchainData*) swapchain->swapchainData;
 
+    swapchainData->width = width;
+    swapchainData->height = height;
+
+    GLenum internalFormat = s_OglFormatTypes[swapchainData->format].internalFormat;
+    GLenum depthInternalFormat = s_OglFormatTypes[swapchainData->depthFormat].internalFormat;
+
     // recreate swapchain resources
     oglBackends->glDeleteTextures(swapchainData->imageCount, swapchainData->images);
     oglBackends->glCreateTextures(GL_TEXTURE_2D, swapchainData->imageCount, swapchainData->images);
 
-    GLenum internalFormat = s_OglFormatTypes[swapchainData->format].internalFormat;
+    if (swapchainData->hasDepth)
+    {
+        oglBackends->glDeleteTextures(1, &swapchainData->depthImage);
+        oglBackends->glCreateTextures(GL_TEXTURE_2D, 1, &swapchainData->depthImage);
+        oglBackends->glTextureStorage2D(swapchainData->depthImage, 1, depthInternalFormat, width, height);
+    }
 
+    // update images
     for (uint32_t i = 0; i < swapchainData->imageCount; i++)
     {
         oglBackends->glTextureStorage2D(swapchainData->images[i], 1, internalFormat, width, height);
         oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], GL_COLOR_ATTACHMENT0, swapchainData->images[i], 0);
 
-        LvnOglTextureData* textureData = (LvnOglTextureData*) swapchain->pSwapchainImages[i].textureData;
-        textureData->textureId = swapchainData->images[i];
+        if (swapchainData->hasDepth)
+        {
+            GLenum attachment = lvn_getOglDepthStencilAttachmentTypeEnum(swapchainData->depthFormat);
+            oglBackends->glNamedFramebufferTexture(swapchainData->fboIds[i], attachment, swapchainData->depthImage, 0);
+        }
+
+        swapchainData->pTextureDatas[i].textureId = swapchainData->images[i];
+        swapchainData->pSwapchainTextures[i].width = swapchainData->width;
+        swapchainData->pSwapchainTextures[i].height = swapchainData->height;
+    }
+
+    if (swapchainData->hasDepth)
+    {
+        swapchainData->pTextureDatas[swapchainData->imageCount].textureId = swapchainData->depthImage;
+        swapchainData->depthTexture.width = swapchainData->width;
+        swapchainData->depthTexture.height = swapchainData->height;
     }
 
     // update extent
-    swapchainData->width = width;
-    swapchainData->height = height;
-
     swapchain->extent.width = width;
     swapchain->extent.height = height;
 
@@ -2319,13 +2393,13 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
         switch (swapchainData->presentMode)
         {
             case Lvn_PresentMode_FIFO:
-                oglBackends->ogllSwapInterval(oglBackends, 0);
+                oglBackends->ogllSwapInterval(oglBackends, 1);
                 break;
             case Lvn_PresentMode_Mailbox:
                 oglBackends->ogllSwapInterval(oglBackends, 1);
                 break;
             case Lvn_PresentMode_Immediate:
-                oglBackends->ogllSwapInterval(oglBackends, 1);
+                oglBackends->ogllSwapInterval(oglBackends, 0);
                 break;
         }
 
@@ -2387,6 +2461,7 @@ void lvnCmdBuffImplOglCmdBindPipeline(void* data)
     LVN_ASSERT(data, "data cannot be null");
 
     const LvnOglCmdBuffBindPipelineData* cmdData = (const LvnOglCmdBuffBindPipelineData*) data;
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
     const LvnOglPipelineData* pipelineData = (const LvnOglPipelineData*) cmdData->pipeline->pipelineData;
     LvnOglCommandBufferData* commandBufferData = (LvnOglCommandBufferData*) cmdData->commandBuffer->commandbufferData;
 
@@ -2394,6 +2469,15 @@ void lvnCmdBuffImplOglCmdBindPipeline(void* data)
     commandBufferData->pipeline.vaoId = pipelineData->vaoId;
     commandBufferData->pipeline.primitiveMode = pipelineData->fixedFuncEnums.primitiveMode;
     commandBufferData->vbo.pVertexBindings = pipelineData->pVertexBindings;
+
+    // pipeline fixed functions
+    if (pipelineData->fixedFuncEnums.depthStencil.depthTestEnable)
+        oglBackends->glEnable(GL_DEPTH_TEST);
+    else
+        oglBackends->glDisable(GL_DEPTH_TEST);
+
+    oglBackends->glDepthMask(pipelineData->fixedFuncEnums.depthStencil.depthWriteEnable ? GL_TRUE : GL_FALSE);
+    oglBackends->glDepthFunc(pipelineData->fixedFuncEnums.depthCompareOp);
 }
 
 void lvnCmdBuffImplOglCmdBindVertexBuffer(void* data)

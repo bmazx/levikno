@@ -27,11 +27,48 @@ typedef struct UniformData
 } UniformData;
 
 static float s_Vertices[] = {
-/*   x     y  |  r     g     b  |  u     v   */
-   -0.5f,-0.5f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-    0.5f,-0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-   -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+    /*    pos (x,y,z)    |      UV   */
+    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,    1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,    0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f
 };
 
 static uint32_t s_Indices[] = {
@@ -97,8 +134,9 @@ void resizeFramebuffers(const LvnGraphicsContext* graphicsctx, LvnSwapchain* swa
         LvnTexture* swapchainImage = lvnSwapchainGetImage(swapchain, i);
         LvnFramebufferCreateInfo framebufferCreateInfo = {
             .renderPass = renderPass,
-            .pColorAttachments = &swapchainImage,
             .colorAttachmentCount = 1,
+            .pColorAttachments = &swapchainImage,
+            .depthStencilAttachment = lvnSwapchainGetDepthImage(swapchain),
             .width = width,
             .height = height,
         };
@@ -263,7 +301,7 @@ int main(int argc, char** argv)
     LvnPresentMode selPresentMode = Lvn_PresentMode_FIFO;
     for (uint32_t i = 0; i < presentModeCount; i++)
     {
-        if (presentModes[i] == Lvn_PresentMode_Mailbox)
+        if (presentModes[i] == Lvn_PresentMode_FIFO)
         {
             selPresentMode = presentModes[i];
             printf("found present mode\n");
@@ -279,6 +317,7 @@ int main(int argc, char** argv)
     swapchainCreateInfo.surfaceFormat = selFormat;
     swapchainCreateInfo.presentMode = selPresentMode;
     swapchainCreateInfo.minImageCount = 3;
+    swapchainCreateInfo.depthFormat = Lvn_Format_D32_FLOAT;
 
     LvnSwapchain* swapchain;
     lvnCreateSwapchain(graphicsctx, &swapchain, &swapchainCreateInfo);
@@ -291,10 +330,19 @@ int main(int argc, char** argv)
         .storeOp = Lvn_AttachmentStoreOp_Store,
     };
 
+    LvnDepthStencilAttachment depthAttachment = {
+        .samples = Lvn_SampleCountFlag_1_Bit,
+        .format = Lvn_Format_D32_FLOAT,
+        .loadOp = Lvn_AttachmentLoadOp_Clear,
+        .storeOp = Lvn_AttachmentStoreOp_Store,
+        .stencilLoadOp = Lvn_AttachmentLoadOp_Clear,
+        .stencilStoreOp = Lvn_AttachmentStoreOp_Store,
+    };
+
     LvnRenderPassCreateInfo renderPassCreateInfo = {
         .pColorAttachments = &colorAttachment,
         .colorAttachmentCount = 1,
-        .depthStencilAttachment = NULL,
+        .depthStencilAttachment = &depthAttachment,
     };
 
     LvnRenderPass* renderPass;
@@ -310,8 +358,9 @@ int main(int argc, char** argv)
         LvnTexture* swapchainImage = lvnSwapchainGetImage(swapchain, i);
         LvnFramebufferCreateInfo framebufferCreateInfo = {
             .renderPass = renderPass,
-            .pColorAttachments = &swapchainImage,
             .colorAttachmentCount = 1,
+            .pColorAttachments = &swapchainImage,
+            .depthStencilAttachment = lvnSwapchainGetDepthImage(swapchain),
             .width = extent.width,
             .height = extent.height,
         };
@@ -381,17 +430,19 @@ int main(int argc, char** argv)
 
     // pipeline
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
+    pipelineFixedFuncs.depthstencil.depthTestEnable = true;
+    pipelineFixedFuncs.depthstencil.depthWriteEnable = true;
+    pipelineFixedFuncs.depthstencil.depthOpCompare = Lvn_CompareOp_LessOrEqual;
 
     LvnVertexAttribute attributes[] =
     {
-        { 0, 0, Lvn_Format_R32G32_FLOAT, 0 },
-        { 0, 1, Lvn_Format_R32G32B32_FLOAT, (2 * sizeof(float)) },
-        { 0, 2, Lvn_Format_R32G32_FLOAT, (5 * sizeof(float)) },
+        { 0, 0, Lvn_Format_R32G32B32_FLOAT, 0 },
+        { 0, 2, Lvn_Format_R32G32_FLOAT, (3 * sizeof(float)) },
     };
 
     LvnVertexBindingDescription vertexBindingDescription = {
         .binding = 0,
-        .stride = 7 * sizeof(float),
+        .stride = 5 * sizeof(float),
     };
 
     LvnShader* shaderStages[] =
@@ -483,7 +534,6 @@ int main(int argc, char** argv)
 
     LvnTextureCreateInfo textureCreateInfo = {
         .format = Lvn_Format_R8G8B8A8_SRGB,
-        .sampler = sampler,
         .samples = Lvn_SampleCountFlag_1_Bit,
         .image = image.data,
         .width = image.width,
@@ -593,12 +643,15 @@ int main(int argc, char** argv)
             {{0.0f, 0.1f, 0.2f, 1.0f }},
         };
 
+        LvnClearDepthStencilValue depthValue = { 1.0f, 0 };
+
         LvnRenderPassBeginInfo beginInfo = {
             .renderPass = renderPass,
             .framebuffer = swapchainFramebuffers[imageIndex],
             .renderArea = {{extent.width, extent.height}, {0, 0}},
             .clearColorValueCount = 1,
             .pClearColorValues = clearValues,
+            .clearDepthStencilValue = depthValue,
         };
 
         lvnCmdBeginRenderPass(cmdBuff, &beginInfo);
@@ -626,7 +679,7 @@ int main(int argc, char** argv)
 
         lvnCmdBindDescriptorSets(cmdBuff, pipeline, 0, 1, &descriptorSet, 0, NULL);
 
-        lvnCmdDrawIndexed(cmdBuff, LVN_ARRAY_LEN(s_Indices), 1, 0, 0, 0);
+        lvnCmdDraw(cmdBuff, LVN_ARRAY_LEN(s_Vertices), 1, 0, 0);
 
         lvnCmdEndRenderPass(cmdBuff);
         lvnEndCommandBuffer(cmdBuff);
