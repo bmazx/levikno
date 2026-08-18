@@ -610,9 +610,9 @@ int main(int argc, char** argv)
         lvn_rotate(model, lvn_rad(currTime * 20), (LvnVec3){0.0f, 1.0f, 0.0f});
         // lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
 
-        LvnMat4 camera, temp;
-        lvn_mat4_mul(view, model, temp);
-        lvn_mat4_mul(proj, temp, camera);
+        LvnMat4 camera;
+        LvnMat4* mpv[] = { &proj, &view, &model };
+        lvn_mat4_mulN(mpv, LVN_ARRAY_LEN(mpv), camera);
 
         lvn_mat4_copy(camera, uboData.matrix);
         lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);

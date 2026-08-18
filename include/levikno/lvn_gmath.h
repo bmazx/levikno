@@ -162,6 +162,16 @@ typedef LvnMat4x4 LvnMat4;
 #define LVN_GMATH_INCLUDE_MAT4_UI64
 #endif // !LVN_GMATH_WHITELIST_INCLUDES
 
+#if defined(LVN_GMATH_INCLUDE_VEC2_F) && \
+    defined(LVN_GMATH_INCLUDE_VEC3_F) && \
+    defined(LVN_GMATH_INCLUDE_VEC4_F) && \
+    defined(LVN_GMATH_INCLUDE_MAT2_F) && \
+    defined(LVN_GMATH_INCLUDE_MAT3_F) && \
+    defined(LVN_GMATH_INCLUDE_MAT4_F)
+#define LVN_GMATH_INCLUDE_COMMON_MATHFN
+#elif defined(LVN_GMATH_INCLUDE_COMMON_MATHFN) && !defined(LVN_GMATH_NO_INCLUDE_COMMON_MATHFN)
+#error "cannot include comman math functions, all floating point vector/matrix types need to be defined first"
+#endif
 
 #define LVN_DEFINE_VEC2_TYPE_MATH_DECL(t)                                                                              \
 void lvn_vec2_##t(LvnType_##t* v, LvnVec2_##t dst);                                                                    \
@@ -255,6 +265,7 @@ void lvn_mat2_##t##_negate(LvnMat2x2_##t m);                                    
 void lvn_mat2_##t##_add(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
 void lvn_mat2_##t##_sub(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
 void lvn_mat2_##t##_mul(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst);                                        \
+void lvn_mat2_##t##_mulN(LvnMat2x2_##t *pm[], uint32_t len, LvnMat2x2_##t dst);                                        \
 void lvn_mat2_##t##_mulmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst);                                            \
 void lvn_mat2_##t##_mulvm(LvnVec2_##t v, LvnMat2x2_##t m, LvnVec2_##t dst);                                            \
 void lvn_mat2_##t##_addms(LvnMat2x2_##t m, LvnType_##t s, LvnMat2x2_##t dst);                                          \
@@ -279,6 +290,7 @@ void lvn_mat3_##t##_negate(LvnMat3x3_##t m);                                    
 void lvn_mat3_##t##_add(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
 void lvn_mat3_##t##_sub(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
 void lvn_mat3_##t##_mul(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst);                                        \
+void lvn_mat3_##t##_mulN(LvnMat3x3_##t *pm[], uint32_t len, LvnMat3x3_##t dst);                                        \
 void lvn_mat3_##t##_mulmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst);                                            \
 void lvn_mat3_##t##_mulvm(LvnVec3_##t v, LvnMat3x3_##t m, LvnVec3_##t dst);                                            \
 void lvn_mat3_##t##_addms(LvnMat3x3_##t m, LvnType_##t s, LvnMat3x3_##t dst);                                          \
@@ -303,6 +315,7 @@ void lvn_mat4_##t##_negate(LvnMat4x4_##t m);                                    
 void lvn_mat4_##t##_add(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
 void lvn_mat4_##t##_sub(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
 void lvn_mat4_##t##_mul(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst);                                        \
+void lvn_mat4_##t##_mulN(LvnMat4x4_##t *pm[], uint32_t len, LvnMat4x4_##t dst);                                        \
 void lvn_mat4_##t##_mulmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst);                                            \
 void lvn_mat4_##t##_mulvm(LvnVec4_##t v, LvnMat4x4_##t m, LvnVec4_##t dst);                                            \
 void lvn_mat4_##t##_addms(LvnMat4x4_##t m, LvnType_##t s, LvnMat4x4_##t dst);                                          \
@@ -342,58 +355,6 @@ float lvn_vec##n##_mag(LvnVec##n v);                                            
 float lvn_vec##n##_mag2(LvnVec##n v);                                                                                  \
 float lvn_vec##n##_dot(LvnVec##n v1, LvnVec##n v2);                                                                    \
 
-#define LVN_DEFINE_VEC_I32_TYPE_MATH_DECL(n)                                                                           \
-void lvn_vec##n##i(int32_t* v, LvnVec##n##i dst);                                                                      \
-void lvn_vec##n##i_s(int32_t s, LvnVec##n##i dst);                                                                     \
-void lvn_vec##n##i_zero(LvnVec##n##i dst);                                                                             \
-void lvn_vec##n##i_one(LvnVec##n##i dst);                                                                              \
-void lvn_vec##n##i_copy(LvnVec##n##i src, LvnVec##n##i dst);                                                           \
-void lvn_vec##n##i_negate(LvnVec##n##i v);                                                                             \
-void lvn_vec##n##i_negate_to(LvnVec##n##i v, LvnVec##n##i dst);                                                        \
-void lvn_vec##n##i_add(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
-void lvn_vec##n##i_sub(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
-void lvn_vec##n##i_mul(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
-void lvn_vec##n##i_div(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst);                                            \
-void lvn_vec##n##i_addvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_subvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_mulvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_divvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_addsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_subsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_mulsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_divsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst);                                                 \
-void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-void lvn_vec##n##i_mulpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst);                                        \
-int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2);                                                           \
-
-#define LVN_DEFINE_VEC_UI32_TYPE_MATH_DECL(n)                                                                          \
-void lvn_vec##n##ui(uint32_t* v, LvnVec##n##ui dst);                                                                   \
-void lvn_vec##n##ui_s(uint32_t s, LvnVec##n##ui dst);                                                                  \
-void lvn_vec##n##ui_zero(LvnVec##n##ui dst);                                                                           \
-void lvn_vec##n##ui_one(LvnVec##n##ui dst);                                                                            \
-void lvn_vec##n##ui_copy(LvnVec##n##ui src, LvnVec##n##ui dst);                                                        \
-void lvn_vec##n##ui_negate(LvnVec##n##ui v);                                                                           \
-void lvn_vec##n##ui_negate_to(LvnVec##n##ui v, LvnVec##n##ui dst);                                                     \
-void lvn_vec##n##ui_add(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
-void lvn_vec##n##ui_sub(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
-void lvn_vec##n##ui_mul(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
-void lvn_vec##n##ui_div(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst);                                        \
-void lvn_vec##n##ui_addvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_subvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_mulvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_divvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_addsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_subsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_mulsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_divsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst);                                             \
-void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-void lvn_vec##n##ui_mulpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst);                                     \
-uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2);                                                       \
-
 #define LVN_DEFINE_MAT_F_TYPE_MATH_DECL(n)                                                                             \
 void lvn_mat##n(float* v, LvnMat##n##x##n dst);                                                                        \
 void lvn_mat##n##_zero(LvnMat##n##x##n dst);                                                                           \
@@ -407,6 +368,7 @@ void lvn_mat##n##_negate(LvnMat##n##x##n m);                                    
 void lvn_mat##n##_add(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
 void lvn_mat##n##_sub(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
 void lvn_mat##n##_mul(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst);                                    \
+void lvn_mat##n##_mulN(LvnMat##n##x##n *pm[], uint32_t len, LvnMat##n##x##n dst);                                      \
 void lvn_mat##n##_mulmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst);                                                \
 void lvn_mat##n##_mulvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst);                                                \
 void lvn_mat##n##_addms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst);                                              \
@@ -417,54 +379,6 @@ void lvn_mat##n##_addsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);       
 void lvn_mat##n##_subsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_mulsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);                                              \
 void lvn_mat##n##_divsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst);
-
-#define LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(n)                                                                           \
-void lvn_mat##n##i(int32_t* v, LvnMat##n##x##n##i dst);                                                                \
-void lvn_mat##n##i_zero(LvnMat##n##x##n##i dst);                                                                       \
-void lvn_mat##n##i_identity(LvnMat##n##x##n##i dst);                                                                   \
-void lvn_mat##n##i_copy(LvnMat##n##x##n##i src, LvnMat##n##x##n##i dst);                                               \
-void lvn_mat##n##i_inv(LvnMat##n##x##n##i mat, LvnMat##n##x##n##i dst);                                                \
-void lvn_mat##n##i_transpose_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                         \
-void lvn_mat##n##i_transpose(LvnMat##n##x##n##i m);                                                                    \
-void lvn_mat##n##i_negate_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                            \
-void lvn_mat##n##i_negate(LvnMat##n##x##n##i m);                                                                       \
-void lvn_mat##n##i_add(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
-void lvn_mat##n##i_sub(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
-void lvn_mat##n##i_mul(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst);                          \
-void lvn_mat##n##i_mulmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst);                                      \
-void lvn_mat##n##i_mulvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst);                                      \
-void lvn_mat##n##i_addms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_subms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_mulms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_divms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_addsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_subsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_mulsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);                                     \
-void lvn_mat##n##i_divsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst);
-
-#define LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(n)                                                                          \
-void lvn_mat##n##ui(uint32_t* v, LvnMat##n##x##n##ui dst);                                                             \
-void lvn_mat##n##ui_zero(LvnMat##n##x##n##ui dst);                                                                     \
-void lvn_mat##n##ui_identity(LvnMat##n##x##n##ui dst);                                                                 \
-void lvn_mat##n##ui_copy(LvnMat##n##x##n##ui src, LvnMat##n##x##n##ui dst);                                            \
-void lvn_mat##n##ui_inv(LvnMat##n##x##n##ui mat, LvnMat##n##x##n##ui dst);                                             \
-void lvn_mat##n##ui_transpose_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                      \
-void lvn_mat##n##ui_transpose(LvnMat##n##x##n##ui m);                                                                  \
-void lvn_mat##n##ui_negate_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                         \
-void lvn_mat##n##ui_negate(LvnMat##n##x##n##ui m);                                                                     \
-void lvn_mat##n##ui_add(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
-void lvn_mat##n##ui_sub(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
-void lvn_mat##n##ui_mul(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst);                      \
-void lvn_mat##n##ui_mulmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst);                                  \
-void lvn_mat##n##ui_mulvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst);                                  \
-void lvn_mat##n##ui_addms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_subms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_mulms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_divms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_addsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_subsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_mulsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);                                 \
-void lvn_mat##n##ui_divsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst);
 
 
 
@@ -997,10 +911,20 @@ void lvn_mat2_##t##_sub(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst) {
     dst[1][1] = m1[1][1] - m2[1][1];                                                                                   \
 }                                                                                                                      \
 void lvn_mat2_##t##_mul(LvnMat2x2_##t m1, LvnMat2x2_##t m2, LvnMat2x2_##t dst) {                                       \
-    dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1];                                                             \
-    dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1];                                                             \
-    dst[1][0] = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1];                                                             \
-    dst[1][1] = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1];                                                             \
+    LvnType_##t r00 = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1];                                                       \
+    LvnType_##t r01 = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1];                                                       \
+    LvnType_##t r10 = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1];                                                       \
+    LvnType_##t r11 = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1];                                                       \
+    dst[0][0] = r00;                                                                                                   \
+    dst[0][1] = r01;                                                                                                   \
+    dst[1][0] = r10;                                                                                                   \
+    dst[1][1] = r11;                                                                                                   \
+}                                                                                                                      \
+void lvn_mat2_##t##_mulN(LvnMat2x2_##t *pm[], uint32_t len, LvnMat2x2_##t dst) {                                       \
+    if (!len) { return; }                                                                                              \
+    if (len < 2) { lvn_mat2_##t##_copy(*pm[0], dst); return; }                                                         \
+    lvn_mat2_##t##_mul(*pm[0], *pm[1], dst);                                                                           \
+    for (uint32_t i = 2; i < len; i++) { lvn_mat2_##t##_mul(dst, *pm[i], dst); }                                       \
 }                                                                                                                      \
 void lvn_mat2_##t##_mulmv(LvnMat2x2_##t m, LvnVec2_##t v, LvnVec2_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1];                                                                          \
@@ -1202,15 +1126,30 @@ void lvn_mat3_##t##_sub(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) {
     dst[2][2] = m1[2][2] - m2[2][2];                                                                                   \
 }                                                                                                                      \
 void lvn_mat3_##t##_mul(LvnMat3x3_##t m1, LvnMat3x3_##t m2, LvnMat3x3_##t dst) {                                       \
-    dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2];                                       \
-    dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2];                                       \
-    dst[0][2] = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2];                                       \
-    dst[1][0] = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1] + m1[2][0] * m2[1][2];                                       \
-    dst[1][1] = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1] + m1[2][1] * m2[1][2];                                       \
-    dst[1][2] = m1[0][2] * m2[1][0] + m1[1][2] * m2[1][1] + m1[2][2] * m2[1][2];                                       \
-    dst[2][0] = m1[0][0] * m2[2][0] + m1[1][0] * m2[2][1] + m1[2][0] * m2[2][2];                                       \
-    dst[2][1] = m1[0][1] * m2[2][0] + m1[1][1] * m2[2][1] + m1[2][1] * m2[2][2];                                       \
-    dst[2][2] = m1[0][2] * m2[2][0] + m1[1][2] * m2[2][1] + m1[2][2] * m2[2][2];                                       \
+    LvnType_##t r00 = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2];                                 \
+    LvnType_##t r01 = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2];                                 \
+    LvnType_##t r02 = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2];                                 \
+    LvnType_##t r10 = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1] + m1[2][0] * m2[1][2];                                 \
+    LvnType_##t r11 = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1] + m1[2][1] * m2[1][2];                                 \
+    LvnType_##t r12 = m1[0][2] * m2[1][0] + m1[1][2] * m2[1][1] + m1[2][2] * m2[1][2];                                 \
+    LvnType_##t r20 = m1[0][0] * m2[2][0] + m1[1][0] * m2[2][1] + m1[2][0] * m2[2][2];                                 \
+    LvnType_##t r21 = m1[0][1] * m2[2][0] + m1[1][1] * m2[2][1] + m1[2][1] * m2[2][2];                                 \
+    LvnType_##t r22 = m1[0][2] * m2[2][0] + m1[1][2] * m2[2][1] + m1[2][2] * m2[2][2];                                 \
+    dst[0][0] = r00;                                                                                                   \
+    dst[0][1] = r01;                                                                                                   \
+    dst[0][2] = r02;                                                                                                   \
+    dst[1][0] = r10;                                                                                                   \
+    dst[1][1] = r11;                                                                                                   \
+    dst[1][2] = r12;                                                                                                   \
+    dst[2][0] = r20;                                                                                                   \
+    dst[2][1] = r21;                                                                                                   \
+    dst[2][2] = r22;                                                                                                   \
+}                                                                                                                      \
+void lvn_mat3_##t##_mulN(LvnMat3x3_##t *pm[], uint32_t len, LvnMat3x3_##t dst) {                                       \
+    if (!len) { return; }                                                                                              \
+    if (len < 2) { lvn_mat3_##t##_copy(*pm[0], dst); return; }                                                         \
+    lvn_mat3_##t##_mul(*pm[0], *pm[1], dst);                                                                           \
+    for (uint32_t i = 2; i < len; i++) { lvn_mat3_##t##_mul(dst, *pm[i], dst); }                                       \
 }                                                                                                                      \
 void lvn_mat3_##t##_mulmv(LvnMat3x3_##t m, LvnVec3_##t v, LvnVec3_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2];                                                         \
@@ -1554,22 +1493,44 @@ void lvn_mat4_##t##_sub(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) {
     dst[3][3] = m1[3][3] - m2[3][3];                                                                                   \
 }                                                                                                                      \
 void lvn_mat4_##t##_mul(LvnMat4x4_##t m1, LvnMat4x4_##t m2, LvnMat4x4_##t dst) {                                       \
-    dst[0][0] = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2] + m1[3][0] * m2[0][3];                 \
-    dst[0][1] = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2] + m1[3][1] * m2[0][3];                 \
-    dst[0][2] = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2] + m1[3][2] * m2[0][3];                 \
-    dst[0][3] = m1[0][3] * m2[0][0] + m1[1][3] * m2[0][1] + m1[2][3] * m2[0][2] + m1[3][3] * m2[0][3];                 \
-    dst[1][0] = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1] + m1[2][0] * m2[1][2] + m1[3][0] * m2[1][3];                 \
-    dst[1][1] = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1] + m1[2][1] * m2[1][2] + m1[3][1] * m2[1][3];                 \
-    dst[1][2] = m1[0][2] * m2[1][0] + m1[1][2] * m2[1][1] + m1[2][2] * m2[1][2] + m1[3][2] * m2[1][3];                 \
-    dst[1][3] = m1[0][3] * m2[1][0] + m1[1][3] * m2[1][1] + m1[2][3] * m2[1][2] + m1[3][3] * m2[1][3];                 \
-    dst[2][0] = m1[0][0] * m2[2][0] + m1[1][0] * m2[2][1] + m1[2][0] * m2[2][2] + m1[3][0] * m2[2][3];                 \
-    dst[2][1] = m1[0][1] * m2[2][0] + m1[1][1] * m2[2][1] + m1[2][1] * m2[2][2] + m1[3][1] * m2[2][3];                 \
-    dst[2][2] = m1[0][2] * m2[2][0] + m1[1][2] * m2[2][1] + m1[2][2] * m2[2][2] + m1[3][2] * m2[2][3];                 \
-    dst[2][3] = m1[0][3] * m2[2][0] + m1[1][3] * m2[2][1] + m1[2][3] * m2[2][2] + m1[3][3] * m2[2][3];                 \
-    dst[3][0] = m1[0][0] * m2[3][0] + m1[1][0] * m2[3][1] + m1[2][0] * m2[3][2] + m1[3][0] * m2[3][3];                 \
-    dst[3][1] = m1[0][1] * m2[3][0] + m1[1][1] * m2[3][1] + m1[2][1] * m2[3][2] + m1[3][1] * m2[3][3];                 \
-    dst[3][2] = m1[0][2] * m2[3][0] + m1[1][2] * m2[3][1] + m1[2][2] * m2[3][2] + m1[3][2] * m2[3][3];                 \
-    dst[3][3] = m1[0][3] * m2[3][0] + m1[1][3] * m2[3][1] + m1[2][3] * m2[3][2] + m1[3][3] * m2[3][3];                 \
+    LvnType_##t r00 = m1[0][0] * m2[0][0] + m1[1][0] * m2[0][1] + m1[2][0] * m2[0][2] + m1[3][0] * m2[0][3];           \
+    LvnType_##t r01 = m1[0][1] * m2[0][0] + m1[1][1] * m2[0][1] + m1[2][1] * m2[0][2] + m1[3][1] * m2[0][3];           \
+    LvnType_##t r02 = m1[0][2] * m2[0][0] + m1[1][2] * m2[0][1] + m1[2][2] * m2[0][2] + m1[3][2] * m2[0][3];           \
+    LvnType_##t r03 = m1[0][3] * m2[0][0] + m1[1][3] * m2[0][1] + m1[2][3] * m2[0][2] + m1[3][3] * m2[0][3];           \
+    LvnType_##t r10 = m1[0][0] * m2[1][0] + m1[1][0] * m2[1][1] + m1[2][0] * m2[1][2] + m1[3][0] * m2[1][3];           \
+    LvnType_##t r11 = m1[0][1] * m2[1][0] + m1[1][1] * m2[1][1] + m1[2][1] * m2[1][2] + m1[3][1] * m2[1][3];           \
+    LvnType_##t r12 = m1[0][2] * m2[1][0] + m1[1][2] * m2[1][1] + m1[2][2] * m2[1][2] + m1[3][2] * m2[1][3];           \
+    LvnType_##t r13 = m1[0][3] * m2[1][0] + m1[1][3] * m2[1][1] + m1[2][3] * m2[1][2] + m1[3][3] * m2[1][3];           \
+    LvnType_##t r20 = m1[0][0] * m2[2][0] + m1[1][0] * m2[2][1] + m1[2][0] * m2[2][2] + m1[3][0] * m2[2][3];           \
+    LvnType_##t r21 = m1[0][1] * m2[2][0] + m1[1][1] * m2[2][1] + m1[2][1] * m2[2][2] + m1[3][1] * m2[2][3];           \
+    LvnType_##t r22 = m1[0][2] * m2[2][0] + m1[1][2] * m2[2][1] + m1[2][2] * m2[2][2] + m1[3][2] * m2[2][3];           \
+    LvnType_##t r23 = m1[0][3] * m2[2][0] + m1[1][3] * m2[2][1] + m1[2][3] * m2[2][2] + m1[3][3] * m2[2][3];           \
+    LvnType_##t r30 = m1[0][0] * m2[3][0] + m1[1][0] * m2[3][1] + m1[2][0] * m2[3][2] + m1[3][0] * m2[3][3];           \
+    LvnType_##t r31 = m1[0][1] * m2[3][0] + m1[1][1] * m2[3][1] + m1[2][1] * m2[3][2] + m1[3][1] * m2[3][3];           \
+    LvnType_##t r32 = m1[0][2] * m2[3][0] + m1[1][2] * m2[3][1] + m1[2][2] * m2[3][2] + m1[3][2] * m2[3][3];           \
+    LvnType_##t r33 = m1[0][3] * m2[3][0] + m1[1][3] * m2[3][1] + m1[2][3] * m2[3][2] + m1[3][3] * m2[3][3];           \
+    dst[0][0] = r00;                                                                                                   \
+    dst[0][1] = r01;                                                                                                   \
+    dst[0][2] = r02;                                                                                                   \
+    dst[0][3] = r03;                                                                                                   \
+    dst[1][0] = r10;                                                                                                   \
+    dst[1][1] = r11;                                                                                                   \
+    dst[1][2] = r12;                                                                                                   \
+    dst[1][3] = r13;                                                                                                   \
+    dst[2][0] = r20;                                                                                                   \
+    dst[2][1] = r21;                                                                                                   \
+    dst[2][2] = r22;                                                                                                   \
+    dst[2][3] = r23;                                                                                                   \
+    dst[3][0] = r30;                                                                                                   \
+    dst[3][1] = r31;                                                                                                   \
+    dst[3][2] = r32;                                                                                                   \
+    dst[3][3] = r33;                                                                                                   \
+}                                                                                                                      \
+void lvn_mat4_##t##_mulN(LvnMat4x4_##t *pm[], uint32_t len, LvnMat4x4_##t dst) {                                       \
+    if (!len) { return; }                                                                                              \
+    if (len < 2) { lvn_mat4_##t##_copy(*pm[0], dst); return; }                                                         \
+    lvn_mat4_##t##_mul(*pm[0], *pm[1], dst);                                                                           \
+    for (uint32_t i = 2; i < len; i++) { lvn_mat4_##t##_mul(dst, *pm[i], dst); }                                       \
 }                                                                                                                      \
 void lvn_mat4_##t##_mulmv(LvnMat4x4_##t m, LvnVec4_##t v, LvnVec4_##t dst) {                                           \
     dst[0] = m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2] + m[3][0] * v[3];                                        \
@@ -1757,58 +1718,6 @@ float lvn_vec##n##_mag(LvnVec##n v) { return lvn_vec##n##_f_mag(v); }           
 float lvn_vec##n##_mag2(LvnVec##n v) { return lvn_vec##n##_f_mag2(v); }                                                \
 float lvn_vec##n##_dot(LvnVec##n v1, LvnVec##n v2) { return lvn_vec##n##_f_dot(v1, v2); }
 
-#define LVN_DEFINE_VEC_I32_TYPE_MATH_IMPL(n)                                                                           \
-void lvn_vec##n##i(int32_t* v, LvnVec##n##i dst) { lvn_vec##n##_i32(v, dst); }                                         \
-void lvn_vec##n##i_s(int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_s(s, dst); }                                      \
-void lvn_vec##n##i_zero(LvnVec##n##i dst) { lvn_vec##n##_i32_zero(dst); }                                              \
-void lvn_vec##n##i_one(LvnVec##n##i dst) { lvn_vec##n##_i32_one(dst); }                                                \
-void lvn_vec##n##i_copy(LvnVec##n##i src, LvnVec##n##i dst) { lvn_vec##n##_i32_copy(src, dst); }                       \
-void lvn_vec##n##i_negate(LvnVec##n##i v) { lvn_vec##n##_i32_negate(v); }                                              \
-void lvn_vec##n##i_negate_to(LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_negate_to(v, dst); }                 \
-void lvn_vec##n##i_add(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_add(v1, v2, dst); }      \
-void lvn_vec##n##i_sub(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_sub(v1, v2, dst); }      \
-void lvn_vec##n##i_mul(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_mul(v1, v2, dst); }      \
-void lvn_vec##n##i_div(LvnVec##n##i v1, LvnVec##n##i v2, LvnVec##n##i dst) { lvn_vec##n##_i32_div(v1, v2, dst); }      \
-void lvn_vec##n##i_addvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_addvs(v, s, dst); }           \
-void lvn_vec##n##i_subvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_subvs(v, s, dst); }           \
-void lvn_vec##n##i_mulvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_mulvs(v, s, dst); }           \
-void lvn_vec##n##i_divvs(LvnVec##n##i v, int32_t s, LvnVec##n##i dst) { lvn_vec##n##_i32_divvs(v, s, dst); }           \
-void lvn_vec##n##i_addsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_addsv(s, v, dst); }           \
-void lvn_vec##n##i_subsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_subsv(s, v, dst); }           \
-void lvn_vec##n##i_mulsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_mulsv(s, v, dst); }           \
-void lvn_vec##n##i_divsv(int32_t s, LvnVec##n##i v, LvnVec##n##i dst) { lvn_vec##n##_i32_divsv(s, v, dst); }           \
-void lvn_vec##n##i_addpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_addpv(pv, count, dst); }\
-void lvn_vec##n##i_subpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_subpv(pv, count, dst); }\
-void lvn_vec##n##i_mulpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_mulpv(pv, count, dst); }\
-void lvn_vec##n##i_divpv(LvnVec##n##i* pv[], uint32_t count, LvnVec##n##i dst) { lvn_vec##n##_i32_divpv(pv, count, dst); }\
-int32_t lvn_vec##n##i_dot(LvnVec##n##i v1, LvnVec##n##i v2) { return lvn_vec##n##_i32_dot(v1, v2); }
-
-#define LVN_DEFINE_VEC_UI32_TYPE_MATH_IMPL(n)                                                                          \
-void lvn_vec##n##ui(uint32_t* v, LvnVec##n##ui dst) { lvn_vec##n##_ui32(v, dst); }                                     \
-void lvn_vec##n##ui_s(uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_s(s, dst); }                                  \
-void lvn_vec##n##ui_zero(LvnVec##n##ui dst) { lvn_vec##n##_ui32_zero(dst); }                                           \
-void lvn_vec##n##ui_one(LvnVec##n##ui dst) { lvn_vec##n##_ui32_one(dst); }                                             \
-void lvn_vec##n##ui_copy(LvnVec##n##ui src, LvnVec##n##ui dst) { lvn_vec##n##_ui32_copy(src, dst); }                   \
-void lvn_vec##n##ui_negate(LvnVec##n##ui v) { lvn_vec##n##_ui32_negate(v); }                                           \
-void lvn_vec##n##ui_negate_to(LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_negate_to(v, dst); }             \
-void lvn_vec##n##ui_add(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_add(v1, v2, dst); } \
-void lvn_vec##n##ui_sub(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_sub(v1, v2, dst); } \
-void lvn_vec##n##ui_mul(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mul(v1, v2, dst); } \
-void lvn_vec##n##ui_div(LvnVec##n##ui v1, LvnVec##n##ui v2, LvnVec##n##ui dst) { lvn_vec##n##_ui32_div(v1, v2, dst); } \
-void lvn_vec##n##ui_addvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addvs(v, s, dst); }      \
-void lvn_vec##n##ui_subvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subvs(v, s, dst); }      \
-void lvn_vec##n##ui_mulvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulvs(v, s, dst); }      \
-void lvn_vec##n##ui_divvs(LvnVec##n##ui v, uint32_t s, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divvs(v, s, dst); }      \
-void lvn_vec##n##ui_addsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addsv(s, v, dst); }      \
-void lvn_vec##n##ui_subsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subsv(s, v, dst); }      \
-void lvn_vec##n##ui_mulsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulsv(s, v, dst); }      \
-void lvn_vec##n##ui_divsv(uint32_t s, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divsv(s, v, dst); }      \
-void lvn_vec##n##ui_addpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_addpv(pv, count, dst); }\
-void lvn_vec##n##ui_subpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_subpv(pv, count, dst); }\
-void lvn_vec##n##ui_mulpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_mulpv(pv, count, dst); }\
-void lvn_vec##n##ui_divpv(LvnVec##n##ui* pv[], uint32_t count, LvnVec##n##ui dst) { lvn_vec##n##_ui32_divpv(pv, count, dst); }\
-uint32_t lvn_vec##n##ui_dot(LvnVec##n##ui v1, LvnVec##n##ui v2) { return lvn_vec##n##_ui32_dot(v1, v2); }
-
 #define LVN_DEFINE_MAT_F_TYPE_MATH_IMPL(n)                                                                             \
 void lvn_mat##n(float* v, LvnMat##n##x##n dst) { lvn_mat##n##_f(v, dst); }                                             \
 void lvn_mat##n##_zero(LvnMat##n##x##n dst) { lvn_mat##n##_f_zero(dst); }                                              \
@@ -1822,6 +1731,7 @@ void lvn_mat##n##_negate(LvnMat##n##x##n m) { lvn_mat##n##_f_negate(m); }       
 void lvn_mat##n##_add(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_add(m1, m2, dst); }\
 void lvn_mat##n##_sub(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_sub(m1, m2, dst); }\
 void lvn_mat##n##_mul(LvnMat##n##x##n m1, LvnMat##n##x##n m2, LvnMat##n##x##n dst) { lvn_mat##n##_f_mul(m1, m2, dst); }\
+void lvn_mat##n##_mulN(LvnMat##n##x##n *pm[], uint32_t len, LvnMat##n##x##n dst) { lvn_mat##n##_f_mulN(pm, len, dst); }\
 void lvn_mat##n##_mulmv(LvnMat##n##x##n m, LvnVec##n v, LvnVec##n dst) { lvn_mat##n##_f_mulmv(m, v, dst); }            \
 void lvn_mat##n##_mulvm(LvnVec##n v, LvnMat##n##x##n m, LvnVec##n dst) { lvn_mat##n##_f_mulvm(v, m, dst); }            \
 void lvn_mat##n##_addms(LvnMat##n##x##n m, float s, LvnMat##n##x##n dst) { lvn_mat##n##_f_addms(m, s, dst); }          \
@@ -1833,53 +1743,6 @@ void lvn_mat##n##_subsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_m
 void lvn_mat##n##_mulsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_mulsm(s, m, dst); }          \
 void lvn_mat##n##_divsm(float s, LvnMat##n##x##n m, LvnMat##n##x##n dst) { lvn_mat##n##_f_divsm(s, m, dst); }
 
-#define LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(n)                                                                           \
-void lvn_mat##n##i(int32_t* v, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32(v, dst); }                                   \
-void lvn_mat##n##i_zero(LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_zero(dst); }                                        \
-void lvn_mat##n##i_identity(LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_identity(dst); }                                \
-void lvn_mat##n##i_copy(LvnMat##n##x##n##i src, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_copy(src, dst); }           \
-void lvn_mat##n##i_inv(LvnMat##n##x##n##i mat, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_inv(mat, dst); }             \
-void lvn_mat##n##i_transpose_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_transpose_to(m, dst); }\
-void lvn_mat##n##i_transpose(LvnMat##n##x##n##i m) { lvn_mat##n##_i32_transpose(m); }                                  \
-void lvn_mat##n##i_negate_to(LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_negate_to(m, dst); }     \
-void lvn_mat##n##i_negate(LvnMat##n##x##n##i m) { lvn_mat##n##_i32_negate(m); }                                        \
-void lvn_mat##n##i_add(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_add(m1, m2, dst); }\
-void lvn_mat##n##i_sub(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_sub(m1, m2, dst); }\
-void lvn_mat##n##i_mul(LvnMat##n##x##n##i m1, LvnMat##n##x##n##i m2, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mul(m1, m2, dst); }\
-void lvn_mat##n##i_mulmv(LvnMat##n##x##n##i m, LvnVec##n##i v, LvnVec##n##i dst) { lvn_mat##n##_i32_mulmv(m, v, dst); }\
-void lvn_mat##n##i_mulvm(LvnVec##n##i v, LvnMat##n##x##n##i m, LvnVec##n##i dst) { lvn_mat##n##_i32_mulvm(v, m, dst); }\
-void lvn_mat##n##i_addms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_addms(m, s, dst); }\
-void lvn_mat##n##i_subms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_subms(m, s, dst); }\
-void lvn_mat##n##i_mulms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mulms(m, s, dst); }\
-void lvn_mat##n##i_divms(LvnMat##n##x##n##i m, int32_t s, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_divms(m, s, dst); }\
-void lvn_mat##n##i_addsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_addsm(s, m, dst); }\
-void lvn_mat##n##i_subsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_subsm(s, m, dst); }\
-void lvn_mat##n##i_mulsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_mulsm(s, m, dst); }\
-void lvn_mat##n##i_divsm(int32_t s, LvnMat##n##x##n##i m, LvnMat##n##x##n##i dst) { lvn_mat##n##_i32_divsm(s, m, dst); }
-
-#define LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(n)                                                                          \
-void lvn_mat##n##ui(uint32_t* v, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32(v, dst); }                               \
-void lvn_mat##n##ui_zero(LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_zero(dst); }                                     \
-void lvn_mat##n##ui_identity(LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_identity(dst); }                             \
-void lvn_mat##n##ui_copy(LvnMat##n##x##n##ui src, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_copy(src, dst); }       \
-void lvn_mat##n##ui_inv(LvnMat##n##x##n##ui mat, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_inv(mat, dst); }         \
-void lvn_mat##n##ui_transpose_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_transpose_to(m, dst); }\
-void lvn_mat##n##ui_transpose(LvnMat##n##x##n##ui m) { lvn_mat##n##_ui32_transpose(m); }                               \
-void lvn_mat##n##ui_negate_to(LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_negate_to(m, dst); } \
-void lvn_mat##n##ui_negate(LvnMat##n##x##n##ui m) { lvn_mat##n##_ui32_negate(m); }                                     \
-void lvn_mat##n##ui_add(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_add(m1, m2, dst); }\
-void lvn_mat##n##ui_sub(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_sub(m1, m2, dst); }\
-void lvn_mat##n##ui_mul(LvnMat##n##x##n##ui m1, LvnMat##n##x##n##ui m2, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mul(m1, m2, dst); }\
-void lvn_mat##n##ui_mulmv(LvnMat##n##x##n##ui m, LvnVec##n##ui v, LvnVec##n##ui dst) { lvn_mat##n##_ui32_mulmv(m, v, dst); }\
-void lvn_mat##n##ui_mulvm(LvnVec##n##ui v, LvnMat##n##x##n##ui m, LvnVec##n##ui dst) { lvn_mat##n##_ui32_mulvm(v, m, dst); }\
-void lvn_mat##n##ui_addms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_addms(m, s, dst); }\
-void lvn_mat##n##ui_subms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_subms(m, s, dst); }\
-void lvn_mat##n##ui_mulms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mulms(m, s, dst); }\
-void lvn_mat##n##ui_divms(LvnMat##n##x##n##ui m, uint32_t s, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_divms(m, s, dst); }\
-void lvn_mat##n##ui_addsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_addsm(s, m, dst); }\
-void lvn_mat##n##ui_subsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_subsm(s, m, dst); }\
-void lvn_mat##n##ui_mulsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_mulsm(s, m, dst); }\
-void lvn_mat##n##ui_divsm(uint32_t s, LvnMat##n##x##n##ui m, LvnMat##n##x##n##ui dst) { lvn_mat##n##_ui32_divsm(s, m, dst); }
 
 #ifdef LVN_GMATH_INCLUDE_VEC2_F
 LVN_DEFINE_VEC2_TYPE_MATH_DECL(f)
@@ -2066,58 +1929,25 @@ LVN_DEFINE_MAT4_TYPE_MATH_DECL(ui64)
 #ifdef LVN_GMATH_INCLUDE_VEC2_F
 LVN_DEFINE_VEC_F_TYPE_MATH_DECL(2)
 #endif
-#ifdef LVN_GMATH_INCLUDE_VEC2_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_DECL(2)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC2_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_DECL(2)
-#endif
 #ifdef LVN_GMATH_INCLUDE_VEC3_F
 LVN_DEFINE_VEC_F_TYPE_MATH_DECL(3)
 #endif
-#ifdef LVN_GMATH_INCLUDE_VEC3_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_DECL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC3_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_DECL(3)
-#endif
 #ifdef LVN_GMATH_INCLUDE_VEC4_F
 LVN_DEFINE_VEC_F_TYPE_MATH_DECL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC4_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_DECL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC4_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_DECL(4)
 #endif
 
 #ifdef LVN_GMATH_INCLUDE_MAT2_F
 LVN_DEFINE_MAT_F_TYPE_MATH_DECL(2)
 #endif
-#ifdef LVN_GMATH_INCLUDE_MAT2_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(2)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT2_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(2)
-#endif
 #ifdef LVN_GMATH_INCLUDE_MAT3_F
 LVN_DEFINE_MAT_F_TYPE_MATH_DECL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT3_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT3_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(3)
 #endif
 #ifdef LVN_GMATH_INCLUDE_MAT4_F
 LVN_DEFINE_MAT_F_TYPE_MATH_DECL(4)
 #endif
-#ifdef LVN_GMATH_INCLUDE_MAT4_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_DECL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT4_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_DECL(4)
-#endif
+
+
+#ifdef LVN_GMATH_INCLUDE_COMMON_MATHFN
 
 float lvn_radians(float deg);
 float lvn_degrees(float rad);
@@ -2144,6 +1974,8 @@ void lvn_perspectiveLHNO(LvnMat4 m, float fovy, float aspect, float near, float 
 
 void lvn_lookAtRH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up);
 void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up);
+
+#endif // LVN_GMATH_INCLUDE_COMMON_MATHFN
 
 
 #ifdef LVN_GMATH_IMPL
@@ -2335,58 +2167,25 @@ LVN_DEFINE_MAT4_TYPE_MATH_IMPL(ui64)
 #ifdef LVN_GMATH_INCLUDE_VEC2_F
 LVN_DEFINE_VEC_F_TYPE_MATH_IMPL(2)
 #endif
-#ifdef LVN_GMATH_INCLUDE_VEC2_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_IMPL(2)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC2_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_IMPL(2)
-#endif
 #ifdef LVN_GMATH_INCLUDE_VEC3_F
 LVN_DEFINE_VEC_F_TYPE_MATH_IMPL(3)
 #endif
-#ifdef LVN_GMATH_INCLUDE_VEC3_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_IMPL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC3_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_IMPL(3)
-#endif
 #ifdef LVN_GMATH_INCLUDE_VEC4_F
 LVN_DEFINE_VEC_F_TYPE_MATH_IMPL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC4_I32
-LVN_DEFINE_VEC_I32_TYPE_MATH_IMPL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_VEC4_UI32
-LVN_DEFINE_VEC_UI32_TYPE_MATH_IMPL(4)
 #endif
 
 #ifdef LVN_GMATH_INCLUDE_MAT2_F
 LVN_DEFINE_MAT_F_TYPE_MATH_IMPL(2)
 #endif
-#ifdef LVN_GMATH_INCLUDE_MAT2_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(2)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT2_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(2)
-#endif
 #ifdef LVN_GMATH_INCLUDE_MAT3_F
 LVN_DEFINE_MAT_F_TYPE_MATH_IMPL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT3_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(3)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT3_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(3)
 #endif
 #ifdef LVN_GMATH_INCLUDE_MAT4_F
 LVN_DEFINE_MAT_F_TYPE_MATH_IMPL(4)
 #endif
-#ifdef LVN_GMATH_INCLUDE_MAT4_I32
-LVN_DEFINE_MAT_I32_TYPE_MATH_IMPL(4)
-#endif
-#ifdef LVN_GMATH_INCLUDE_MAT4_UI32
-LVN_DEFINE_MAT_UI32_TYPE_MATH_IMPL(4)
-#endif
+
+
+#ifdef LVN_GMATH_INCLUDE_COMMON_MATHFN
 
 float lvn_radians(float deg) {
     return lvn_rad(deg);
@@ -2616,6 +2415,8 @@ void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnV
     m[3][1] = -lvn_vec3_dot(u, (LvnVec3){eye[0],eye[1],eye[2]});
     m[3][2] = -lvn_vec3_dot(f, (LvnVec3){eye[0],eye[1],eye[2]});
 }
+
+#endif // LVN_GMATH_INCLUDE_COMMON_MATHFN
 
 #endif // LVN_GMATH_IMPL
 
