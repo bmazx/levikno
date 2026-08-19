@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LVN_VK_EXTENSION_COUNT (16)
 
 #if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
     #if defined(LVN_INCLUDE_WAYLAND)
@@ -1289,7 +1290,6 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     LVN_ASSERT(graphicsctx && createInfo, "graphicsctx and createInfo cannot be nullptr");
 
     LvnResult errResult = Lvn_Result_Failure;
-    const char** extensionNames = NULL;
     VkExtensionProperties* extensionProps = NULL;
     VkLayerProperties* availableLayers = NULL;
 
@@ -1343,8 +1343,10 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     }
 
 
-    // query vulkan instance exensions for surface support
     uint32_t extensionCount = 0;
+    const char* extensionNames[LVN_VK_EXTENSION_COUNT] = {0};
+
+    // query vulkan instance exensions for surface support
     if (createInfo->presentationModeFlags & Lvn_PresentationModeFlag_Surface)
     {
         uint32_t extensionPropsCount;
@@ -1388,43 +1390,43 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
         if (vkBackends->ext.KHR_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_KHR_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_KHR_surface";
         }
         if (vkBackends->ext.KHR_win32_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_KHR_win32_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_KHR_win32_surface";
         }
         if (vkBackends->ext.MVK_macos_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_MVK_macos_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_MVK_macos_surface";
         }
         if (vkBackends->ext.EXT_metal_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_EXT_metal_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_EXT_metal_surface";
         }
         if (vkBackends->ext.KHR_xlib_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_KHR_xlib_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_KHR_xlib_surface";
         }
         if (vkBackends->ext.KHR_xcb_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_KHR_xcb_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_KHR_xcb_surface";
         }
         if (vkBackends->ext.KHR_wayland_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_KHR_wayland_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_KHR_wayland_surface";
         }
         if (vkBackends->ext.EXT_headless_surface)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = "VK_EXT_headless_surface";
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = "VK_EXT_headless_surface";
         }
     }
 
@@ -1459,8 +1461,8 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
         // add validation message callback extension
         if (layerSupport)
         {
-            extensionNames = (const char**) lvn_realloc(extensionNames, ++extensionCount * sizeof(const char*));
-            extensionNames[extensionCount - 1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+            LVN_ASSERT(extensionCount < LVN_VK_EXTENSION_COUNT, "extension count exceded");
+            extensionNames[extensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
 
     }
@@ -2052,14 +2054,12 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     graphicsctx->implRenderPresent = lvnImplVkRenderPresent;
 
     lvn_free(extensionProps);
-    lvn_free(extensionNames);
     lvn_free(availableLayers);
 
     return Lvn_Result_Success;
 
 fail_cleanup:
     lvn_free(extensionProps);
-    lvn_free(extensionNames);
     lvn_free(availableLayers);
     lvnImplVkTerminate(graphicsctx);
     return errResult;
