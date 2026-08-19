@@ -265,7 +265,7 @@ int main(int argc, char** argv)
     pd.nwh = (void*)nativeWindow;
 
     LvnGraphicsContextCreateInfo graphicsCreateInfo = {0};
-    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Opengl;
+    graphicsCreateInfo.graphicsapi = Lvn_GraphicsApi_Vulkan;
     graphicsCreateInfo.presentationModeFlags = Lvn_PresentationModeFlag_Headless | Lvn_PresentationModeFlag_Surface;
     graphicsCreateInfo.platformData = &pd;
     graphicsCreateInfo.enableGraphicsApiDebugLogging = true;
@@ -370,8 +370,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.vert.glsl");
-    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/gl.frag.glsl");
+    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;

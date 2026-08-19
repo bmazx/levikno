@@ -10,13 +10,8 @@
     #include <wayland-egl.h>
 #endif
 
-static const char* s_EglLibName = "libEGL.so.1";
-
-static const char* s_WaylandEglNames[] =
-{
-    "libwayland-egl.so.1",
-    "libwayland-egl.so",
-};
+static const char* s_EglLibNames[] = { "libEGL.so.1", "libEGL.so" };
+static const char* s_WaylandEglNames[] = { "libwayland-egl.so.1", "libwayland-egl.so" };
 
 static LvnResult lvn_eglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnEglLoader* eglLoader, LvnEglSurfaceData* surfaceData, EGLDisplay eglDisplay, EGLConfig config, void* nwh, uint32_t widht, uint32_t height);
 static void lvn_eglDestroySurface(LvnEglLoader* eglLoader, LvnEglSurfaceData* surfaceData);
@@ -126,13 +121,20 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
     oglBackends->loaderHandle = eglLoader;
 
     // load shared library module
-    eglLoader->handle = lvn_platformLoadModule(s_EglLibName);
+    for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_EglLibNames); i++)
+    {
+        eglLoader->handle = lvn_platformLoadModule(s_EglLibNames[i]);
+        if (eglLoader->handle)
+            break;
+    }
 
     if (!eglLoader->handle)
     {
-        LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
-                      "[egl] failed to load opengl shared library: %s",
-                      s_EglLibName);
+        LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] failed to load egl shared library");
+        LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] shared library names tried:");
+        for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_EglLibNames); i++) {
+            LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] %s", s_EglLibNames[i]);
+        }
         goto fail_cleanup;
     }
 
@@ -202,7 +204,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
             LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] failed to load wayland-egl shared library");
             LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] shared library names tried:");
             for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_WaylandEglNames); i++) {
-                LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "%s", s_WaylandEglNames[i]);
+                LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] %s", s_WaylandEglNames[i]);
             }
             goto fail_cleanup;
         }

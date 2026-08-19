@@ -7,11 +7,11 @@
 #endif
 
 #if defined(LVN_PLATFORM_LINUX)
-    static const char* s_LvnOglLibName = "libGL.so.1";
+    static const char* s_LvnOglLibNames[] = { "libGL.so.1", "libGL.so" };
 #elif defined(LVN_PLATFORM_WINDOWS)
-    static const char* s_LvnOglLibName = "opengl32.dll";
+    static const char* s_LvnOglLibNames[] = { "opengl32.dll" };
 #elif defined(LVN_PLATFORM_MACOS)
-    static const char* s_LvnOglLibName = "/System/Library/Frameworks/OpenGL.framework/OpenGL";
+    static const char* s_LvnOglLibNames[] = { "/System/Library/Frameworks/OpenGL.framework/OpenGL" };
 #endif
 
 static const LvnOglFormatData s_OglFormatTypes[] =
@@ -394,13 +394,20 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     oglBackends->graphicsctx = graphicsctx;
 
     // load opengl library
-    oglBackends->handle = lvn_platformLoadModule(s_LvnOglLibName);
+    for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnOglLibNames); i++)
+    {
+        oglBackends->handle = lvn_platformLoadModule(s_LvnOglLibNames[i]);
+        if (oglBackends->handle)
+            break;
+    }
 
     if (!oglBackends->handle)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[opengl] unable to load opengl shared library: %s",
-                      s_LvnOglLibName);
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[opengl] unable to load opengl shared library");
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[opengl] shared library names tried:");
+        for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnOglLibNames); i++) {
+            LVN_LOG_ERROR(graphicsctx->coreLogger, "[opengl] %s", s_LvnOglLibNames[i]);
+        }
         goto fail_cleanup;
     }
 

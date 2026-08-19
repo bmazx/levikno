@@ -20,11 +20,11 @@
 
 
 #if defined(LVN_PLATFORM_LINUX)
-    static const char* s_LvnVkLibName = "libvulkan.so.1";
+    static const char* s_LvnVkLibNames[] = { "libvulkan.so.1", "libvulkan.so" };
 #elif defined(LVN_PLATFORM_WINDOWS)
-    static const char* s_LvnVkLibName = "vulkan-1.dll";
+    static const char* s_LvnVkLibName[] = { "vulkan-1.dll" };
 #elif defined(LVN_PLATFORM_MACOS)
-    static const char* s_LvnVkLibName = "libvulkan.1.dylib";
+    static const char* s_LvnVkLibName[] = { "libvulkan.1.dylib" };
 #endif
 
 static const char* s_LvnVkValidationLayers[] =
@@ -1300,13 +1300,20 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
     vkBackends->enableValidationLayers = createInfo->enableGraphicsApiDebugLogging;
 
     // load vulkan library
-    vkBackends->handle = lvn_platformLoadModule(s_LvnVkLibName);
+    for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkLibNames); i++)
+    {
+        vkBackends->handle = lvn_platformLoadModule(s_LvnVkLibNames[i]);
+        if (vkBackends->handle)
+            break;
+    }
 
     if (!vkBackends->handle)
     {
-        LVN_LOG_ERROR(graphicsctx->coreLogger,
-                      "[vulkan] failed to load vulkan shared library: %s",
-                      s_LvnVkLibName);
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] unable to load opengl shared library");
+        LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] shared library names tried:");
+        for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_LvnVkLibNames); i++) {
+            LVN_LOG_ERROR(graphicsctx->coreLogger, "[vulkan] %s", s_LvnVkLibNames[i]);
+        }
         goto fail_cleanup;
     }
 
