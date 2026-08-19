@@ -42,7 +42,7 @@ static LvnMemReallocFn s_LvnMemReallocFnCallback = reallocWrapper;
 static void* s_LvnMemUserData = NULL;
 
 // logging
-static void    printWrapper(const char* msg) { printf("%s", msg); }
+static void    printWrapper(const LvnLogMessage* outmsg) { printf("%s", outmsg->msg); }
 
 // utils
 static const char*    lvn_getLogLevelName(LvnLogLevel level);
@@ -71,6 +71,8 @@ static char*          lvn_logPatternStrDateHour12(const LvnLogMessage* msg);
 static char*          lvn_logPatternStrDateMinute(const LvnLogMessage* msg);
 static char*          lvn_logPatternStrDateSecond(const LvnLogMessage* msg);
 static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt, uint32_t* logPatternCount);
+static void           lvn_logOutputMessage(const LvnLogger* logger, const LvnLogMessage* msg);
+static uint32_t       lvn_logFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg);
 
 
 #ifdef LVN_PLATFORM_WINDOWS
@@ -287,6 +289,88 @@ static LvnLogPattern* lvn_logParseFormat(const LvnContext* ctx, const char* fmt,
 
     return patterns;
 }
+
+static void lvn_logOutputMessage(const LvnLogger* logger, const LvnLogMessage* msg)
+{
+    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
+
+    if (!logger->logging) { return; }
+
+    char* msgstr = NULL;
+    size_t msglen = 0;
+
+    for (uint32_t i = 0; i < logger->logPatternCount; i++)
+    {
+        if (!logger->pLogPatterns[i].func) // no special format character '%' found
+        {
+            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char) + 1);
+            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
+        }
+        else // call func of special format
+        {
+            char* logmsg = logger->pLogPatterns[i].func(msg);
+            size_t loglen = strlen(logmsg);
+            msglen += loglen;
+            msgstr = lvn_realloc(msgstr, msglen * sizeof(char) + 1);
+            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
+            lvn_free(logmsg);
+        }
+    }
+
+    if (!msgstr)
+        return;
+    msgstr[msglen] = '\0';
+
+    // output log message to sinks
+    LvnLogMessage outmsg = *msg;
+    outmsg.msg = msgstr;
+
+    for (uint32_t i = 0; i < logger->sinkCount; i++)
+        logger->pSinks[i].logFunc(&outmsg);
+
+    lvn_free(msgstr);
+}
+
+static uint32_t lvn_logFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg)
+{
+    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
+
+    LvnLogMessage logMsg =
+    {
+        .msg = msg,
+        .loggerName = logger->loggerName,
+        .level = level,
+        .timeEpoch = lvnDateGetSecondsSinceEpoch(),
+    };
+
+    char* msgstr = NULL;
+    int msglen = 0;
+
+    for (uint32_t i = 0; i < logger->logPatternCount; i++)
+    {
+        if (!logger->pLogPatterns[i].func) // no special format character '%' found
+        {
+            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char));
+            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
+        }
+        else // call func of special format
+        {
+            char* logmsg = logger->pLogPatterns[i].func(&logMsg);
+            int loglen = strlen(logmsg);
+            msglen += loglen;
+            msgstr = lvn_realloc(msgstr, msglen * sizeof(char));
+            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
+            lvn_free(logmsg);
+        }
+    }
+
+    if (dst)
+        memcpy(dst, msgstr, length < msglen ? length * sizeof(char) : msglen * sizeof(char));
+
+    lvn_free(msgstr);
+    return msglen;
+}
+
 
 LvnFile lvnLoadFileSrc(const char* filepath)
 {
@@ -644,96 +728,19 @@ const char* lvnLogGetANSIcodeColor(LvnLogLevel level)
 {
     switch (level)
     {
-        case Lvn_LogLevel_None:     { return LVN_LOG_COLOR_RESET; }
-        case Lvn_LogLevel_Trace:    { return LVN_LOG_COLOR_TRACE; }
-        case Lvn_LogLevel_Debug:    { return LVN_LOG_COLOR_DEBUG; }
-        case Lvn_LogLevel_Info:     { return LVN_LOG_COLOR_INFO; }
-        case Lvn_LogLevel_Warn:     { return LVN_LOG_COLOR_WARN; }
-        case Lvn_LogLevel_Error:    { return LVN_LOG_COLOR_ERROR; }
-        case Lvn_LogLevel_Fatal:    { return LVN_LOG_COLOR_FATAL; }
+        case Lvn_LogLevel_None: { return LVN_LOG_COLOR_RESET; }
+        case Lvn_LogLevel_Trace: { return LVN_LOG_COLOR_TRACE; }
+        case Lvn_LogLevel_Debug: { return LVN_LOG_COLOR_DEBUG; }
+        case Lvn_LogLevel_Info: { return LVN_LOG_COLOR_INFO; }
+        case Lvn_LogLevel_Warn: { return LVN_LOG_COLOR_WARN; }
+        case Lvn_LogLevel_Error: { return LVN_LOG_COLOR_ERROR; }
+        case Lvn_LogLevel_Fatal: { return LVN_LOG_COLOR_FATAL; }
     }
 
     return NULL;
 }
 
-void lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg)
-{
-    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
-
-    if (!logger->logging) { return; }
-
-    char* msgstr = NULL;
-    size_t msglen = 0;
-
-    for (uint32_t i = 0; i < logger->logPatternCount; i++)
-    {
-        if (!logger->pLogPatterns[i].func) // no special format character '%' found
-        {
-            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char) + 1);
-            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
-        }
-        else // call func of special format
-        {
-            char* logmsg = logger->pLogPatterns[i].func(msg);
-            size_t loglen = strlen(logmsg);
-            msglen += loglen;
-            msgstr = lvn_realloc(msgstr, msglen * sizeof(char) + 1);
-            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
-            lvn_free(logmsg);
-        }
-    }
-
-    if (!msgstr)
-        return;
-
-    msgstr[msglen] = '\0';
-    for (uint32_t i = 0; i < logger->sinkCount; i++)
-        logger->pSinks[i].logFunc(msgstr);
-
-    lvn_free(msgstr);
-}
-
-uint32_t lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg)
-{
-    LVN_ASSERT(logger && msg, "logger and msg cannot be null");
-
-    LvnLogMessage logMsg =
-    {
-        .msg = msg,
-        .loggerName = logger->loggerName,
-        .level = level,
-        .timeEpoch = lvnDateGetSecondsSinceEpoch(),
-    };
-
-    char* msgstr = NULL;
-    int msglen = 0;
-
-    for (uint32_t i = 0; i < logger->logPatternCount; i++)
-    {
-        if (!logger->pLogPatterns[i].func) // no special format character '%' found
-        {
-            msgstr = lvn_realloc(msgstr, ++msglen * sizeof(char));
-            memcpy(&msgstr[msglen - 1], &logger->pLogPatterns[i].symbol, sizeof(char));
-        }
-        else // call func of special format
-        {
-            char* logmsg = logger->pLogPatterns[i].func(&logMsg);
-            int loglen = strlen(logmsg);
-            msglen += loglen;
-            msgstr = lvn_realloc(msgstr, msglen * sizeof(char));
-            memcpy(&msgstr[msglen - loglen], logmsg, loglen * sizeof(char));
-            lvn_free(logmsg);
-        }
-    }
-
-    if (dst)
-        memcpy(dst, msgstr, length <= msglen ? length * sizeof(char) : msglen * sizeof(char));
-
-    lvn_free(msgstr);
-    return msglen;
-}
-
-uint32_t lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...)
+uint32_t lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...)
 {
     LVN_ASSERT(logger && fmt, "logger and fmt cannot be null");
 
@@ -747,7 +754,7 @@ uint32_t lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t le
     buff = lvn_calloc((len + 1) * sizeof(char));
     if (!buff) { return 0; }
     vsnprintf(buff, len + 1, fmt, argcopy);
-    uint32_t msglen = lvnLogFormatMessage(logger, dst, length, level, buff);
+    uint32_t msglen = lvn_logFormatMessage(logger, dst, length, level, buff);
 
     va_end(argcopy);
     va_end(argptr);
@@ -781,7 +788,7 @@ void lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg)
         .timeEpoch = lvnDateGetSecondsSinceEpoch(),
     };
 
-    lvnLogOutputMessage(logger, &logMsg);
+    lvn_logOutputMessage(logger, &logMsg);
 }
 
 bool lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level)

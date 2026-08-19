@@ -76,9 +76,12 @@ static uint32_t s_Indices[] = {
     0, 2, 3,
 };
 
-void myPrint(const char* msg)
+void myPrint(const LvnLogMessage* outmsg)
 {
-    printf("%s", msg);
+    if (outmsg->level == Lvn_LogLevel_Error)
+        fprintf(stderr, "%s", outmsg->msg);
+    else
+        fprintf(stdout, "%s", outmsg->msg);
 }
 
 char* myloggerPattern(const LvnLogMessage* logmsg)
@@ -187,9 +190,9 @@ int main(int argc, char** argv)
     lvnLogMessageError(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
     lvnLogMessageFatal(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
 
-    uint32_t len = lvnLogFormatMessageArgs(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
+    uint32_t len = lvnLogFormatMessage(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
     char* str = (char*) malloc(len * sizeof(char));
-    lvnLogFormatMessageArgs(logger, str, len, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
+    lvnLogFormatMessage(logger, str, len, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
 
     printf("%.*s", len, str);
     free(str);
@@ -254,11 +257,11 @@ int main(int argc, char** argv)
 
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-    struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
-    struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
+    // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
+    // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
-    // Display* nativeDisplay = glfwGetX11Display();
-    // Window nativeWindow = glfwGetX11Window(window);
+    Display* nativeDisplay = glfwGetX11Display();
+    Window nativeWindow = glfwGetX11Window(window);
 
     LvnPlatformData pd = {0};
     pd.ndh = nativeDisplay;

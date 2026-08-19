@@ -72,11 +72,6 @@ typedef struct LvnLoadImageInfo
     bool           flipVertically;
 } LvnLoadImageInfo;
 
-typedef struct LvnSink
-{
-    void (*logFunc)(const char*);
-} LvnSink;
-
 typedef struct LvnLogMessage
 {
     const char*    msg;
@@ -84,6 +79,11 @@ typedef struct LvnLogMessage
     LvnLogLevel    level;
     size_t         timeEpoch;
 } LvnLogMessage;
+
+typedef struct LvnSink
+{
+    void (*logFunc)(const LvnLogMessage*);
+} LvnSink;
 
 typedef struct LvnLogPattern
 {
@@ -159,9 +159,7 @@ LVN_API void                    lvnCtxEnableLogging(LvnContext* ctx, bool enable
 LVN_API void                    lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount); // add log patterns to the context
 LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
 LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
-LVN_API void                    lvnLogOutputMessage(const LvnLogger* logger, LvnLogMessage* msg);             // prints the log message
-LVN_API uint32_t                lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* msg); // formats the log message into the log pattern set by the logger, returns the length of the formatted log message
-LVN_API uint32_t                lvnLogFormatMessageArgs(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...); // formats the log message with args into the log pattern set by the logger, returns the length of the formatted log message
+LVN_API uint32_t                lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...); // formats the log message with args into the log pattern set by the logger, returns the length of the formatted log message
 LVN_API void                    lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt);              // update the logger's log pattern format with the new format string
 LVN_API void                    lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg);   // log message with given log level
 LVN_API bool                    lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level);                 // check level witht the logger, returns true if larger or equal to the level of the logger, returns false otherwise
