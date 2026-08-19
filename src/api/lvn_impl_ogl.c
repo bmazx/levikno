@@ -415,8 +415,10 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
     // opengl loader function symbols
     if (!oglBackends->ogllCreateSurface ||
         !oglBackends->ogllDestroySurface ||
+        !oglBackends->ogllSurfaceResize ||
         !oglBackends->ogllMakeCurrent ||
-        !oglBackends->ogllSwapBuffers)
+        !oglBackends->ogllSwapBuffers ||
+        !oglBackends->ogllSwapInterval)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl loader function symbols");
@@ -1969,6 +1971,9 @@ LvnResult lvnImplOglSwapchainResize(LvnSwapchain* swapchain, uint32_t width, uin
     // update extent
     swapchain->extent.width = width;
     swapchain->extent.height = height;
+
+    // surface
+    oglBackends->ogllSurfaceResize(oglBackends, swapchainData->surface, (int)width, (int)height);
 
     return Lvn_Result_Success;
 }

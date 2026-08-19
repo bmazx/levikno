@@ -7,25 +7,33 @@
 #include <EGL/eglext.h>
 
 #ifdef LVN_INCLUDE_WAYLAND
-    #include <wayland-client.h>
     #include <wayland-egl.h>
 #endif
 
 static const char* s_EglLibName = "libEGL.so.1";
 
-static LvnResult lvn_eglCreateSurface(LvnEglLoader* eglLoader, EGLSurface* surface, EGLDisplay eglDisplay, EGLConfig config, void* window, uint32_t widht, uint32_t height);
+static const char* s_WaylandEglNames[] =
+{
+    "libwayland-egl.so.1",
+    "libwayland-egl.so",
+};
+
+static LvnResult lvn_eglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnEglLoader* eglLoader, LvnEglSurfaceData* surfaceData, EGLDisplay eglDisplay, EGLConfig config, void* nwh, uint32_t widht, uint32_t height);
+static void lvn_eglDestroySurface(LvnEglLoader* eglLoader, LvnEglSurfaceData* surfaceData);
 
 static LvnResult lvn_eglCreateSurface(
+    const LvnGraphicsContext* graphicsctx,
     LvnEglLoader* eglLoader,
-    EGLSurface* surface,
+    LvnEglSurfaceData* surfaceData,
     EGLDisplay eglDisplay,
     EGLConfig config,
-    void* window,
+    void* nwh,
     uint32_t widht,
     uint32_t height)
 {
-    LVN_ASSERT(eglLoader && surface, "eglLoader and surface cannot be null");
+    LVN_ASSERT(eglLoader && surfaceData && eglDisplay, "eglLoader, surface, and eglDisplay cannot be null");
 
+    LvnResult result = Lvn_Result_Failure;
     LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 
     EGLint surfaceAttribs[] =
@@ -34,15 +42,72 @@ static LvnResult lvn_eglCreateSurface(
         EGL_NONE,
     };
 
+#ifdef LVN_INCLUDE_WAYLAND
+    if (wps.wayland)
+    {
+        surfaceData->wlWindow = eglLoader->wl.wl_egl_window_create(nwh, widht, height);
+        if (!surfaceData->wlWindow)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[egl] failed to create wayland egl window for surface data %p",
+                          surfaceData);
+            goto fail_cleanup;
+        }
+
+        surfaceData->surface =
+            eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)surfaceData->wlWindow, eglLoader->ext.colorspace ? surfaceAttribs : NULL);
+        if (!surfaceData->surface)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[egl] failed to create egl surface for surface data %p",
+                          surfaceData);
+            goto fail_cleanup;
+        }
+
+        goto create_success;
+    }
+#endif
 #ifdef LVN_INCLUDE_X11
     if (wps.x11)
     {
-        *surface = eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)window, eglLoader->ext.colorspace ? surfaceAttribs : NULL);
-        return Lvn_Result_Success;
+        surfaceData->surface =
+            eglLoader->eglCreateWindowSurface(eglDisplay, config, (EGLNativeWindowType)nwh, eglLoader->ext.colorspace ? surfaceAttribs : NULL);
+        if (!surfaceData->surface)
+        {
+            LVN_LOG_ERROR(graphicsctx->coreLogger,
+                          "[egl] failed to create egl surface for surface data %p",
+                          surfaceData);
+            goto fail_cleanup;
+        }
+
+        goto create_success;
     }
 #endif
 
-    return Lvn_Result_Failure;
+create_success:
+    return Lvn_Result_Success;
+fail_cleanup:
+    lvn_eglDestroySurface(eglLoader, surfaceData);
+    return result;
+}
+
+static void lvn_eglDestroySurface(LvnEglLoader* eglLoader, LvnEglSurfaceData* surfaceData)
+{
+    LVN_ASSERT(eglLoader && surfaceData, "eglLoader and surfaceData cannot be null");
+
+#ifdef LVN_INCLUDE_WAYLAND
+    if (surfaceData->wlWindow)
+    {
+        eglLoader->wl.wl_egl_window_destroy(surfaceData->wlWindow);
+        surfaceData->wlWindow = NULL;
+    }
+#endif
+
+    if (surfaceData->surface)
+    {
+        eglLoader->eglDestroySurface(eglLoader->display, surfaceData->surface);
+        surfaceData->surface = NULL;
+    }
 }
 
 LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData* platformData)
@@ -121,9 +186,46 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
         goto fail_cleanup;
     }
 
-    // get platform display
+    // get wayland library symbols if using wayland
     LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
+    if (wps.wayland)
+    {
+        // find wayland-egl
+        for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_WaylandEglNames); i++)
+        {
+            eglLoader->wl.waylandEglHandle = lvn_platformLoadModule(s_WaylandEglNames[i]);
+            if (eglLoader->wl.waylandEglHandle)
+                break;
+        }
+        if (!eglLoader->wl.waylandEglHandle)
+        {
+            LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] failed to load wayland-egl shared library");
+            LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "[egl] shared library names tried:");
+            for (uint32_t i = 0; i < LVN_ARRAY_LEN(s_WaylandEglNames); i++) {
+                LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger, "%s", s_WaylandEglNames[i]);
+            }
+            goto fail_cleanup;
+        }
 
+        // load wayland-egl symbols
+        eglLoader->wl.wl_egl_window_create = (PFN_wl_egl_window_create)
+            lvn_platformGetModuleSymbol(eglLoader->wl.waylandEglHandle, "wl_egl_window_create");
+        eglLoader->wl.wl_egl_window_destroy = (PFN_wl_egl_window_destroy)
+            lvn_platformGetModuleSymbol(eglLoader->wl.waylandEglHandle, "wl_egl_window_destroy");
+        eglLoader->wl.wl_egl_window_resize = (PFN_wl_egl_window_resize)
+            lvn_platformGetModuleSymbol(eglLoader->wl.waylandEglHandle, "wl_egl_window_resize");
+
+        if (!eglLoader->wl.wl_egl_window_create ||
+            !eglLoader->wl.wl_egl_window_destroy ||
+            !eglLoader->wl.wl_egl_window_resize)
+        {
+            LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
+                          "[egl] failed to load wayland-egl function symbols");
+            goto fail_cleanup;
+        }
+    }
+
+    // get platform display
     EGLenum platformEnum = 0;
     if (wps.wayland)
         platformEnum = EGL_PLATFORM_WAYLAND_KHR;
@@ -183,7 +285,13 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
     eglLoader->eglChooseConfig(eglLoader->display, configAttribs, &eglLoader->config, 1, &numConfigs);
 
     // create surface
-    if (lvn_eglCreateSurface(eglLoader, &eglLoader->surface, eglLoader->display, eglLoader->config, platformData->nwh, 1, 1) != Lvn_Result_Success)
+    if (lvn_eglCreateSurface(oglBackends->graphicsctx,
+                             eglLoader,
+                             &eglLoader->surfaceData,
+                             eglLoader->display,
+                             eglLoader->config,
+                             platformData->nwh,
+                             1, 1) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
                       "[egl] failed to create egl surface");
@@ -192,7 +300,7 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
 
     oglBackends->defaultSurface = (LvnSurface){
         .graphicsctx = oglBackends->graphicsctx,
-        .surfaceData = eglLoader->surface,
+        .surfaceData = &eglLoader->surfaceData,
     };
 
     // bind egl api
@@ -390,11 +498,12 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;
     oglBackends->ogllDestroySurface = lvnEglDestroySurface;
+    oglBackends->ogllSurfaceResize = lvnEglSurfaceResize;
     oglBackends->ogllMakeCurrent = lvnEglMakeCurrent;
     oglBackends->ogllSwapBuffers = lvnEglSwapBuffers;
     oglBackends->ogllSwapInterval = lvnEglSwapInterval;
 
-    eglLoader->eglMakeCurrent(eglLoader->display, eglLoader->surface, eglLoader->surface, eglLoader->context);
+    eglLoader->eglMakeCurrent(eglLoader->display, eglLoader->surfaceData.surface, eglLoader->surfaceData.surface, eglLoader->context);
 
     return Lvn_Result_Success;
 
@@ -412,18 +521,13 @@ void lvnEglLoaderTerminate(LvnOpenglBackends* oglBackends)
         return;
 
     if (eglLoader->context)
-    {
         eglLoader->eglDestroyContext(eglLoader->display, eglLoader->context);
-        eglLoader->context = NULL;
-    }
-    if (eglLoader->surface)
-    {
-        eglLoader->eglDestroySurface(eglLoader->display, eglLoader->surface);
-        eglLoader->surface = NULL;
-    }
+
+    lvn_eglDestroySurface(eglLoader, &eglLoader->surfaceData);
 
     eglLoader->eglTerminate(eglLoader->display);
 
+    if (eglLoader->wl.waylandEglHandle) lvn_platformFreeModule(eglLoader->wl.waylandEglHandle);
     if (eglLoader->handle) lvn_platformFreeModule(eglLoader->handle);
 
     lvn_free(eglLoader);
@@ -436,18 +540,42 @@ LvnResult lvnEglCreateSurface(const LvnOpenglBackends* oglBackends, LvnSurface* 
 
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
 
-    EGLSurface eglSurface;
-    if (lvn_eglCreateSurface(eglLoader, &eglSurface, eglLoader->display, eglLoader->config, createInfo->nwh, 1, 1) != Lvn_Result_Success)
+    LvnResult result = Lvn_Result_Failure;
+    LvnEglSurfaceData* surfaceData = NULL;
+
+    surfaceData = (LvnEglSurfaceData*) lvn_calloc(sizeof(LvnEglSurfaceData));
+    if (!surfaceData)
+    {
+        LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
+                      "[egl] failed to allocate memory for egl surface data for surface object at %p",
+                      surface);
+        result = Lvn_Result_OutOfMemory;
+        goto fail_cleanup;
+    }
+
+    if (lvn_eglCreateSurface(oglBackends->graphicsctx,
+                             eglLoader,
+                             surfaceData,
+                             eglLoader->display,
+                             eglLoader->config,
+                             createInfo->nwh,
+                             1, 1) != Lvn_Result_Success)
     {
         LVN_LOG_ERROR(oglBackends->graphicsctx->coreLogger,
                       "[egl] failed to create egl surface for surface object at %p",
                       surface);
-        return Lvn_Result_Failure;
+        goto fail_cleanup;
     }
 
-    surface->surfaceData = eglSurface;
+    surface->surfaceData = surfaceData;
 
     return Lvn_Result_Success;
+
+fail_cleanup:
+    if (surfaceData)
+        lvn_eglDestroySurface(eglLoader, surfaceData);
+    lvn_free(surfaceData);
+    return result;
 }
 
 void lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surface)
@@ -455,28 +583,42 @@ void lvnEglDestroySurface(const LvnOpenglBackends* oglBackends, LvnSurface* surf
     LVN_ASSERT(oglBackends && surface, "oglBackends and surface cannot be null");
 
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
+    LvnEglSurfaceData* surfaceData = (LvnEglSurfaceData*) surface->surfaceData;
 
-    eglLoader->eglDestroySurface(eglLoader->display, eglSurface);
+    lvn_eglDestroySurface(eglLoader, surfaceData);
+    lvn_free(surfaceData);
+
     surface->surfaceData = NULL;
+}
+
+void lvnEglSurfaceResize(const LvnOpenglBackends* oglBackends, const LvnSurface* surface, int width, int height)
+{
+    LVN_ASSERT(oglBackends && surface, "oglBackends and surface cannot be null");
+    LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
+    LvnEglSurfaceData* surfaceData = (LvnEglSurfaceData*) surface->surfaceData;
+
+#ifdef LVN_INCLUDE_WAYLAND
+    if (surfaceData->wlWindow)
+        eglLoader->wl.wl_egl_window_resize(surfaceData->wlWindow, width, height, 0, 0);
+#endif
 }
 
 void lvnEglMakeCurrent(const LvnOpenglBackends* oglBackends, const LvnSurface* surface)
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
+    LvnEglSurfaceData* surfaceData = (LvnEglSurfaceData*) surface->surfaceData;
 
-    eglLoader->eglMakeCurrent(eglLoader->display, eglSurface, eglSurface, eglLoader->context);
+    eglLoader->eglMakeCurrent(eglLoader->display, surfaceData->surface, surfaceData->surface, eglLoader->context);
 }
 
 void lvnEglSwapBuffers(const LvnOpenglBackends* oglBackends, const LvnSurface* surface)
 {
     LVN_ASSERT(oglBackends, "oglBackends cannot be null");
     LvnEglLoader* eglLoader = (LvnEglLoader*) oglBackends->loaderHandle;
-    EGLSurface eglSurface = (EGLSurface) surface->surfaceData;
+    LvnEglSurfaceData* surfaceData = (LvnEglSurfaceData*) surface->surfaceData;
 
-    eglLoader->eglSwapBuffers(eglLoader->display, eglSurface);
+    eglLoader->eglSwapBuffers(eglLoader->display, surfaceData->surface);
 }
 
 void lvnEglSwapInterval(const LvnOpenglBackends* oglBackends, int interval)

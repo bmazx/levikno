@@ -692,6 +692,7 @@ typedef struct LvnOpenglBackends
 
     LvnResult                                               (*ogllCreateSurface)(const struct LvnOpenglBackends*, LvnSurface*, const LvnSurfaceCreateInfo*);
     void                                                    (*ogllDestroySurface)(const struct LvnOpenglBackends*, LvnSurface*);
+    void                                                    (*ogllSurfaceResize)(const struct LvnOpenglBackends*, const LvnSurface*, int, int);
     void                                                    (*ogllMakeCurrent)(const struct LvnOpenglBackends*, const LvnSurface*);
     void                                                    (*ogllSwapBuffers)(const struct LvnOpenglBackends*, const LvnSurface*);
     void                                                    (*ogllSwapInterval)(const struct LvnOpenglBackends*, int);
