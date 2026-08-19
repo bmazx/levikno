@@ -254,11 +254,11 @@ int main(int argc, char** argv)
 
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-    // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
-    // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
+    struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
+    struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
-    Display* nativeDisplay = glfwGetX11Display();
-    Window nativeWindow = glfwGetX11Window(window);
+    // Display* nativeDisplay = glfwGetX11Display();
+    // Window nativeWindow = glfwGetX11Window(window);
 
     LvnPlatformData pd = {0};
     pd.ndh = nativeDisplay;

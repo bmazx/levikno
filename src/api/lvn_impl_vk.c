@@ -119,11 +119,11 @@ static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBack
     LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
 #if defined(LVN_INCLUDE_WAYLAND)
     if (wps.wayland)
-        return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
+        return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
 #endif
 #if defined(LVN_INCLUDE_X11)
     if (wps.x11)
-        return vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
+        return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
 #endif
 
     return VK_NULL_HANDLE;
@@ -3836,10 +3836,12 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
 
         LvnFormat format = lvn_getLvnFormatEnum(formats[i].format);
         if (format != Lvn_Format_Undefined)
-            supportedFormatCount++;
+        {
+            if (pSurfaceFormats)
+                pSurfaceFormats[supportedFormatCount] = format;
 
-        if (pSurfaceFormats)
-            pSurfaceFormats[i] = format;
+            supportedFormatCount++;
+        }
     }
 
     *formatCount = supportedFormatCount;
