@@ -85,6 +85,7 @@
 #define GL_STENCIL 0x1802
 #define GL_DEPTH_STENCIL 0x84F9
 #define GL_DEPTH_TEST 0x0B71
+#define GL_CULL_FACE 0x0B44
 #define GL_CONTEXT_FLAGS 0x821E
 #define GL_CONTEXT_FLAG_DEBUG_BIT 0x00000002
 #define GL_DEBUG_SOURCE_API 0x8246
@@ -373,6 +374,8 @@ typedef void (GLAPIENTRY *PFNGLVIEWPORTPROC)(GLint x, GLint y, GLsizei width, GL
 typedef void (GLAPIENTRY *PFNGLSCISSORPROC)(GLint x, GLint y, GLsizei width, GLsizei height);
 typedef void (GLAPIENTRY *PFNGLDEPTHMASKPROC)(GLboolean flag);
 typedef void (GLAPIENTRY *PFNGLDEPTHFUNCPROC)(GLenum func);
+typedef void (GLAPIENTRY *PFNGLCULLFACEPROC)(GLenum mode);
+typedef void (GLAPIENTRY *PFNGLFRONTFACEPROC)(GLenum mode);
 
 typedef void (*LvnOglCmdBuffFnCallback)(void*);
 
@@ -780,6 +783,8 @@ typedef struct LvnOpenglBackends
     PFNGLSCISSORPROC                                        glScissor;
     PFNGLDEPTHMASKPROC                                      glDepthMask;
     PFNGLDEPTHFUNCPROC                                      glDepthFunc;
+    PFNGLCULLFACEPROC                                       glCullFace;
+    PFNGLFRONTFACEPROC                                      glFrontFace;
 } LvnOpenglBackends;
 
 LvnResult         lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);

@@ -496,6 +496,10 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
         eglLoader->eglGetProcAddress("glDepthMask");
     oglBackends->glDepthFunc = (PFNGLDEPTHFUNCPROC)
         eglLoader->eglGetProcAddress("glDepthFunc");
+    oglBackends->glCullFace = (PFNGLCULLFACEPROC)
+        eglLoader->eglGetProcAddress("glCullFace");
+    oglBackends->glFrontFace = (PFNGLFRONTFACEPROC)
+        eglLoader->eglGetProcAddress("glFrontFace");
 
     // bind function pointers
     oglBackends->ogllCreateSurface = lvnEglCreateSurface;

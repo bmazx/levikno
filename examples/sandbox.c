@@ -28,11 +28,11 @@ typedef struct UniformData
 
 static float s_Vertices[] = {
     /*    pos (x,y,z)    |      UV   */
-    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,    1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
      0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
     -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
     -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
 
     -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
@@ -49,11 +49,11 @@ static float s_Vertices[] = {
     -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
 
-     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
      0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
      0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
      0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
 
     -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
@@ -63,11 +63,11 @@ static float s_Vertices[] = {
     -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
     -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
 
-    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
      0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
      0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,    0.0f, 1.0f
 };
 
@@ -75,19 +75,6 @@ static uint32_t s_Indices[] = {
     0, 1, 2,
     0, 2, 3,
 };
-
-void myPrint(const LvnLogMessage* outmsg)
-{
-    if (outmsg->level == Lvn_LogLevel_Error)
-        fprintf(stderr, "%s", outmsg->msg);
-    else
-        fprintf(stdout, "%s", outmsg->msg);
-}
-
-char* myloggerPattern(const LvnLogMessage* logmsg)
-{
-    return lvnLogCreateOneShotStrMsg(">>>");
-}
 
 static void GLFWerrorCallback(int error, const char* descripion)
 {
@@ -177,61 +164,6 @@ int main(int argc, char** argv)
 
     LvnContext* ctx;
     lvnCreateContext(&ctx, &ctxCreateInfo);
-
-    LvnLogger* logger = lvnCtxGetCoreLogger(ctx);
-
-    float b = 3.1415f;
-    const char* c = "world";
-
-    lvnLogMessageTrace(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-    lvnLogMessageDebug(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-    lvnLogMessageInfo(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-    lvnLogMessageWarn(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-    lvnLogMessageError(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-    lvnLogMessageFatal(logger, "hello %d | %s | %.5f | %p", 12, c, b, &b);
-
-    uint32_t len = lvnLogFormatMessage(logger, NULL, 0, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
-    char* str = (char*) malloc(len * sizeof(char));
-    lvnLogFormatMessage(logger, str, len, Lvn_LogLevel_Warn, "hello world %s , %d", c, 42);
-
-    printf("%.*s", len, str);
-    free(str);
-
-    LvnSink sink =
-    {
-        .logFunc = myPrint,
-    };
-
-    LvnLoggerCreateInfo logCreateInfo =
-    {
-        .name = "mylogger",
-        .level = Lvn_LogLevel_None,
-        .format = "[%Y-%m-%d] [%T] [%#%l%^] %n: %v%$",
-        .pSinks = &sink,
-        .sinkCount = 1,
-    };
-
-    LvnLogger* mylogger;
-    lvnCreateLogger(ctx, &mylogger, &logCreateInfo);
-
-    lvnLogMessageTrace(mylogger, "this is a log message");
-    lvnLogMessageInfo(mylogger, "the value of pi is %f", 3.1415);
-
-    LvnLogPattern logPattern =
-    {
-        .symbol = '>',
-        .func = myloggerPattern,
-    };
-
-    lvnCtxAddLogPatterns(ctx, &logPattern, 1);
-
-    lvnLogParseLogPatternFormat(mylogger, "[%Y-%m-%d] [%#%l%^] %> %n: %v%$");
-
-    lvnLogMessageTrace(mylogger, "this is a log message");
-    lvnLogMessageInfo(mylogger, "the value of pi is %f", 3.1415);
-
-    lvnDestroyLogger(mylogger);
-
 
 
     GLFWwindow* window;
@@ -438,6 +370,8 @@ int main(int argc, char** argv)
     pipelineFixedFuncs.depthstencil.depthTestEnable = true;
     pipelineFixedFuncs.depthstencil.depthWriteEnable = true;
     pipelineFixedFuncs.depthstencil.depthOpCompare = Lvn_CompareOp_LessOrEqual;
+    pipelineFixedFuncs.rasterizer.cullMode = Lvn_CullFaceMode_Back;
+    pipelineFixedFuncs.rasterizer.frontFace = Lvn_CullFrontFace_CounterClockwise;
 
     LvnVertexAttribute attributes[] =
     {
@@ -591,7 +525,7 @@ int main(int argc, char** argv)
         fps++;
         if (delta >= 1.0)
         {
-            LVN_LOG_DEBUG(logger, "fps: %d", fps);
+            printf("fps: %d\n", fps);
             prevTime = currTime;
             fps = 0;
         }
@@ -638,16 +572,13 @@ int main(int argc, char** argv)
         }
         else if (result != Lvn_Result_Success)
         {
-            LVN_LOG_ERROR(logger, "failed to get image");
+            fprintf(stderr, "failed to get image\n");
             continue;
         }
 
         lvnBeginCommandBuffer(cmdBuff);
 
-        LvnClearColorValue clearValues[] = {
-            {{0.0f, 0.1f, 0.2f, 1.0f }},
-        };
-
+        LvnClearColorValue clearValues[] = {{{ 0.0f, 0.1f, 0.2f, 1.0f }}};
         LvnClearDepthStencilValue depthValue = { 1.0f, 0 };
 
         LvnRenderPassBeginInfo beginInfo = {
@@ -664,9 +595,12 @@ int main(int argc, char** argv)
         lvnCmdBindPipeline(cmdBuff, pipeline);
 
         LvnViewport viewport = {
-            .x = 0, .y = 0,
-            .width = extent.width, .height = extent.height,
-            .minDepth = 0.0f, .maxDepth = 1.0f,
+            .width = extent.width,
+            .height = extent.height,
+            .x = 0,
+            .y = 0,
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
         };
 
         lvnCmdSetViewport(cmdBuff, &viewport);

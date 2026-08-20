@@ -513,7 +513,9 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glViewport ||
         !oglBackends->glScissor ||
         !oglBackends->glDepthMask ||
-        !oglBackends->glDepthFunc)
+        !oglBackends->glDepthFunc ||
+        !oglBackends->glCullFace ||
+        !oglBackends->glFrontFace)
     {
         LVN_LOG_ERROR(graphicsctx->coreLogger,
                       "[opengl] failed to load opengl function symbols");
@@ -1326,12 +1328,6 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     // rasterizer
     pipelineData->fixedFuncEnums.rasterizer = pipelineFixedFunctions->rasterizer;
 
-    if (pipelineFixedFunctions->rasterizer.cullMode != Lvn_CullFaceMode_Disable)
-    {
-        pipelineData->fixedFuncEnums.cullMode = lvn_getOglCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode);
-        pipelineData->fixedFuncEnums.frontFace = lvn_getOglCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace);
-    }
-
     // multisampling
     pipelineData->fixedFuncEnums.multisampling = pipelineFixedFunctions->multisampling;
 
@@ -1400,6 +1396,9 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
     // depth stencil
     pipelineData->fixedFuncEnums.depthStencil = pipelineFixedFunctions->depthstencil;
 
+
+    pipelineData->fixedFuncEnums.cullMode = lvn_getOglCullModeFlagEnum(pipelineFixedFunctions->rasterizer.cullMode);
+    pipelineData->fixedFuncEnums.frontFace = lvn_getOglCullFrontFaceEnum(pipelineFixedFunctions->rasterizer.frontFace);
     pipelineData->fixedFuncEnums.depthCompareOp = lvn_getOglCompareOpEnum(pipelineFixedFunctions->depthstencil.depthOpCompare);
     pipelineData->fixedFuncEnums.stencilCompareOp = lvn_getOglCompareOpEnum(pipelineFixedFunctions->depthstencil.stencil.compareOp);
     pipelineData->fixedFuncEnums.stencilFailOp = lvn_getOglStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp);
@@ -2483,6 +2482,7 @@ void lvnCmdBuffImplOglCmdBindPipeline(void* data)
     commandBufferData->vbo.pVertexBindings = pipelineData->pVertexBindings;
 
     // pipeline fixed functions
+    // depth
     if (pipelineData->fixedFuncEnums.depthStencil.depthTestEnable)
         oglBackends->glEnable(GL_DEPTH_TEST);
     else
@@ -2490,6 +2490,15 @@ void lvnCmdBuffImplOglCmdBindPipeline(void* data)
 
     oglBackends->glDepthMask(pipelineData->fixedFuncEnums.depthStencil.depthWriteEnable ? GL_TRUE : GL_FALSE);
     oglBackends->glDepthFunc(pipelineData->fixedFuncEnums.depthCompareOp);
+
+    // cullmode
+    if (pipelineData->fixedFuncEnums.rasterizer.cullMode != Lvn_CullFaceMode_Disable)
+        oglBackends->glEnable(GL_CULL_FACE);
+    else
+        oglBackends->glDisable(GL_CULL_FACE);
+
+    oglBackends->glCullFace(pipelineData->fixedFuncEnums.cullMode);
+    oglBackends->glFrontFace(pipelineData->fixedFuncEnums.frontFace);
 }
 
 void lvnCmdBuffImplOglCmdBindVertexBuffer(void* data)
