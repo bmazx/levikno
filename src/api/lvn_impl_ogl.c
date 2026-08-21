@@ -54,8 +54,9 @@ static const LvnOglFormatData s_OglFormatTypes[] =
     [Lvn_Format_A2B10G10R10_UNORM] = { GL_RGB10_A2, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV, 4, Lvn_VertexAttribute_N, true },
     [Lvn_Format_A2B10G10R10_UINT] = { GL_RGB10_A2, GL_RGBA_INTEGER, GL_UNSIGNED_INT_2_10_10_10_REV, 4, Lvn_VertexAttribute_I, false },
     [Lvn_Format_D16_UNORM] = { GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 1, Lvn_VertexAttribute_N, true },
-    [Lvn_Format_D32_FLOAT] = { GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, Lvn_VertexAttribute_N, false },
     [Lvn_Format_D24_UNORM_S8_UINT] = { GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_D32_FLOAT] = { GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, 1, Lvn_VertexAttribute_I, false },
+    [Lvn_Format_D32_FLOAT_S8_UINT] = { GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 1, Lvn_VertexAttribute_I, false },
 };
 
 static const LvnOglCmdBuffFnCallback s_OglCmdBuffFuncTable[] =
@@ -437,6 +438,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
         !oglBackends->glGetError ||
         !oglBackends->glDebugMessageCallback ||
         !oglBackends->glGetIntegerv ||
+        !oglBackends->glGetInternalformativ ||
         !oglBackends->glEnable ||
         !oglBackends->glEnablei ||
         !oglBackends->glDisable ||
@@ -546,6 +548,7 @@ LvnResult lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsConte
 
     // set opengl implementation function pointers
     graphicsctx->implGetSurface = lvnImplOglGetSurface;
+    graphicsctx->implFindSupportedDepthFormats = lvnImplOglFindSupportedDepthFormats;
     graphicsctx->implCreateSurface = lvnImplOglCreateSurface;
     graphicsctx->implDestroySurface = lvnImplOglDestroySurface;
     graphicsctx->implCreateSwapchain = lvnImplOglCreateSwapchain;
@@ -633,10 +636,33 @@ const LvnSurface* lvnImplOglGetSurface(const LvnGraphicsContext* graphicsctx)
     return &oglBackends->defaultSurface;
 }
 
+LvnFormat lvnImplOglFindSupportedDepthFormats(const LvnGraphicsContext* graphicsctx, uint32_t formatCount, LvnFormat* pFormats)
+{
+    LVN_ASSERT(graphicsctx && formatCount, "graphicsctx and formatCount cannot be null");
+    const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
+
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        GLenum format = s_OglFormatTypes[pFormats[i]].internalFormat;
+        GLint supported = GL_FALSE;
+        oglBackends->glGetInternalformativ(GL_TEXTURE_2D, format, GL_INTERNALFORMAT_SUPPORTED, 1, &supported);
+
+        if (!supported)
+            continue;
+
+        GLint renderable = GL_FALSE;
+        oglBackends->glGetInternalformativ(GL_TEXTURE_2D, format, GL_FRAMEBUFFER_RENDERABLE, 1, &renderable);
+
+        if (renderable)
+            return pFormats[i];
+    }
+
+    return Lvn_Format_Undefined;
+}
+
 LvnResult lvnImplOglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
 {
     LVN_ASSERT(graphicsctx && surface && createInfo, "graphicsctx, surface, and createInfo cannot be null");
-
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) graphicsctx->implData;
 
     if (oglBackends->ogllCreateSurface(oglBackends, surface, createInfo) != Lvn_Result_Success)

@@ -34,6 +34,7 @@ static LvnResult lvn_setCustomGraphicsContextPfn(LvnGraphicsContext* graphicsctx
         return Lvn_Result_Failure;
 
     graphicsctx->implGetSurface = createInfo->gctxFuncs->getSurface;
+    graphicsctx->implFindSupportedDepthFormats = createInfo->gctxFuncs->findSupportedDepthFormats;
     graphicsctx->implCreateSurface = createInfo->gctxFuncs->createSurface;
     graphicsctx->implDestroySurface = createInfo->gctxFuncs->destroySurface;
     graphicsctx->implCreateSwapchain = createInfo->gctxFuncs->createSwapchain;
@@ -156,6 +157,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
     }
 
     if (!gctxPtr->implGetSurface ||
+        !gctxPtr->implFindSupportedDepthFormats ||
         !gctxPtr->implCreateSurface ||
         !gctxPtr->implDestroySurface ||
         !gctxPtr->implCreateSwapchain ||
@@ -266,6 +268,12 @@ const LvnSurface* lvnGetSurface(const LvnGraphicsContext* graphicsctx)
         return graphicsctx->implGetSurface(graphicsctx);
     else
         return NULL;
+}
+
+LvnFormat lvnFindSupportedDepthFormats(const LvnGraphicsContext* graphicsctx, uint32_t formatCount, LvnFormat* pFormats)
+{
+    LVN_ASSERT(graphicsctx && formatCount, "graphicsctx and formatCount cannot be null");
+    return graphicsctx->implFindSupportedDepthFormats(graphicsctx, formatCount, pFormats);
 }
 
 LvnResult lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo)

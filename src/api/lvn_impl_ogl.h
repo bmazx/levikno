@@ -110,6 +110,7 @@
 #define GL_MAJOR_VERSION 0x821B
 #define GL_MINOR_VERSION 0x821C
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
+#define GL_FRAMEBUFFER_RENDERABLE 0x8289
 #define GL_READ_FRAMEBUFFER 0x8CA8
 #define GL_DRAW_FRAMEBUFFER 0x8CA9
 #define GL_FRAMEBUFFER 0x8D40
@@ -239,6 +240,8 @@
 #define GL_DEPTH_COMPONENT16 0x81A5
 #define GL_DEPTH_COMPONENT32F 0x8CAC
 #define GL_DEPTH24_STENCIL8 0x88F0
+#define GL_DEPTH32F_STENCIL8 0x8CAD
+#define GL_FLOAT_32_UNSIGNED_INT_24_8_REV 0x8DAD
 #define GL_RGB10_A2 0x8059
 #define GL_RGB10_A2UI 0x906F
 #define GL_FRAGMENT_SHADER 0x8B30
@@ -269,6 +272,7 @@
 #define GL_SHADER_STORAGE_BUFFER 0x90D2
 #define GL_MAX_VERTEX_ATTRIB_BINDINGS 0x82DA
 #define GL_MAX_VERTEX_ATTRIBS 0x8869
+#define GL_INTERNALFORMAT_SUPPORTED 0x826F
 
 typedef khronos_int8_t GLbyte;
 typedef khronos_uint8_t GLubyte;
@@ -296,6 +300,7 @@ typedef void (GLAPIENTRY *GLDEBUGPROC)(GLenum source, GLenum type, GLuint id, GL
 typedef const GLubyte* (GLAPIENTRY *PFNGLGETSTRINGPROC)(GLenum name);
 typedef void (GLAPIENTRY *PFNGLDEBUGMESSAGECALLBACKPROC)(GLDEBUGPROC callback, const void *userParam);
 typedef void (GLAPIENTRY *PFNGLGETINTEGERVPROC)(GLenum pname, GLint* data);
+typedef void (GLAPIENTRY *PFNGLGETINTERNALFORMATIVPROC)(GLenum target, GLenum internalformat, GLenum pname, GLsizei count, GLint *params);
 typedef GLenum (GLAPIENTRY *PFNGLGETERRORPROC)(void);
 typedef void (GLAPIENTRY *PFNGLENABLEPROC)(GLenum cap);
 typedef void (GLAPIENTRY *PFNGLENABLEIPROC)(GLenum target, GLuint index);
@@ -706,6 +711,7 @@ typedef struct LvnOpenglBackends
     PFNGLGETERRORPROC                                       glGetError;
     PFNGLDEBUGMESSAGECALLBACKPROC                           glDebugMessageCallback;
     PFNGLGETINTEGERVPROC                                    glGetIntegerv;
+    PFNGLGETINTERNALFORMATIVPROC                            glGetInternalformativ;
     PFNGLENABLEPROC                                         glEnable;
     PFNGLENABLEIPROC                                        glEnablei;
     PFNGLDISABLEPROC                                        glDisable;
@@ -790,6 +796,7 @@ typedef struct LvnOpenglBackends
 LvnResult         lvnImplOglInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContextCreateInfo* createInfo);
 void              lvnImplOglTerminate(LvnGraphicsContext* graphicsctx);
 const LvnSurface* lvnImplOglGetSurface(const LvnGraphicsContext* graphicsctx);
+LvnFormat         lvnImplOglFindSupportedDepthFormats(const LvnGraphicsContext* graphicsctx, uint32_t formatCount, LvnFormat* pFormats);
 
 LvnResult         lvnImplOglCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo);
 void              lvnImplOglDestroySurface(LvnSurface* surface);

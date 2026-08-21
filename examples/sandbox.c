@@ -247,21 +247,26 @@ int main(int argc, char** argv)
 
     free(presentModes);
 
+    // depth format
+    LvnFormat depthFormats[] = { Lvn_Format_D24_UNORM_S8_UINT, Lvn_Format_D32_FLOAT_S8_UINT, Lvn_Format_D32_FLOAT, Lvn_Format_D16_UNORM, };
+    LvnFormat supportedDepthFormat = lvnFindSupportedDepthFormats(graphicsctx, LVN_ARRAY_LEN(depthFormats), depthFormats);
+
+    // swapchain
     LvnSwapchainCreateInfo swapchainCreateInfo = {0};
     swapchainCreateInfo.surface = surface;
     swapchainCreateInfo.width = 800;
     swapchainCreateInfo.height = 600;
     swapchainCreateInfo.surfaceFormat = selFormat;
+    swapchainCreateInfo.depthFormat = supportedDepthFormat;
     swapchainCreateInfo.presentMode = selPresentMode;
     swapchainCreateInfo.minImageCount = 3;
-    swapchainCreateInfo.depthFormat = Lvn_Format_D32_FLOAT;
 
     LvnSwapchain* swapchain;
     lvnCreateSwapchain(graphicsctx, &swapchain, &swapchainCreateInfo);
 
     LvnColorAttachment colorAttachment = {
         .usage = Lvn_AttachmentUsage_PresentSrc,
-        .format = Lvn_Format_B8G8R8A8_SRGB,
+        .format = selFormat,
         .samples = Lvn_SampleCountFlag_1_Bit,
         .loadOp = Lvn_AttachmentLoadOp_Clear,
         .storeOp = Lvn_AttachmentStoreOp_Store,
@@ -269,7 +274,7 @@ int main(int argc, char** argv)
 
     LvnDepthStencilAttachment depthAttachment = {
         .samples = Lvn_SampleCountFlag_1_Bit,
-        .format = Lvn_Format_D32_FLOAT,
+        .format = supportedDepthFormat,
         .loadOp = Lvn_AttachmentLoadOp_Clear,
         .storeOp = Lvn_AttachmentStoreOp_Store,
         .stencilLoadOp = Lvn_AttachmentLoadOp_Clear,
@@ -584,7 +589,7 @@ int main(int argc, char** argv)
         LvnRenderPassBeginInfo beginInfo = {
             .renderPass = renderPass,
             .framebuffer = swapchainFramebuffers[imageIndex],
-            .renderArea = {{extent.width, extent.height}, {0, 0}},
+            .renderArea = {extent, {0, 0}},
             .clearColorValueCount = 1,
             .pClearColorValues = clearValues,
             .clearDepthStencilValue = depthValue,

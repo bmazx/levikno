@@ -229,6 +229,7 @@ typedef enum LvnFormat
     Lvn_Format_D16_UNORM,
     Lvn_Format_D24_UNORM_S8_UINT,
     Lvn_Format_D32_FLOAT,
+    Lvn_Format_D32_FLOAT_S8_UINT,
 } LvnFormat;
 
 typedef enum LvnPresentMode
@@ -353,6 +354,7 @@ struct LvnContext;
 
 
 typedef const LvnSurface* (*PFN_lvnGetSurface)(const LvnGraphicsContext*);
+typedef LvnFormat         (*PFN_lvnFindSupportedDepthFormats)(const LvnGraphicsContext*, uint32_t, LvnFormat*);
 typedef LvnResult         (*PFN_lvnCreateSurface)(const LvnGraphicsContext*, LvnSurface*, const LvnSurfaceCreateInfo*);
 typedef void              (*PFN_lvnDestroySurface)(LvnSurface*);
 typedef LvnResult         (*PFN_lvnCreateSwapchain)(const LvnGraphicsContext*, LvnSwapchain*, const LvnSwapchainCreateInfo*);
@@ -750,6 +752,7 @@ struct LvnPresentInfo
 struct LvnGraphicsContextFunctions
 {
     PFN_lvnGetSurface                         getSurface;
+    PFN_lvnFindSupportedDepthFormats          findSupportedDepthFormats;
     PFN_lvnCreateSurface                      createSurface;
     PFN_lvnDestroySurface                     destroySurface;
     PFN_lvnCreateSwapchain                    createSwapchain;
@@ -830,6 +833,7 @@ extern "C" {
 LVN_API LvnResult                   lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** graphicsctx, const LvnGraphicsContextCreateInfo* createInfo); // create the graphics context
 LVN_API void                        lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx);                                                                         // destroy the graphics context
 LVN_API const LvnSurface*           lvnGetSurface(const LvnGraphicsContext* graphicsctx);
+LVN_API LvnFormat                   lvnFindSupportedDepthFormats(const LvnGraphicsContext* graphicsctx, uint32_t formatCount, LvnFormat* pFormats);
 
 LVN_API LvnResult                   lvnCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface** surface, const LvnSurfaceCreateInfo* createInfo);
 LVN_API void                        lvnDestroySurface(LvnSurface* surface);

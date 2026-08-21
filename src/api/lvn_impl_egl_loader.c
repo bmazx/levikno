@@ -342,6 +342,8 @@ LvnResult lvnEglLoaderInit(LvnOpenglBackends* oglBackends, const LvnPlatformData
         eglLoader->eglGetProcAddress("glDebugMessageCallback");
     oglBackends->glGetIntegerv = (PFNGLGETINTEGERVPROC)
         eglLoader->eglGetProcAddress("glGetIntegerv");
+    oglBackends->glGetInternalformativ = (PFNGLGETINTERNALFORMATIVPROC)
+        eglLoader->eglGetProcAddress("glGetInternalformativ");
     oglBackends->glEnable = (PFNGLENABLEPROC)
         eglLoader->eglGetProcAddress("glEnable");
     oglBackends->glEnablei = (PFNGLENABLEIPROC)

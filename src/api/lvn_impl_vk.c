@@ -68,6 +68,7 @@ static VkBufferUsageFlags          lvn_getVkBufferUsageFlagsEnum(LvnBufferTypeFl
 static LvnFormat                   lvn_getLvnFormatEnum(VkFormat format);
 static LvnPresentMode              lvn_getLvnPresentModeEnum(VkPresentModeKHR presentMode);
 static uint32_t                    lvn_getChannelWidthBytes(LvnFormat format);
+static VkFormat                    lvn_findSupportedFormat(const LvnVulkanBackends* vkBackends, const VkFormat* candidates, uint32_t count, VkImageTiling tiling, VkFormatFeatureFlags features);
 static void                        lvn_transitionImageLayout(const LvnVulkanBackends* vkBackends, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
 static LvnResult                   lvn_createBuffer(const LvnVulkanBackends* vkBackends, VkBuffer* buffer, VmaAllocation* bufferMemory, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memUsage);
 static void                        lvn_copyBuffer(const LvnVulkanBackends* vkBackends, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset);
@@ -863,6 +864,7 @@ static VkFormat lvn_getVkFormatEnum(LvnFormat format)
         case Lvn_Format_D16_UNORM: { return VK_FORMAT_D16_UNORM; }
         case Lvn_Format_D24_UNORM_S8_UINT: { return VK_FORMAT_D24_UNORM_S8_UINT; }
         case Lvn_Format_D32_FLOAT: { return VK_FORMAT_D32_SFLOAT; }
+        case Lvn_Format_D32_FLOAT_S8_UINT: { return VK_FORMAT_D32_SFLOAT_S8_UINT; }
     }
 
     LVN_ASSERT(false, "invalid format enum");
@@ -1008,10 +1010,36 @@ static uint32_t lvn_getChannelWidthBytes(LvnFormat format)
         case Lvn_Format_D16_UNORM: { return 2; }
         case Lvn_Format_D24_UNORM_S8_UINT: { return 4; }
         case Lvn_Format_D32_FLOAT: { return 4; }
+        case Lvn_Format_D32_FLOAT_S8_UINT: { return 8; }
     }
 
     LVN_ASSERT(false, "invalid format enum");
     return 0;
+}
+
+static VkFormat lvn_findSupportedFormat(
+    const LvnVulkanBackends* vkBackends,
+    const VkFormat* candidates,
+    uint32_t count,
+    VkImageTiling tiling,
+    VkFormatFeatureFlags features)
+{
+    for (uint32_t i = 0; i < count; i++)
+    {
+        VkFormatProperties props;
+        vkBackends->vkGetPhysicalDeviceFormatProperties(vkBackends->physicalDevice, candidates[i], &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+        {
+            return candidates[i];
+        }
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+        {
+            return candidates[i];
+        }
+    }
+
+    return VK_FORMAT_UNDEFINED;
 }
 
 static void lvn_transitionImageLayout(
@@ -2003,6 +2031,7 @@ LvnResult lvnImplVkInit(LvnGraphicsContext* graphicsctx, const LvnGraphicsContex
 
     // set vulkan implementation function pointers
     graphicsctx->implGetSurface = lvnImplVkGetSurface;
+    graphicsctx->implFindSupportedDepthFormats = lvnImplVkFindSupportedDepthFormats;
     graphicsctx->implCreateSurface = lvnImplVkCreateSurface;
     graphicsctx->implDestroySurface = lvnImplVkDestroySurface;
     graphicsctx->implCreateSwapchain = lvnImplVkCreateSwapchain;
@@ -2107,6 +2136,22 @@ const LvnSurface* lvnImplVkGetSurface(const LvnGraphicsContext* graphicsctx)
     LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
     const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
     return &vkBackends->defaultSurface;
+}
+
+LvnFormat lvnImplVkFindSupportedDepthFormats(const LvnGraphicsContext* graphicsctx, uint32_t formatCount, LvnFormat* pFormats)
+{
+    LVN_ASSERT(graphicsctx && formatCount, "graphicsctx and formatCount cannot be null");
+    const LvnVulkanBackends* vkBackends = (const LvnVulkanBackends*) graphicsctx->implData;
+
+    for (uint32_t i = 0; i < formatCount; i++)
+    {
+        VkFormat format = lvn_getVkFormatEnum(pFormats[i]);
+        VkFormat supportedFormat = lvn_findSupportedFormat(vkBackends, &format, 1, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        if (supportedFormat != VK_FORMAT_UNDEFINED)
+            return pFormats[i];
+    }
+
+    return Lvn_Format_Undefined;
 }
 
 LvnResult lvnImplVkCreateSurface(const LvnGraphicsContext* graphicsctx, LvnSurface* surface, const LvnSurfaceCreateInfo* createInfo)
@@ -3845,7 +3890,11 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
         if (format != Lvn_Format_Undefined)
         {
             if (pSurfaceFormats)
+            {
+                if (supportedFormatCount >= *formatCount)
+                    goto formats_found;
                 pSurfaceFormats[supportedFormatCount] = format;
+            }
 
             supportedFormatCount++;
         }
@@ -3853,6 +3902,7 @@ void lvnImplVkSurfaceGetSupportedFormats(const LvnSurface* surface, uint32_t* fo
 
     *formatCount = supportedFormatCount;
 
+formats_found:
     lvn_free(formats);
 }
 
