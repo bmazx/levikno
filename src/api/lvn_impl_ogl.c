@@ -2468,7 +2468,8 @@ void lvnCmdBuffImplOglCmdBeginRenderPass(void* data)
     // set clear color/depth values
     for (uint32_t i = 0; i < beginInfo.clearColorValueCount; i++)
     {
-        oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo.pClearColorValues[i].float32);
+        if (renderpassData->colorAttachments[i].loadOp == Lvn_AttachmentLoadOp_Clear)
+            oglBackends->glClearNamedFramebufferfv(framebufferData->fboId, GL_COLOR, i, beginInfo.pClearColorValues[i].float32);
     }
 
     if (renderpassData->hasDepth)

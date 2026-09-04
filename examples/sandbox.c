@@ -293,6 +293,7 @@ int main(int argc, char** argv)
     uint32_t imageCount = lvnSwapchainGetImageCount(swapchain);
     LvnExtent2D extent = lvnSwapchainGetExtent(swapchain);
 
+    // framebuffer
     LvnFramebuffer** swapchainFramebuffers = (LvnFramebuffer**) malloc(imageCount * sizeof(LvnFramebuffer*));
 
     for (uint32_t i = 0; i < imageCount; i++)
