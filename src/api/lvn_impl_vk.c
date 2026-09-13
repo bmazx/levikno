@@ -14,6 +14,9 @@
         #include <X11/Xlib.h>
         #include <vulkan/vulkan_xlib.h>
     #endif
+#elif defined(LVN_INCLUDE_WIN32)
+#include <windows.h>
+#include <vulkan/vulkan_win32.h>
 #endif
 
 #include <vk_mem_alloc.h>
@@ -127,6 +130,10 @@ static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBack
     if (wps.x11)
         return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
 #endif
+#if defined(LVN_INCLUDE_WIN32)
+    if (wps.win32)
+        return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWin32SurfaceKHR");
+#endif
 
     return VK_NULL_HANDLE;
 }
@@ -160,6 +167,15 @@ static LvnResult lvn_createPlatformSurface(const LvnVulkanBackends* vkBackends, 
             (PFN_vkCreateXlibSurfaceKHR) vkBackends->vkCreateSurfaceProc;
         result = vkCreateXlibSurfaceKHR(vkBackends->instance, &sci, NULL, surface);
     }
+#elif defined(LVN_INCLUDE_WIN32)
+    VkWin32SurfaceCreateInfoKHR sci = {
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .hinstance = (HINSTANCE)platformData->ndh,
+        .hwnd = (HWND)platformData->nwh,
+    };
+    PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR =
+        (PFN_vkCreateWin32SurfaceKHR)vkBackends->vkCreateSurfaceProc;
+    result = vkCreateWin32SurfaceKHR(vkBackends->instance, &sci, NULL, surface);
 #endif
 
     return result == VK_SUCCESS ? Lvn_Result_Success : Lvn_Result_Failure;
@@ -263,15 +279,12 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     vkBackends->vkEnumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
 
     uint32_t requiredExtensionCount = LVN_ARRAY_LEN(s_LvnVkDeviceExtensions);
-    const char** requiredExtensions = lvn_calloc(requiredExtensionCount * sizeof(const char*));
-    memcpy(requiredExtensions, s_LvnVkDeviceExtensions, sizeof(s_LvnVkDeviceExtensions));
+    const char** requiredExtensions = lvn_calloc((requiredExtensionCount + 1) * sizeof(const char*));
+    memcpy(requiredExtensions, s_LvnVkDeviceExtensions, requiredExtensionCount * sizeof(const char*));
 
     // get device extensions for surface present support
     if (surface)
-    {
-        requiredExtensions = lvn_realloc(requiredExtensions, ++requiredExtensionCount);
-        requiredExtensions[requiredExtensionCount - 1] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-    }
+        requiredExtensions[requiredExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
     uint32_t bestScore = 0;
     VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
@@ -3110,8 +3123,8 @@ LvnResult lvnImplVkCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPipe
         .back.depthFailOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.depthFailOp),
         .back.failOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.failOp),
         .back.passOp = lvn_getVkStencilOpEnum(pipelineFixedFunctions->depthstencil.stencil.passOp),
-        .front = depthStencil.back,
     };
+    depthStencil.front = depthStencil.back;
 
     // pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {

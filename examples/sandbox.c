@@ -11,8 +11,9 @@
 
 #include <GLFW/glfw3.h>
 
-#define GLFW_EXPOSE_NATIVE_WAYLAND
-#define GLFW_EXPOSE_NATIVE_X11
+//#define GLFW_EXPOSE_NATIVE_WAYLAND
+//#define GLFW_EXPOSE_NATIVE_X11
+#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
 typedef struct WindowData
@@ -192,8 +193,11 @@ int main(int argc, char** argv)
     // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
     // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
-    Display* nativeDisplay = glfwGetX11Display();
-    Window nativeWindow = glfwGetX11Window(window);
+    //Display* nativeDisplay = glfwGetX11Display();
+    //Window nativeWindow = glfwGetX11Window(window);
+    
+    HWND nativeWindow = glfwGetWin32Window(window);
+    HINSTANCE nativeDisplay = (HINSTANCE)GetWindowLongPtr(nativeWindow, GWLP_HINSTANCE);
 
     LvnPlatformData pd = {0};
     pd.ndh = nativeDisplay;
@@ -311,8 +315,8 @@ int main(int argc, char** argv)
         lvnCreateFramebuffer(graphicsctx, &swapchainFramebuffers[i], &framebufferCreateInfo);
     }
 
-    LvnFile vertfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/vert.spv");
-    LvnFile fragfile = lvnLoadFileSrc("/home/bma/Documents/dev/levikno/examples/res/shaders/frag.spv");
+    LvnFile vertfile = lvnLoadFileBin("res/shaders/vert.spv");
+    LvnFile fragfile = lvnLoadFileBin("res/shaders/frag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo = {0};
     vertShCreateInfo.pCode = vertfile.data;
