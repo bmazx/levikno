@@ -166,8 +166,9 @@ target_include_directories(lvngraphics
     PRIVATE
         include/levikno
         src/api
-        src/external
         src
+        src/external
+        src/external/vulkan/include
 )
 
 
