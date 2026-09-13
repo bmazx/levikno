@@ -22,9 +22,9 @@
 #if defined(LVN_PLATFORM_LINUX)
     static const char* s_LvnVkLibNames[] = { "libvulkan.so.1", "libvulkan.so" };
 #elif defined(LVN_PLATFORM_WINDOWS)
-    static const char* s_LvnVkLibName[] = { "vulkan-1.dll" };
+    static const char* s_LvnVkLibNames[] = { "vulkan-1.dll" };
 #elif defined(LVN_PLATFORM_MACOS)
-    static const char* s_LvnVkLibName[] = { "libvulkan.1.dylib" };
+    static const char* s_LvnVkLibNames[] = { "libvulkan.1.dylib" };
 #endif
 
 static const char* s_LvnVkValidationLayers[] =
