@@ -1050,9 +1050,6 @@ LvnWindowPlatformSupport lvn_getWindowPlatform(void)
 {
     LvnWindowPlatformSupport wps = {0};
 
-#if defined(LVN_INCLUDE_WIN32)
-    wps.win32 = true;
-#endif
 #if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
     const char* session = getenv("XDG_SESSION_TYPE");
     if (session && (strcmp(session, "wayland") == 0 || strcmp(session, "x11") == 0))
@@ -1071,9 +1068,16 @@ LvnWindowPlatformSupport lvn_getWindowPlatform(void)
         else if (x11env)
             wps.x11 = true;
     }
-#else
+
+#if !defined(LVN_INCLUDE_WAYLAND)
     wps.wayland = false;
+#endif
+#if !defined(LVN_INCLUDE_X11)
     wps.x11 = false;
+#endif
+
+#elif defined(LVN_INCLUDE_WIN32)
+    wps.win32 = true;
 #endif
 
     return wps;

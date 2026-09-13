@@ -122,15 +122,12 @@ static PFN_vkVoidFunction lvn_getVulkanCreateSurfaceProcAddr(const LvnVulkanBack
     LVN_ASSERT(vkBackends, "vkBackends cannot be null");
 
     LvnWindowPlatformSupport wps = lvn_getWindowPlatform();
-#if defined(LVN_INCLUDE_WAYLAND)
+#if defined(LVN_INCLUDE_WAYLAND) || defined(LVN_INCLUDE_X11)
     if (wps.wayland)
         return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWaylandSurfaceKHR");
-#endif
-#if defined(LVN_INCLUDE_X11)
     if (wps.x11)
         return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateXlibSurfaceKHR");
-#endif
-#if defined(LVN_INCLUDE_WIN32)
+#elif defined(LVN_INCLUDE_WIN32)
     if (wps.win32)
         return (PFN_vkVoidFunction)vkBackends->vkGetInstanceProcAddr(vkBackends->instance, "vkCreateWin32SurfaceKHR");
 #endif

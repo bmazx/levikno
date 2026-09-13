@@ -11,10 +11,14 @@
 
 #include <GLFW/glfw3.h>
 
-//#define GLFW_EXPOSE_NATIVE_WAYLAND
-//#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+#if defined(LVN_PLATFORM_LINUX)
+    #define GLFW_EXPOSE_NATIVE_WAYLAND
+    #define GLFW_EXPOSE_NATIVE_X11
+    #include <GLFW/glfw3native.h>
+#elif defined(LVN_PLATFORM_WINDOWS)
+    #define GLFW_EXPOSE_NATIVE_WIN32
+    #include <GLFW/glfw3native.h>
+#endif
 
 typedef struct WindowData
 {
@@ -190,14 +194,16 @@ int main(int argc, char** argv)
 
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
+#if defined(LVN_PLATFORM_LINUX)
     // struct wl_display* nativeDisplay = glfwGetWaylandDisplay();
     // struct wl_surface* nativeWindow = glfwGetWaylandWindow(window);
 
-    //Display* nativeDisplay = glfwGetX11Display();
-    //Window nativeWindow = glfwGetX11Window(window);
-    
+    Display* nativeDisplay = glfwGetX11Display();
+    Window nativeWindow = glfwGetX11Window(window);
+#elif defined(LVN_PLATFORM_WINDOWS)
     HWND nativeWindow = glfwGetWin32Window(window);
     HINSTANCE nativeDisplay = (HINSTANCE)GetWindowLongPtr(nativeWindow, GWLP_HINSTANCE);
+#endif
 
     LvnPlatformData pd = {0};
     pd.ndh = nativeDisplay;
