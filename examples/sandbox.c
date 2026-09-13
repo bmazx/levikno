@@ -560,7 +560,7 @@ int main(int argc, char** argv)
         LvnMat4 model;
         lvn_mat4_identity(model);
         // lvn_translate(model, (LvnVec3){1.0f * sin(currTime), 0.0f, 0.0f});
-        lvn_rotate(model, lvn_rad(currTime * 20), (LvnVec3){0.0f, 1.0f, 0.0f});
+        lvn_rotate(model, lvn_rad((float)currTime * 20), (LvnVec3){0.0f, 1.0f, 0.0f});
         // lvn_scale(model, (LvnVec3){1.0f * sin(currTime * 2.0f), 1.0f, 1.0f});
 
         LvnMat4 camera;
@@ -611,8 +611,8 @@ int main(int argc, char** argv)
         lvnCmdBindPipeline(cmdBuff, pipeline);
 
         LvnViewport viewport = {
-            .width = extent.width,
-            .height = extent.height,
+            .width = (float)extent.width,
+            .height = (float)extent.height,
             .x = 0,
             .y = 0,
             .minDepth = 0.0f,
@@ -623,7 +623,7 @@ int main(int argc, char** argv)
 
         LvnRenderArea renderArea = {
             .extent = extent,
-            .offset = { 0.0f, 0.0f },
+            .offset = { 0, 0 },
         };
 
         lvnCmdSetScissor(cmdBuff, &renderArea);

@@ -1290,13 +1290,13 @@ LvnResult lvnImplOglCreatePipeline(const LvnGraphicsContext* graphicsctx, LvnPip
         switch (formatData.attributeType)
         {
             case Lvn_VertexAttribute_N:
-                oglBackends->glVertexArrayAttribFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, formatData.normalized, attribute.offset);
+                oglBackends->glVertexArrayAttribFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, formatData.normalized, (GLuint)attribute.offset);
                 break;
             case Lvn_VertexAttribute_I:
-                oglBackends->glVertexArrayAttribIFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, attribute.offset);;
+                oglBackends->glVertexArrayAttribIFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, (GLuint)attribute.offset);;
                 break;
             case Lvn_VertexAttribute_L:
-                oglBackends->glVertexArrayAttribLFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, attribute.offset);
+                oglBackends->glVertexArrayAttribLFormat(pipelineData->vaoId, attribute.layout, formatData.componentCount, formatData.dataType, (GLuint)attribute.offset);
                 break;
         }
     }
@@ -2599,7 +2599,7 @@ void lvnCmdBuffImplOglCmdSetViewport(void* data)
     const LvnOpenglBackends* oglBackends = (const LvnOpenglBackends*) cmdData->commandBuffer->graphicsctx->implData;
     const LvnViewport* vp = cmdData->viewport;
 
-    oglBackends->glViewport(vp->x, vp->y, vp->width, vp->height);
+    oglBackends->glViewport((GLint)vp->x, (GLint)vp->y, (GLsizei)vp->width, (GLsizei)vp->height);
     oglBackends->glDepthRange(vp->minDepth, vp->maxDepth);
 }
 

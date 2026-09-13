@@ -867,8 +867,8 @@ LvnType_##t lvn_mat2_##t##_det(LvnMat2x2_##t m) {                               
 }                                                                                                                      \
 void lvn_mat2_##t##_inv(LvnMat2x2_##t mat, LvnMat2x2_##t dst) {                                                        \
     float det;                                                                                                         \
-    float a = mat[0][0], b = mat[0][1],                                                                                \
-          c = mat[1][0], d = mat[1][1];                                                                                \
+    float a = (float)mat[0][0], b = (float)mat[0][1],                                                                  \
+          c = (float)mat[1][0], d = (float)mat[1][1];                                                                  \
           det = 1.0f / (a * d - b * c);                                                                                \
     dst[0][0] =  d * det;                                                                                              \
     dst[0][1] = -b * det;                                                                                              \
@@ -1034,9 +1034,9 @@ LvnType_##t lvn_mat3_##t##_det(LvnMat3x3_##t m) {                               
            + m[2][0] * (m[0][1] * m[1][2] - m[1][1] * m[0][2]);                                                        \
 }                                                                                                                      \
 void lvn_mat3_##t##_inv(LvnMat3x3_##t mat, LvnMat3x3_##t dst) {                                                        \
-    float a = mat[0][0], b = mat[0][1], c = mat[0][2],                                                                 \
-          d = mat[1][0], e = mat[1][1], f = mat[1][2],                                                                 \
-          g = mat[2][0], h = mat[2][1], i = mat[2][2],                                                                 \
+    float a = (float)mat[0][0], b = (float)mat[0][1], c = (float)mat[0][2],                                            \
+          d = (float)mat[1][0], e = (float)mat[1][1], f = (float)mat[1][2],                                            \
+          g = (float)mat[2][0], h = (float)mat[2][1], i = (float)mat[2][2],                                            \
           c1  = e * i - f * h, c2 = d * i - g * f, c3 = d * h - g * e,                                                 \
           idt = 1.0f / (a * c1 - b * c2 + c * c3), ndt = -idt;                                                         \
     dst[0][0] = idt * c1;                                                                                              \
@@ -1341,10 +1341,10 @@ LvnType_##t lvn_mat4_##t##_det(LvnMat4x4_##t m) {                               
            m[0][2] * detCof[2] + m[0][3] * detCof[3];                                                                  \
 }                                                                                                                      \
 void lvn_mat4_##t##_inv(LvnMat4x4_##t mat, LvnMat4x4_##t dst) {                                                        \
-    float a = mat[0][0], b = mat[0][1], c = mat[0][2], d = mat[0][3],                                                  \
-          e = mat[1][0], f = mat[1][1], g = mat[1][2], h = mat[1][3],                                                  \
-          i = mat[2][0], j = mat[2][1], k = mat[2][2], l = mat[2][3],                                                  \
-          m = mat[3][0], n = mat[3][1], o = mat[3][2], p = mat[3][3],                                                  \
+    float a = (float)mat[0][0], b = (float)mat[0][1], c = (float)mat[0][2], d = (float)mat[0][3],                      \
+          e = (float)mat[1][0], f = (float)mat[1][1], g = (float)mat[1][2], h = (float)mat[1][3],                      \
+          i = (float)mat[2][0], j = (float)mat[2][1], k = (float)mat[2][2], l = (float)mat[2][3],                      \
+          m = (float)mat[3][0], n = (float)mat[3][1], o = (float)mat[3][2], p = (float)mat[3][3],                      \
           c1  = k * p - l * o,  c2  = c * h - d * g,  c3  = i * p - l * m,                                             \
           c4  = a * h - d * e,  c5  = j * p - l * n,  c6  = b * h - d * f,                                             \
           c7  = i * n - j * m,  c8  = a * f - b * e,  c9  = j * o - k * n,                                             \
@@ -2204,20 +2204,20 @@ float lvn_deg(float rad) {
 }
 
 void lvn_normalize2(LvnVec2 v) {
-    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1]);
+    float u = (float)(1) / sqrtf(v[0] * v[0] + v[1] * v[1]);
     v[0] *= u;
     v[1] *= u;
 }
 
 void lvn_normalize3(LvnVec3 v) {
-    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    float u = (float)(1) / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     v[0] *= u;
     v[1] *= u;
     v[2] *= u;
 }
 
 void lvn_normalize4(LvnVec4 v) {
-    float u = (float)(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+    float u = (float)(1) / sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
     v[0] *= u;
     v[1] *= u;
     v[2] *= u;
@@ -2251,9 +2251,9 @@ void lvn_scale(LvnMat4 m, const LvnVec3 v) {
 }
 
 void lvn_rotate(LvnMat4 m, float angle, const LvnVec3 axis) {
-    const float c = cos(angle);
-    const float s = sin(angle);
-    const float nc = (float)(1) - cos(angle);
+    const float c = cosf(angle);
+    const float s = sinf(angle);
+    const float nc = (float)(1) - cosf(angle);
 
     LvnVec3 a = { axis[0], axis[1], axis[2] };
     lvn_normalize3(a);

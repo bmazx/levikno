@@ -19,6 +19,11 @@
     #endif
 #endif
 
+// msvc
+#ifdef _MSC_VER
+    #pragma warning(disable: 4146)
+#endif
+
 // dll
 #ifndef LVN_API
     #ifdef LVN_PLATFORM_WINDOWS

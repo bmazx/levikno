@@ -42,7 +42,11 @@
     typedef max_align_t lvn_max_align_t;
 #else
     #ifndef LVN_ALIGNOF
-        #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
+        #if defined(_MSC_VER)
+            #define LVN_ALIGNOF(T) ((size_t)__alignof(T))
+        #else
+            #define LVN_ALIGNOF(T) ((size_t)offsetof(struct { char c; T x; }, x))
+        #endif
     #endif
     typedef union {
         long long ll;
