@@ -279,15 +279,15 @@ static VkPhysicalDevice lvn_getBestPhysicalDevice(const LvnVulkanBackends* vkBac
     vkBackends->vkEnumeratePhysicalDevices(vkBackends->instance, &physicalDeviceCount, physicalDevices);
 
     uint32_t requiredExtensionCount = LVN_ARRAY_LEN(s_LvnVkDeviceExtensions);
-    const char** requiredExtensions = lvn_calloc((requiredExtensionCount + 1) * sizeof(const char*));
+    const char** requiredExtensions = lvn_calloc((requiredExtensionCount + 1) * sizeof(const char*)); // reserve one extra index for surface extension support
     memcpy(requiredExtensions, s_LvnVkDeviceExtensions, requiredExtensionCount * sizeof(const char*));
 
     // get device extensions for surface present support
     if (surface)
         requiredExtensions[requiredExtensionCount++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
-    uint32_t bestScore = 0;
     VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
+    uint32_t bestScore = 0;
 
     for (uint32_t i = 0; i < physicalDeviceCount; i++)
     {
