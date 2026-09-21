@@ -4,13 +4,6 @@
 #include "levikno.h"
 
 
-typedef struct LvnWindowPlatformSupport
-{
-    bool win32;
-    bool wayland;
-    bool x11;
-} LvnWindowPlatformSupport;
-
 struct LvnLogger
 {
     const LvnContext*    ctx;                 /* pointer to context */

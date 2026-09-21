@@ -477,6 +477,11 @@ void lvnUnloadImage(LvnImage* image)
     image->channels = 0;
 }
 
+LvnWindowPlatformSupport lvnGetWindowPlatformSupport(void)
+{
+    return lvn_getWindowPlatform();
+}
+
 LvnResult lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo)
 {
     if (!ctx)

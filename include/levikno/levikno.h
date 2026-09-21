@@ -72,6 +72,13 @@ typedef struct LvnLoadImageInfo
     bool           flipVertically;
 } LvnLoadImageInfo;
 
+typedef struct LvnWindowPlatformSupport
+{
+    bool win32;
+    bool wayland;
+    bool x11;
+} LvnWindowPlatformSupport;
+
 typedef struct LvnLogMessage
 {
     const char*    msg;
@@ -125,55 +132,55 @@ typedef void* (*LvnMemReallocFn)(void*, size_t, void*);
 extern "C" {
 #endif
 
-LVN_API LvnResult               lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo);                                         // create the core context
-LVN_API void                    lvnDestroyContext(LvnContext* ctx);                                                                                 // destroy the core context
+LVN_API LvnResult                   lvnCreateContext(LvnContext** ctx, const LvnContextCreateInfo* createInfo);                                         // create the core context
+LVN_API void                        lvnDestroyContext(LvnContext* ctx);                                                                                 // destroy the core context
 
-LVN_API LvnResult               lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData);     // set memory allocation callback functions; all callback functions must be set, userData can be null
-LVN_API LvnFile                 lvnLoadFileSrc(const char* filepath);                      // load a source file from a file path
-LVN_API LvnFile                 lvnLoadFileBin(const char* filepath);                      // load a binary file from a file path
-LVN_API LvnFile                 lvnLoadFile(const char* filepath, LvnFileType type);       // load a file from a file path
-LVN_API void                    lvnUnloadFile(LvnFile* file);                              // unload a file from memory
+LVN_API LvnResult                   lvnSetMemAllocCallbacks(LvnMemAllocFn allocFn, LvnMemFreeFn freeFn, LvnMemReallocFn reallocFn, void* userData);     // set memory allocation callback functions; all callback functions must be set, userData can be null
+LVN_API LvnFile                     lvnLoadFileSrc(const char* filepath);                      // load a source file from a file path
+LVN_API LvnFile                     lvnLoadFileBin(const char* filepath);                      // load a binary file from a file path
+LVN_API LvnFile                     lvnLoadFile(const char* filepath, LvnFileType type);       // load a file from a file path
+LVN_API void                        lvnUnloadFile(LvnFile* file);                              // unload a file from memory
+LVN_API LvnImage                    lvnLoadImage(const LvnLoadImageInfo* loadInfo);
+LVN_API void                        lvnUnloadImage(LvnImage* image);
+LVN_API LvnWindowPlatformSupport    lvnGetWindowPlatformSupport(void);                     // get the window platforms supported on the device
 
-LVN_API LvnImage                lvnLoadImage(const LvnLoadImageInfo* loadInfo);
-LVN_API void                    lvnUnloadImage(LvnImage* image);
+LVN_API int                         lvnDateGetYear(void);                                      // get the year number (eg. 2025)
+LVN_API int                         lvnDateGetYear02d(void);                                   // get the last two digits of the year number (eg. 25)
+LVN_API int                         lvnDateGetMonth(void);                                     // get the month number (1...12)
+LVN_API int                         lvnDateGetDay(void);                                       // get the date number (1...31)
+LVN_API int                         lvnDateGetHour(void);                                      // get the hour of the current day in 24 hour format (0...24)
+LVN_API int                         lvnDateGetHour12(void);                                    // get the hour of the current day in 12 hour format (0...12)
+LVN_API int                         lvnDateGetMinute(void);                                    // get the minute of the current day (0...60)
+LVN_API int                         lvnDateGetSecond(void);                                    // get the second of the current dat (0...60)
+LVN_API size_t                      lvnDateGetSecondsSinceEpoch(void);                         // get the time in seconds since 00:00:00 UTC 1 January 1970
 
-LVN_API int                     lvnDateGetYear(void);                                      // get the year number (eg. 2025)
-LVN_API int                     lvnDateGetYear02d(void);                                   // get the last two digits of the year number (eg. 25)
-LVN_API int                     lvnDateGetMonth(void);                                     // get the month number (1...12)
-LVN_API int                     lvnDateGetDay(void);                                       // get the date number (1...31)
-LVN_API int                     lvnDateGetHour(void);                                      // get the hour of the current day in 24 hour format (0...24)
-LVN_API int                     lvnDateGetHour12(void);                                    // get the hour of the current day in 12 hour format (0...12)
-LVN_API int                     lvnDateGetMinute(void);                                    // get the minute of the current day (0...60)
-LVN_API int                     lvnDateGetSecond(void);                                    // get the second of the current dat (0...60)
-LVN_API size_t                  lvnDateGetSecondsSinceEpoch(void);                         // get the time in seconds since 00:00:00 UTC 1 January 1970
+LVN_API const char*                 lvnDateGetMonthName(void);                                 // get the current month name (eg. January, April)
+LVN_API const char*                 lvnDateGetMonthNameShort(void);                            // get the current month shortened name (eg. Jan, Apr)
+LVN_API const char*                 lvnDateGetDayName(void);                                   // get the current day name in the week (eg. Monday, Friday)
+LVN_API const char*                 lvnDateGetDayNameShort(void);                              // get the current day shortened name in the week (eg. Mon, Fri)
+LVN_API const char*                 lvnDateGetTimeMeridiem(void);                              // get the time meridiem of the current day (eg. AM, PM)
+LVN_API const char*                 lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
 
-LVN_API const char*             lvnDateGetMonthName(void);                                 // get the current month name (eg. January, April)
-LVN_API const char*             lvnDateGetMonthNameShort(void);                            // get the current month shortened name (eg. Jan, Apr)
-LVN_API const char*             lvnDateGetDayName(void);                                   // get the current day name in the week (eg. Monday, Friday)
-LVN_API const char*             lvnDateGetDayNameShort(void);                              // get the current day shortened name in the week (eg. Mon, Fri)
-LVN_API const char*             lvnDateGetTimeMeridiem(void);                              // get the time meridiem of the current day (eg. AM, PM)
-LVN_API const char*             lvnDateGetTimeMeridiemLower(void);                         // get the time meridiem of the current day in lower case (eg. am, pm)
+LVN_API LvnLogger*                  lvnCtxGetCoreLogger(LvnContext* ctx);                                         // get the core logger from the context
+LVN_API void                        lvnCtxEnableLogging(LvnContext* ctx, bool enable);                            // enable or disable logging for all loggers created from the context
+LVN_API void                        lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount); // add log patterns to the context
+LVN_API void                        lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
+LVN_API const char*                 lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
+LVN_API uint32_t                    lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...); // formats the log message with args into the log pattern set by the logger, returns the length of the formatted log message
+LVN_API void                        lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt);              // update the logger's log pattern format with the new format string
+LVN_API void                        lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg);   // log message with given log level
+LVN_API bool                        lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level);                 // check level witht the logger, returns true if larger or equal to the level of the logger, returns false otherwise
+LVN_API void                        lvnLogSetLevel(LvnLogger* logger, LvnLogLevel level);                         // sets the log level of logger, will only print messages with set log level and higher
+LVN_API void                        lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...);            // log message with level trace; ANSI code "\x1b[0;37m"
+LVN_API void                        lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...);            // log message with level debug; ANSI code "\x1b[0;34m"
+LVN_API void                        lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...);             // log message with level info;  ANSI code "\x1b[0;32m"
+LVN_API void                        lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...);             // log message with level warn;  ANSI code "\x1b[1;33m"
+LVN_API void                        lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...);            // log message with level error; ANSI code "\x1b[1;31m"
+LVN_API void                        lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...);            // log message with level fatal; ANSI code "\x1b[1;37;41m"
+LVN_API char*                       lvnLogCreateOneShotStrMsg(const char* str);
 
-LVN_API LvnLogger*              lvnCtxGetCoreLogger(LvnContext* ctx);                                         // get the core logger from the context
-LVN_API void                    lvnCtxEnableLogging(LvnContext* ctx, bool enable);                            // enable or disable logging for all loggers created from the context
-LVN_API void                    lvnCtxAddLogPatterns(LvnContext* ctx, const LvnLogPattern* pLogPatterns, uint32_t logPatternCount); // add log patterns to the context
-LVN_API void                    lvnLogEnableLogging(LvnLogger* logger, bool enable);                          // enable or disable logging for the logger
-LVN_API const char*             lvnLogGetANSIcodeColor(LvnLogLevel level);                                    // get the ANSI color code string of the log level
-LVN_API uint32_t                lvnLogFormatMessage(const LvnLogger* logger, char* dst, uint32_t length, LvnLogLevel level, const char* fmt, ...); // formats the log message with args into the log pattern set by the logger, returns the length of the formatted log message
-LVN_API void                    lvnLogParseLogPatternFormat(LvnLogger* logger, const char* fmt);              // update the logger's log pattern format with the new format string
-LVN_API void                    lvnLogMessage(const LvnLogger* logger, LvnLogLevel level, const char* msg);   // log message with given log level
-LVN_API bool                    lvnLogCheckLevel(const LvnLogger* logger, LvnLogLevel level);                 // check level witht the logger, returns true if larger or equal to the level of the logger, returns false otherwise
-LVN_API void                    lvnLogSetLevel(LvnLogger* logger, LvnLogLevel level);                         // sets the log level of logger, will only print messages with set log level and higher
-LVN_API void                    lvnLogMessageTrace(const LvnLogger* logger, const char* fmt, ...);            // log message with level trace; ANSI code "\x1b[0;37m"
-LVN_API void                    lvnLogMessageDebug(const LvnLogger* logger, const char* fmt, ...);            // log message with level debug; ANSI code "\x1b[0;34m"
-LVN_API void                    lvnLogMessageInfo(const LvnLogger* logger, const char* fmt, ...);             // log message with level info;  ANSI code "\x1b[0;32m"
-LVN_API void                    lvnLogMessageWarn(const LvnLogger* logger, const char* fmt, ...);             // log message with level warn;  ANSI code "\x1b[1;33m"
-LVN_API void                    lvnLogMessageError(const LvnLogger* logger, const char* fmt, ...);            // log message with level error; ANSI code "\x1b[1;31m"
-LVN_API void                    lvnLogMessageFatal(const LvnLogger* logger, const char* fmt, ...);            // log message with level fatal; ANSI code "\x1b[1;37;41m"
-LVN_API char*                   lvnLogCreateOneShotStrMsg(const char* str);
-
-LVN_API LvnResult               lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLoggerCreateInfo* createInfo);   // create logger object
-LVN_API void                    lvnDestroyLogger(LvnLogger* logger);                                                                 // destroy logger object
+LVN_API LvnResult                   lvnCreateLogger(const LvnContext* ctx, LvnLogger** logger, const LvnLoggerCreateInfo* createInfo);   // create logger object
+LVN_API void                        lvnDestroyLogger(LvnLogger* logger);                                                                 // destroy logger object
 
 
 #ifdef __cplusplus

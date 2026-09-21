@@ -14,11 +14,10 @@
 #if defined(LVN_PLATFORM_LINUX)
     #define GLFW_EXPOSE_NATIVE_WAYLAND
     #define GLFW_EXPOSE_NATIVE_X11
-    #include <GLFW/glfw3native.h>
 #elif defined(LVN_PLATFORM_WINDOWS)
     #define GLFW_EXPOSE_NATIVE_WIN32
-    #include <GLFW/glfw3native.h>
 #endif
+#include <GLFW/glfw3native.h>
 
 typedef struct WindowData
 {
