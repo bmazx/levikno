@@ -229,7 +229,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
 fail_cleanup:
     if (*graphicsctx)
     {
-        lvn_free(*graphicsctx);
+        lvnDestroyGraphicsContext(*graphicsctx);
         *graphicsctx = NULL;
     }
     return result;

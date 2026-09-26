@@ -171,9 +171,32 @@ target_include_directories(lvngraphics
         src/external/vulkan/include
 )
 
-
 # build definitions
 target_compile_definitions(lvngraphics PRIVATE
+    $<$<CONFIG:Debug>:LVN_CONFIG_DEBUG>
+    $<$<CONFIG:Release>:LVN_CONFIG_RELEASE>
+)
+
+
+# audio
+set(LVN_AUDIO_SRC
+    include/levikno/lvn_audio.h
+    src/lvn_audio.c
+    src/lvn_audio_internal.h
+)
+
+add_library(lvnaudio ${LVN_LIB_TYPE} ${LVN_AUDIO_SRC})
+
+target_include_directories(lvnaudio
+    PRIVATE
+        include/levikno
+        src/api
+        src
+        src/external
+)
+
+# build definitions
+target_compile_definitions(lvnaudio PRIVATE
     $<$<CONFIG:Debug>:LVN_CONFIG_DEBUG>
     $<$<CONFIG:Release>:LVN_CONFIG_RELEASE>
 )

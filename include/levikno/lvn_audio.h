@@ -5,22 +5,29 @@
 
 
 typedef struct LvnAudioContext LvnAudioContext;
+typedef struct LvnAudioContextFunctions LvnAudioContextFunctions;
+typedef struct LvnAudioContextCreateInfo LvnAudioContextCreateInfo;
 
 struct LvnContext;
 
 
-typedef struct LvnAudioContextCreateInfo
+struct LvnAudioContextFunctions
 {
 
-} LvnAudioContextCreateInfo;
+};
+
+struct LvnAudioContextCreateInfo
+{
+    LvnAudioContextFunctions*    actxFuncs;
+};
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LVN_API LvnResult lvnCreateAudioContext(struct LvnContext* ctx, LvnAudioContext** audioctx, const LvnAudioContextCreateInfo* createInfo);
-LVN_API void      lvnDestroyGraphicsContext(LvnAudioContext* audioctx);
+LVN_API LvnResult lvnCreateAudioContext(struct LvnContext* ctx, LvnAudioContext** audioctx, const LvnAudioContextCreateInfo* createInfo); // createa audio context
+LVN_API void      lvnDestroyAudioContext(LvnAudioContext* audioctx);                                                                      // destroy audio context
 
 #ifdef __cplusplus
 }
