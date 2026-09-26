@@ -32,6 +32,7 @@ endforeach()
 
 # graphics
 set(LVN_GRAPHICS_EXAMPLE_SRC
+    graphics/cube.cpp
     graphics/simpleTriangle.cpp
 )
 

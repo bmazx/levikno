@@ -1,6 +1,11 @@
 #include <levikno/levikno.h>
 #include <levikno/lvn_graphics.h>
 
+#define LVN_GMATH_WHITELIST_INCLUDES
+#define LVN_GMATH_INCLUDE_GRAPHICS_ESSENTIAL
+#define LVN_GMATH_IMPL
+#include <levikno/lvn_gmath.h>
+
 #include <vector>
 
 #include "utils.h"
@@ -8,11 +13,54 @@
 #define WIN_WIDTH (800)
 #define WIN_HEIGHT (600)
 
+typedef struct UniformData
+{
+    LvnMat4 matrix;
+} UniformData;
+
 static float s_Vertices[] = {
-    /*    pos (x,y,z)   |        color      */
-     0.0f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
-    -0.5f,  0.5f, 0.0f,    0.0f, 1.0f, 0.0f,
-     0.5f,  0.5f, 0.0f,    0.0f, 0.0f, 1.0f,
+    /*    pos (x,y,z)    |      UV   */
+     0.5f, -0.5f, -0.5f,    1.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,    1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,    0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,    0.0f, 1.0f,
+
+     0.5f,  0.5f, -0.5f,    1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,    0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,    1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,    0.0f, 1.0f
 };
 
 void resizeFramebuffers(const LvnGraphicsContext* graphicsctx,
@@ -185,8 +233,8 @@ int main(int argc, char** argv)
     }
 
     // create shaders
-    LvnFile vertfile = lvnLoadFileBin("res/shaders/simpleTriangleVert.spv");
-    LvnFile fragfile = lvnLoadFileBin("res/shaders/simpleTriangleFrag.spv");
+    LvnFile vertfile = lvnLoadFileBin("res/shaders/cubeVert.spv");
+    LvnFile fragfile = lvnLoadFileBin("res/shaders/cubeFrag.spv");
 
     LvnShaderCreateInfo vertShCreateInfo{};
     vertShCreateInfo.pCode = vertfile.data;
@@ -206,18 +254,56 @@ int main(int argc, char** argv)
     LvnShader* fragShader;
     lvnCreateShader(graphicsctx, &fragShader, &fragShCreateInfo);
 
+    // create descriptor layout
+    LvnDescriptorBinding descriptorBindings[] = {
+        { 0, Lvn_DescriptorType_UniformBuffer, Lvn_ShaderStageFlag_Vertex },
+        { 1, Lvn_DescriptorType_CombinedImageSampler, Lvn_ShaderStageFlag_Fragment },
+    };
+
+    LvnDescriptorLayoutCreateInfo descriptorLayoutCreateInfo{};
+    descriptorLayoutCreateInfo.descriptorBindingCount = LVN_ARRAY_LEN(descriptorBindings);
+    descriptorLayoutCreateInfo.pDescriptorBindings = descriptorBindings;
+
+    LvnDescriptorLayout* descriptorLayout;
+    lvnCreateDescriptorLayout(graphicsctx, &descriptorLayout, &descriptorLayoutCreateInfo);
+
+    // create descriptor pool
+    LvnDescriptorPoolSize descriptorPoolSizes[] = {
+        { Lvn_DescriptorType_UniformBuffer, 1, },
+        { Lvn_DescriptorType_CombinedImageSampler, 1, },
+    };
+
+    LvnDescriptorPoolCreateInfo descriptorPoolCreateInfo{};
+    descriptorPoolCreateInfo.poolSizeCount = LVN_ARRAY_LEN(descriptorPoolSizes);
+    descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes;
+    descriptorPoolCreateInfo.maxSets = 1;
+
+    LvnDescriptorPool* descriptorPool;
+    lvnCreateDescriptorPool(graphicsctx, &descriptorPool, &descriptorPoolCreateInfo);
+
+    // allocate descriptor set
+    LvnDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+    descriptorSetAllocInfo.descriptorPool = descriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount = 1;
+    descriptorSetAllocInfo.pDescriptorLayouts = descriptorLayout;
+
+    LvnDescriptorSet* descriptorSet;
+    lvnAllocateDescriptorSets(graphicsctx, &descriptorSet, &descriptorSetAllocInfo);
     // create pipeline
     LvnPipelineFixedFunctions pipelineFixedFuncs = lvnConfigPipelineFixedFunctionsInit();
+    pipelineFixedFuncs.depthstencil.depthTestEnable = true;
+    pipelineFixedFuncs.depthstencil.depthWriteEnable = true;
+    pipelineFixedFuncs.depthstencil.depthOpCompare = Lvn_CompareOp_LessOrEqual;
 
     LvnVertexAttribute attributes[] =
     {
         { 0, 0, Lvn_Format_R32G32B32_FLOAT, 0 },
-        { 0, 2, Lvn_Format_R32G32B32_FLOAT, (3 * sizeof(float)) },
+        { 0, 2, Lvn_Format_R32G32_FLOAT, (3 * sizeof(float)) },
     };
 
     LvnVertexBindingDescription vertexBindingDescription{};
     vertexBindingDescription.binding = 0;
-    vertexBindingDescription.stride = 6 * sizeof(float);
+    vertexBindingDescription.stride = 5 * sizeof(float);
 
     LvnShader* shaderStages[] = { vertShader, fragShader, };
 
@@ -227,8 +313,8 @@ int main(int argc, char** argv)
     pipelineCreateInfo.vertexAttributeCount = LVN_ARRAY_LEN(attributes);
     pipelineCreateInfo.pVertexBindingDescriptions = &vertexBindingDescription;
     pipelineCreateInfo.vertexBindingDescriptionCount = 1;
-    pipelineCreateInfo.pDescriptorLayouts = NULL;
-    pipelineCreateInfo.descriptorLayoutCount = 0;
+    pipelineCreateInfo.pDescriptorLayouts = &descriptorLayout;
+    pipelineCreateInfo.descriptorLayoutCount = 1;
     pipelineCreateInfo.pShaderStages = shaderStages;
     pipelineCreateInfo.stageCount = LVN_ARRAY_LEN(shaderStages);
     pipelineCreateInfo.renderPass = renderPass;
@@ -265,6 +351,69 @@ int main(int argc, char** argv)
     LvnBuffer* vertexBuffer;
     lvnCreateBuffer(graphicsctx, &vertexBuffer, &bufferCreateInfo);
 
+    // create uniform buffer
+    bufferCreateInfo.type = Lvn_BufferTypeFlag_Uniform;
+    bufferCreateInfo.usage = Lvn_BufferMemoryUsage_CpuToGpu;
+    bufferCreateInfo.size = sizeof(UniformData);
+    bufferCreateInfo.data = NULL;
+
+    LvnBuffer* uniformBuffer;
+    lvnCreateBuffer(graphicsctx, &uniformBuffer, &bufferCreateInfo);
+
+    // create sampler
+    LvnSamplerCreateInfo samplerCreateInfo{};
+    samplerCreateInfo.magFilter = Lvn_TextureFilter_Nearest;
+    samplerCreateInfo.minFilter = Lvn_TextureFilter_Nearest;
+    samplerCreateInfo.wrapR = Lvn_TextureMode_Repeat;
+    samplerCreateInfo.wrapS = Lvn_TextureMode_Repeat;
+    samplerCreateInfo.wrapT = Lvn_TextureMode_Repeat;
+
+    LvnSampler* sampler;
+    lvnCreateSampler(graphicsctx, &sampler, &samplerCreateInfo);
+
+    // load image
+    LvnLoadImageInfo loadImageInfo{};
+    loadImageInfo.filepath = "res/images/debug.png";
+    loadImageInfo.forceChannels = 4;
+    loadImageInfo.flipVertically = true;
+
+    LvnImage image = lvnLoadImage(&loadImageInfo);
+
+    // create texture
+    LvnTextureCreateInfo textureCreateInfo{};
+    textureCreateInfo.format = Lvn_Format_R8G8B8A8_SRGB;
+    textureCreateInfo.samples = Lvn_SampleCountFlag_1_Bit;
+    textureCreateInfo.image = image.data;
+    textureCreateInfo.width = image.width;
+    textureCreateInfo.height = image.height;
+
+    LvnTexture* texture;
+    lvnCreateTexture(graphicsctx, &texture, &textureCreateInfo);
+
+    LvnDescriptorBufferInfo descriptorBufferInfo{};
+    descriptorBufferInfo.buffer = uniformBuffer;
+    descriptorBufferInfo.range = sizeof(UniformData);
+    descriptorBufferInfo.offset = 0;
+
+    LvnDescriptorImageInfo descriptorImageInfo{};
+    descriptorImageInfo.texture = texture;
+    descriptorImageInfo.sampler = sampler;
+
+    LvnDescriptorSetWriteInfo descriptorWriteInfos[2];
+    descriptorWriteInfos[0].descriptorSet = descriptorSet,
+    descriptorWriteInfos[0].descriptorType = Lvn_DescriptorType_UniformBuffer,
+    descriptorWriteInfos[0].binding = 0,
+    descriptorWriteInfos[0].bufferInfo = &descriptorBufferInfo,
+    descriptorWriteInfos[1].descriptorSet = descriptorSet,
+    descriptorWriteInfos[1].descriptorType = Lvn_DescriptorType_CombinedImageSampler,
+    descriptorWriteInfos[1].binding = 1,
+    descriptorWriteInfos[1].imageInfo = &descriptorImageInfo,
+
+    lvnUpdateDescriptorSets(graphicsctx, LVN_ARRAY_LEN(descriptorWriteInfos), descriptorWriteInfos, 0, NULL);
+
+    UniformData uboData{};
+    lvn_mat4_identity(uboData.matrix);
+
     // render loop
     LvnResult result;
     uint32_t imageIndex = 0;
@@ -285,6 +434,32 @@ int main(int argc, char** argv)
 
         int width, height;
         glfwGetWindowSize(window, &width, &height);
+
+        float aspect = (float)width / height;
+
+        // uniform buffer
+        LvnMat4 proj;
+        lvn_perspectiveRHZO(proj, lvn_rad(60.0f), aspect, 0.01f, 1000.0f);
+        proj[1][1] *= -1;
+
+        LvnVec3 eye = {0.0f, 2.0f, 2.0f};
+        LvnVec3 center = {0.0f, 0.0f, 0.0f};
+        LvnVec3 up = {0.0f, 1.0f, 0.0f};
+        LvnMat4 view;
+        lvn_lookAtRH(view, eye, center, up);
+
+        LvnMat4 model;
+        lvn_mat4_identity(model);
+
+        LvnVec3 axis = {0.0f, 1.0f, 0.0f};
+        lvn_rotate(model, lvn_rad((float)currTime * 200), axis);
+
+        LvnMat4 camera;
+        LvnMat4* mpv[] = { &proj, &view, &model };
+        lvn_mat4_mulN(mpv, LVN_ARRAY_LEN(mpv), camera);
+
+        lvn_mat4_copy(camera, uboData.matrix);
+        lvnBufferUpdate(uniformBuffer, &uboData, sizeof(UniformData), 0);
 
         lvnFenceWait(fence, UINT64_MAX);
         lvnFenceReset(fence);
@@ -310,7 +485,7 @@ int main(int argc, char** argv)
 
         lvnBeginCommandBuffer(cmdBuff);
 
-        LvnClearColorValue clearValues[] = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+        LvnClearColorValue clearValues[] = {{{ 0.1f, 0.1f, 0.1f, 1.0f }}};
         LvnClearDepthStencilValue depthValue = { 1.0f, 0 };
 
         LvnRenderPassBeginInfo beginInfo{};
@@ -343,6 +518,8 @@ int main(int argc, char** argv)
 
         uint64_t offsets[] = {0};
         lvnCmdBindVertexBuffer(cmdBuff, 0, 1, &vertexBuffer, offsets);
+
+        lvnCmdBindDescriptorSets(cmdBuff, pipeline, 0, 1, &descriptorSet, 0, NULL);
 
         lvnCmdDraw(cmdBuff, LVN_ARRAY_LEN(s_Vertices), 1, 0, 0);
 
@@ -383,12 +560,18 @@ int main(int argc, char** argv)
     }
 
     // cleanup resources
+    lvnUnloadImage(&image);
     lvnDestroyCommandBuffer(cmdBuff);
+    lvnDestroyTexture(texture);
+    lvnDestroySampler(sampler);
+    lvnDestroyBuffer(uniformBuffer);
     lvnDestroyBuffer(vertexBuffer);
     lvnDestroyFence(fence);
     lvnDestroySemaphore(imageWaitSemaphore);
     for (uint32_t i = 0; i < renderFinishedSemaphores.size(); i++)
         lvnDestroySemaphore(renderFinishedSemaphores[i]);
+    lvnDestroyDescriptorPool(descriptorPool);
+    lvnDestroyDescriptorLayout(descriptorLayout);
     lvnDestroyPipeline(pipeline);
 
     for (uint32_t i = 0; i < imageCount; i++)

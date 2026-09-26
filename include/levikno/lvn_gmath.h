@@ -2364,11 +2364,14 @@ void lvn_perspectiveLHNO(LvnMat4 m, float fovy, float aspect, float near, float 
 
 void lvn_lookAtRH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up) {
     LvnVec3 f;
-    lvn_vec3_sub((LvnVec3){center[0],center[1],center[2]}, (LvnVec3){eye[0],eye[1],eye[2]}, f);
+    LvnVec3 c = {center[0],center[1],center[2]};
+    LvnVec3 e = {eye[0],eye[1],eye[2]};
+    lvn_vec3_sub(c, e, f);
     lvn_normalize3(f);
 
     LvnVec3 s;
-    lvn_vec3_f_cross(f, (LvnVec3){up[0],up[1],up[2]}, s);
+    LvnVec3 p = {up[0],up[1],up[2]};
+    lvn_vec3_f_cross(f, p, s);
     lvn_normalize3(s);
 
     LvnVec3 u;
@@ -2384,18 +2387,21 @@ void lvn_lookAtRH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnV
     m[0][2] = -f[0];
     m[1][2] = -f[1];
     m[2][2] = -f[2];
-    m[3][0] = -lvn_vec3_dot(s, (LvnVec3){eye[0],eye[1],eye[2]});
-    m[3][1] = -lvn_vec3_dot(u, (LvnVec3){eye[0],eye[1],eye[2]});
-    m[3][2] =  lvn_vec3_dot(f, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][0] = -lvn_vec3_dot(s, e);
+    m[3][1] = -lvn_vec3_dot(u, e);
+    m[3][2] =  lvn_vec3_dot(f, e);
 }
 
 void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnVec3 up) {
     LvnVec3 f;
-    lvn_vec3_sub((LvnVec3){center[0],center[1],center[2]}, (LvnVec3){eye[0],eye[1],eye[2]}, f);
+    LvnVec3 c = {center[0],center[1],center[2]};
+    LvnVec3 e = {eye[0],eye[1],eye[2]};
+    lvn_vec3_sub(c, e, f);
     lvn_normalize3(f);
 
     LvnVec3 s;
-    lvn_vec3_f_cross((LvnVec3){up[0],up[1],up[2]}, f, s);
+    LvnVec3 p = {up[0],up[1],up[2]};
+    lvn_vec3_f_cross(p, f, s);
     lvn_normalize3(s);
 
     LvnVec3 u;
@@ -2411,9 +2417,9 @@ void lvn_lookAtLH(LvnMat4 m, const LvnVec3 eye, const LvnVec3 center, const LvnV
     m[0][2] = -f[0];
     m[1][2] = -f[1];
     m[2][2] = -f[2];
-    m[3][0] = -lvn_vec3_dot(s, (LvnVec3){eye[0],eye[1],eye[2]});
-    m[3][1] = -lvn_vec3_dot(u, (LvnVec3){eye[0],eye[1],eye[2]});
-    m[3][2] = -lvn_vec3_dot(f, (LvnVec3){eye[0],eye[1],eye[2]});
+    m[3][0] = -lvn_vec3_dot(s, e);
+    m[3][1] = -lvn_vec3_dot(u, e);
+    m[3][2] = -lvn_vec3_dot(f, e);
 }
 
 #endif // LVN_GMATH_INCLUDE_COMMON_MATHFN
