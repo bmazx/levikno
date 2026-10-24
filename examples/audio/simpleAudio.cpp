@@ -5,7 +5,6 @@ int main(int argc, char** argv)
 {
     LvnContextCreateInfo ctxCreateInfo{};
     ctxCreateInfo.logging.enableLogging = true;
-    ctxCreateInfo.appName = "simpleAudio";
 
     LvnContext* ctx;
     lvnCreateContext(&ctx, &ctxCreateInfo);
@@ -16,7 +15,7 @@ int main(int argc, char** argv)
     lvnCreateAudioContext(ctx, &audioctx, &actxCreateInfo);
 
     LvnSoundBufferCreateInfo soundBufferCreateInfo{};
-    soundBufferCreateInfo.filepath = "/home/bma/Documents/dev/levikno/examples/res/audio/bird_chirps.mp3";
+    soundBufferCreateInfo.filepath = "res/audio/bird_chirps.mp3";
 
     LvnSoundBuffer* soundBuffer;
     lvnCreateSoundBuffer(audioctx, &soundBuffer, &soundBufferCreateInfo);
@@ -28,7 +27,12 @@ int main(int argc, char** argv)
     LvnSound* sound;
     lvnCreateSound(audioctx, &sound, &soundCreateInfo);
 
+    lvnSoundStart(sound);
 
+    while (lvnSoundIsPlaying(sound))
+    {
+        // wait for sound to finish
+    }
 
     lvnDestroySound(sound);
     lvnDestroySoundBuffer(soundBuffer);

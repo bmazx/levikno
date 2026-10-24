@@ -14,19 +14,19 @@ typedef enum LvnSoundFlags
 } LvnSoundBufferFlags;
 typedef LvnFlags LvnSoundFlagBits;
 
-typedef enum LvnSoundPositioningFlags
+typedef enum LvnSoundPositioning
 {
     Lvn_SoundPositioning_Absolute,
     Lvn_SoundPositioning_Relative,
-} LvnSoundPositioningFlags;
+} LvnSoundPositioning;
 
-typedef enum LvnSoundAttenuationFlags
+typedef enum LvnSoundAttenuation
 {
-    Lvn_AttenuationFlag_None,
-    Lvn_AttenuationFlag_Inverse,
-    Lvn_AttenuationFlag_Linear,
-    Lvn_AttenuationFlag_Exponential,
-} LvnSoundAttenuationFlags;
+    Lvn_Attenuation_None,
+    Lvn_Attenuation_Inverse,
+    Lvn_Attenuation_Linear,
+    Lvn_Attenuation_Exponential,
+} LvnSoundAttenuation;
 
 
 typedef struct LvnAudioContext LvnAudioContext;
@@ -62,12 +62,12 @@ typedef void                     (*PFN_lvnDestroySound)(LvnSound* sound);
 typedef void                     (*PFN_lvnSoundSetVolume)(LvnSound* sound, float volume);
 typedef void                     (*PFN_lvnSoundSetPan)(LvnSound* sound, float pan);
 typedef void                     (*PFN_lvnSoundSetPitch)(LvnSound* sound, float pitch);
-typedef void                     (*PFN_lvnSoundSetPositioning)(LvnSound* sound, LvnSoundPositioningFlags positioning);
+typedef void                     (*PFN_lvnSoundSetPositioning)(LvnSound* sound, LvnSoundPositioning positioning);
 typedef void                     (*PFN_lvnSoundSetPosition)(LvnSound* sound, float x, float y, float z);
 typedef void                     (*PFN_lvnSoundSetDirection)(LvnSound* sound, float x, float y, float z);
 typedef void                     (*PFN_lvnSoundSetVelocity)(LvnSound* sound, float x, float y, float z);
 typedef void                     (*PFN_lvnSoundSetCone)(LvnSound* sound, float innerAngleRad, float outerAngleRad, float outerGain);
-typedef void                     (*PFN_lvnSoundSetAttenuation)(LvnSound* sound, LvnSoundAttenuationFlags attenuation);
+typedef void                     (*PFN_lvnSoundSetAttenuation)(LvnSound* sound, LvnSoundAttenuation attenuation);
 typedef void                     (*PFN_lvnSoundSetRolloff)(LvnSound* sound, float rolloff);
 typedef void                     (*PFN_lvnSoundSetMinGain)(LvnSound* sound, float minGain);
 typedef void                     (*PFN_lvnSoundSetMaxGain)(LvnSound* sound, float maxGain);
@@ -87,12 +87,12 @@ typedef void                     (*PFN_lvnSoundSeekToPcmFrame)(LvnSound* sound, 
 typedef float                    (*PFN_lvnSoundGetVolume)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetPan)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetPitch)(const LvnSound* sound);
-typedef LvnSoundPositioningFlags (*PFN_lvnSoundGetPositioning)(const LvnSound* sound);
+typedef LvnSoundPositioning      (*PFN_lvnSoundGetPositioning)(const LvnSound* sound);
 typedef void                     (*PFN_lvnSoundGetPosition)(const LvnSound* sound, float* x, float* y, float* z);
 typedef void                     (*PFN_lvnSoundGetDirection)(const LvnSound* sound, float* x, float* y, float* z);
 typedef void                     (*PFN_lvnSoundGetVelocity)(const LvnSound* sound, float* x, float* y, float* z);
 typedef void                     (*PFN_lvnSoundGetCone)(const LvnSound* sound, float* innerAngleRad, float* outerAngleRad, float* outerGain);
-typedef LvnSoundAttenuationFlags (*PFN_lvnSoundGetAttenuation)(const LvnSound* sound);
+typedef LvnSoundAttenuation      (*PFN_lvnSoundGetAttenuation)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetRolloff)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetMinGain)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetMaxGain)(const LvnSound* sound);
@@ -230,12 +230,12 @@ LVN_API void                        lvnDestroySound(LvnSound* sound);
 LVN_API void                        lvnSoundSetVolume(LvnSound* sound, float volume);
 LVN_API void                        lvnSoundSetPan(LvnSound* sound, float pan);
 LVN_API void                        lvnSoundSetPitch(LvnSound* sound, float pitch);
-LVN_API void                        lvnSoundSetPositioning(LvnSound* sound, LvnSoundPositioningFlags positioning);
+LVN_API void                        lvnSoundSetPositioning(LvnSound* sound, LvnSoundPositioning positioning);
 LVN_API void                        lvnSoundSetPosition(LvnSound* sound, float x, float y, float z);
 LVN_API void                        lvnSoundSetDirection(LvnSound* sound, float x, float y, float z);
 LVN_API void                        lvnSoundSetVelocity(LvnSound* sound, float x, float y, float z);
 LVN_API void                        lvnSoundSetCone(LvnSound* sound, float innerAngleRad, float outerAngleRad, float outerGain);
-LVN_API void                        lvnSoundSetAttenuation(LvnSound* sound, LvnSoundAttenuationFlags attenuation);
+LVN_API void                        lvnSoundSetAttenuation(LvnSound* sound, LvnSoundAttenuation attenuation);
 LVN_API void                        lvnSoundSetRolloff(LvnSound* sound, float rolloff);
 LVN_API void                        lvnSoundSetMinGain(LvnSound* sound, float minGain);
 LVN_API void                        lvnSoundSetMaxGain(LvnSound* sound, float maxGain);
@@ -256,12 +256,12 @@ LVN_API void                        lvnSoundSeekToPcmFrame(LvnSound* sound, uint
 LVN_API float                       lvnSoundGetVolume(const LvnSound* sound);
 LVN_API float                       lvnSoundGetPan(const LvnSound* sound);
 LVN_API float                       lvnSoundGetPitch(const LvnSound* sound);
-LVN_API LvnSoundPositioningFlags    lvnSoundGetPositioning(const LvnSound* sound);
+LVN_API LvnSoundPositioning         lvnSoundGetPositioning(const LvnSound* sound);
 LVN_API void                        lvnSoundGetPosition(const LvnSound* sound, float* x, float* y, float* z);
 LVN_API void                        lvnSoundGetDirection(const LvnSound* sound, float* x, float* y, float* z);
 LVN_API void                        lvnSoundGetVelocity(const LvnSound* sound, float* x, float* y, float* z);
 LVN_API void                        lvnSoundGetCone(const LvnSound* sound, float* innerAngleRad, float* outerAngleRad, float* outerGain);
-LVN_API LvnSoundAttenuationFlags    lvnSoundGetAttenuation(const LvnSound* sound);
+LVN_API LvnSoundAttenuation         lvnSoundGetAttenuation(const LvnSound* sound);
 LVN_API float                       lvnSoundGetRolloff(const LvnSound* sound);
 LVN_API float                       lvnSoundGetMinGain(const LvnSound* sound);
 LVN_API float                       lvnSoundGetMaxGain(const LvnSound* sound);
