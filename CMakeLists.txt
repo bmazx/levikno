@@ -17,6 +17,7 @@ option(LVN_BUILD_WIN32 "Build support for win32 api" ON)
 option(LVN_BUILD_OPENGL "Build support for opengl" ON)
 option(LVN_BUILD_VULKAN "Build support for vulkan" ON)
 option(LVN_BUILD_GLSLANG "Build support for glslang" ON)
+option(LVN_BUILD_MINIAUDIO "Build support for miniaudio" ON)
 
 set(LVN_LIB_TYPE "${LVN_LIB_TYPE}" CACHE STRING
     "Library type override for levikno (SHARED, STATIC, OBJECT, or empty to follow BUILD_SHARED_LIBS)")
@@ -96,7 +97,6 @@ set(LVN_GRAPHICS_SRC
     src/lvn_graphics.c
     src/lvn_graphics_internal.h
     src/lvn_platform.c
-    src/external/stb_image.c
     src/external/stb_image.h
 )
 
@@ -179,6 +179,11 @@ target_compile_definitions(lvngraphics PRIVATE
 
 
 # audio
+if(LVN_BUILD_MINIAUDIO)
+    add_definitions(-DLVN_INCLUDE_MINIAUDIO)
+    message("including miniaudio support")
+endif()
+
 set(LVN_AUDIO_SRC
     include/levikno/lvn_audio.h
     src/lvn_audio.c
