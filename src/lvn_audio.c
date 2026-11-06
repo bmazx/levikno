@@ -27,6 +27,7 @@ static ma_uint32               lvn_getMaSoundFlags(LvnSoundFlagBits flags);
 static ma_positioning          lvn_getMaSoundPositioning(LvnSoundPositioning positioning);
 static LvnSoundPositioning     lvn_getLvnSoundPositioning(ma_positioning positioning);
 static ma_attenuation_model    lvn_getMaAttenuation(LvnSoundAttenuation attenuation);
+static LvnSoundAttenuation     lvn_getLvnSoundAttenuation(ma_attenuation_model attenuation);
 
 static ma_uint32 lvn_getMaSoundFlags(LvnSoundFlagBits flags)
 {
@@ -74,6 +75,20 @@ static ma_attenuation_model lvn_getMaAttenuation(LvnSoundAttenuation attenuation
 
     LVN_ASSERT(false, "invalid sound attenuation enum");
     return ma_attenuation_model_none;
+}
+
+static LvnSoundAttenuation lvn_getLvnSoundAttenuation(ma_attenuation_model attenuation)
+{
+    switch (attenuation)
+    {
+        case ma_attenuation_model_none:        { return Lvn_Attenuation_None; }
+        case ma_attenuation_model_inverse:     { return Lvn_Attenuation_Inverse; }
+        case ma_attenuation_model_linear:      { return Lvn_Attenuation_Linear; }
+        case ma_attenuation_model_exponential: { return Lvn_Attenuation_Exponential; }
+    }
+
+    LVN_ASSERT(false, "invalid sound attenuation enum");
+    return Lvn_Attenuation_None;
 }
 
 static LvnResult                   lvn_ImplMaInitEngine(LvnAudioContext* audioctx);
@@ -690,62 +705,95 @@ static LvnSoundPositioning lvn_ImplMaSoundGetPositioning(const LvnSound* sound)
 
 static void lvn_ImplMaSoundGetPosition(const LvnSound* sound, float* x, float* y, float* z)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    ma_vec3f pos = ma_sound_get_position(&maSound->sound);
+    if (x) { *x = pos.x; }
+    if (y) { *y = pos.y; }
+    if (z) { *z = pos.z; }
 }
 
 static void lvn_ImplMaSoundGetDirection(const LvnSound* sound, float* x, float* y, float* z)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    ma_vec3f dir = ma_sound_get_direction(&maSound->sound);
+    if (x) { *x = dir.x; }
+    if (y) { *y = dir.y; }
+    if (z) { *z = dir.z; }
 }
 
 static void lvn_ImplMaSoundGetVelocity(const LvnSound* sound, float* x, float* y, float* z)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    ma_vec3f vel = ma_sound_get_velocity(&maSound->sound);
+    if (x) { *x = vel.x; }
+    if (y) { *y = vel.y; }
+    if (z) { *z = vel.z; }
 }
 
 static void lvn_ImplMaSoundGetCone(const LvnSound* sound, float* innerAngleRad, float* outerAngleRad, float* outerGain)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    ma_sound_get_cone(&maSound->sound, innerAngleRad, outerAngleRad, outerGain);
 }
 
 static LvnSoundAttenuation lvn_ImplMaSoundGetAttenuation(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return lvn_getLvnSoundAttenuation(ma_sound_get_attenuation_model(&maSound->sound));
 }
 
 static float lvn_ImplMaSoundGetRolloff(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_rolloff(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetMinGain(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_min_gain(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetMaxGain(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_max_gain(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetMinDistance(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_min_distance(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetMaxDistance(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_max_distance(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetDopplerFactor(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_doppler_factor(&maSound->sound);
 }
 
 static bool lvn_ImplMaSoundIsLooping(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_is_looping(&maSound->sound);
 }
 
 static bool lvn_ImplMaSoundIsPlaying(const LvnSound* sound)
@@ -757,22 +805,32 @@ static bool lvn_ImplMaSoundIsPlaying(const LvnSound* sound)
 
 static bool lvn_ImplMaSoundAtEnd(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_at_end(&maSound->sound);
 }
 
 static uint64_t lvn_ImplMaSoundGetTimeMilliseconds(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_time_in_milliseconds(&maSound->sound);
 }
 
 static uint64_t lvn_ImplMaSoundGetTimePcmFrames(const LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    return ma_sound_get_time_in_pcm_frames(&maSound->sound);
 }
 
 static float lvn_ImplMaSoundGetLengthSeconds(LvnSound* sound)
 {
-
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    float length = 0.0f;
+    ma_sound_get_length_in_seconds(&maSound->sound, &length);
+    return length;
 }
 
 #endif
@@ -875,7 +933,17 @@ LvnResult lvnCreateAudioContext(struct LvnContext* ctx, LvnAudioContext** audioc
     actxPtr->ctx = ctx;
     actxPtr->coreLogger = &ctx->coreLogger;
 
-    LvnResult result = lvn_ImplMaInitEngine(actxPtr);
+    LvnResult result;
+
+    if (createInfo->actxFuncs)
+    {
+        result = lvn_setCustomAudioContextPfn(actxPtr, createInfo);
+    }
+    else
+    {
+        result = lvn_ImplMaInitEngine(actxPtr);
+    }
+
     if (result != Lvn_Result_Success)
     {
         errResult = result;
