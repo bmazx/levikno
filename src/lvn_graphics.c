@@ -237,7 +237,7 @@ fail_cleanup:
 
 void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
 {
-    LVN_ASSERT(graphicsctx, "graphicsctx cannot be null");
+    if (!graphicsctx) { return; }
 
     switch (graphicsctx->graphicsapi)
     {
@@ -319,7 +319,7 @@ fail_cleanup:
 
 void lvnDestroySurface(LvnSurface* surface)
 {
-    LVN_ASSERT(surface, "surface cannot be null");
+    if (!surface) { return; }
     const LvnGraphicsContext* graphicsctx = surface->graphicsctx;
     graphicsctx->implDestroySurface(surface);
     lvn_free(surface);
@@ -349,7 +349,7 @@ LvnResult lvnCreateSwapchain(const LvnGraphicsContext* graphicsctx, LvnSwapchain
 
 void lvnDestroySwapchain(LvnSwapchain* swapchain)
 {
-    LVN_ASSERT(swapchain, "swapchain cannot be null");
+    if (!swapchain) { return; }
     const LvnGraphicsContext* graphicsctx = swapchain->graphicsctx;
     graphicsctx->implDestroySwapchain(swapchain);
     lvn_free(swapchain);
@@ -451,7 +451,7 @@ fail_cleanup:
 
 void lvnDestroyRenderPass(LvnRenderPass* renderpass)
 {
-    LVN_ASSERT(renderpass, "renderpass cannot be null");
+    if (!renderpass) { return; }
     const LvnGraphicsContext* graphicsctx = renderpass->graphicsctx;
     graphicsctx->implDestroyRenderPass(renderpass);
     lvn_free(renderpass);
@@ -500,7 +500,7 @@ fail_cleanup:
 
 void lvnDestroyFramebuffer(LvnFramebuffer* framebuffer)
 {
-    LVN_ASSERT(framebuffer, "framebuffer cannot be null");
+    if (!framebuffer) { return; }
     const LvnGraphicsContext* graphicsctx = framebuffer->graphicsctx;
     graphicsctx->implDestroyFramebuffer(framebuffer);
     lvn_free(framebuffer);
@@ -549,7 +549,7 @@ fail_cleanup:
 
 void lvnDestroyShader(LvnShader* shader)
 {
-    LVN_ASSERT(shader, "shader cannot be null");
+    if (!shader) { return; }
     const LvnGraphicsContext* graphicsctx = shader->graphicsctx;
     graphicsctx->implDestroyShader(shader);
     lvn_free(shader);
@@ -598,7 +598,7 @@ fail_cleanup:
 
 void lvnDestroyDescriptorLayout(LvnDescriptorLayout* descriptorLayout)
 {
-    LVN_ASSERT(descriptorLayout, "descriptorLayout cannot be null");
+    if (!descriptorLayout) { return; }
     const LvnGraphicsContext* graphicsctx = descriptorLayout->graphicsctx;
     graphicsctx->implDestroyDescriptorLayout(descriptorLayout);
     lvn_free(descriptorLayout);
@@ -665,7 +665,7 @@ fail_cleanup:
 
 void lvnDestroyDescriptorPool(LvnDescriptorPool* descriptorPool)
 {
-    LVN_ASSERT(descriptorPool, "descriptorPool cannot be null");
+    if (!descriptorPool) { return; }
     const LvnGraphicsContext* graphicsctx = descriptorPool->graphicsctx;
     graphicsctx->implDestroyDescriptorPool(descriptorPool);
     lvn_memPoolDestroy(&descriptorPool->setPool);
@@ -715,7 +715,7 @@ fail_cleanup:
 
 void lvnDestroyPipeline(LvnPipeline* pipeline)
 {
-    LVN_ASSERT(pipeline, "pipeline cannot be null");
+    if (!pipeline) { return; }
     const LvnGraphicsContext* graphicsctx = pipeline->graphicsctx;
     graphicsctx->implDestroyPipeline(pipeline);
     lvn_free(pipeline);
@@ -764,7 +764,7 @@ fail_cleanup:
 
 void lvnDestroyFence(LvnFence* fence)
 {
-    LVN_ASSERT(fence, "fence cannot be null");
+    if (!fence) { return; }
     const LvnGraphicsContext* graphicsctx = fence->graphicsctx;
     graphicsctx->implDestroyFence(fence);
     lvn_free(fence);
@@ -813,7 +813,7 @@ fail_cleanup:
 
 void lvnDestroySemaphore(LvnSemaphore* semaphore)
 {
-    LVN_ASSERT(semaphore, "semaphore cannot be null");
+    if (!semaphore) { return; }
     const LvnGraphicsContext* graphicsctx = semaphore->graphicsctx;
     graphicsctx->implDestroySemaphore(semaphore);
     lvn_free(semaphore);
@@ -865,7 +865,7 @@ fail_cleanup:
 
 void lvnDestroyBuffer(LvnBuffer* buffer)
 {
-    LVN_ASSERT(buffer, "buffer cannot be null");
+    if (!buffer) { return; }
     const LvnGraphicsContext* graphicsctx = buffer->graphicsctx;
     graphicsctx->implDestroyBuffer(buffer);
     lvn_free(buffer);
@@ -914,7 +914,7 @@ fail_cleanup:
 
 void lvnDestroySampler(LvnSampler* sampler)
 {
-    LVN_ASSERT(sampler, "sampler cannot be null");
+    if (!sampler) { return; }
     const LvnGraphicsContext* graphicsctx = sampler->graphicsctx;
     graphicsctx->implDestroySampler(sampler);
     lvn_free(sampler);
@@ -961,7 +961,7 @@ fail_cleanup:
 
 void lvnDestroyTexture(LvnTexture* texture)
 {
-    LVN_ASSERT(texture, "texture cannot be null");
+    if (!texture) { return; }
     const LvnGraphicsContext* graphicsctx = texture->graphicsctx;
     graphicsctx->implDestroyTexture(texture);
     lvn_free(texture);
@@ -1028,7 +1028,7 @@ fail_cleanup:
 
 void lvnDestroyCommandBuffer(LvnCommandBuffer* commandBuffer)
 {
-    LVN_ASSERT(commandBuffer, "commandBuffer cannot be null");
+    if (!commandBuffer) { return; }
     const LvnGraphicsContext* graphicsctx = commandBuffer->graphicsctx;
     graphicsctx->implDestroyCommandBuffer(commandBuffer);
     lvn_memArenaDestroy(&commandBuffer->frameArena);
