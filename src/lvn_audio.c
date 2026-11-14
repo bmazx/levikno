@@ -45,6 +45,7 @@ static ma_positioning lvn_getMaSoundPositioning(LvnSoundPositioning positioning)
     {
         case Lvn_SoundPositioning_Absolute: { return ma_positioning_absolute; }
         case Lvn_SoundPositioning_Relative: { return ma_positioning_relative; }
+        case LVN_SOUNDPOSITIONING_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid sound positioning enum");
@@ -71,6 +72,7 @@ static ma_attenuation_model lvn_getMaAttenuation(LvnSoundAttenuation attenuation
         case Lvn_Attenuation_Inverse:     { return ma_attenuation_model_inverse; }
         case Lvn_Attenuation_Linear:      { return ma_attenuation_model_linear; }
         case Lvn_Attenuation_Exponential: { return ma_attenuation_model_exponential; }
+        case LVN_ATTENUATION_ENUM_MAX:    { break; }
     }
 
     LVN_ASSERT(false, "invalid sound attenuation enum");

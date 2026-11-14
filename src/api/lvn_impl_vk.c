@@ -568,6 +568,7 @@ static VkShaderStageFlagBits lvn_getVkShaderStageEnum(LvnShaderStageFlagBits sta
     {
         case Lvn_ShaderStageFlag_Vertex: { return VK_SHADER_STAGE_VERTEX_BIT; }
         case Lvn_ShaderStageFlag_Fragment: { return VK_SHADER_STAGE_FRAGMENT_BIT; }
+        case LVN_SHADERSTAGEFLAG_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid shader stage enum");
@@ -597,6 +598,7 @@ static VkDescriptorType lvn_getVkDescriptorTypeEnum(LvnDescriptorType type)
         case Lvn_DescriptorType_StorageBuffer: { return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; }
         case Lvn_DescriptorType_UniformBufferDynamic: { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; }
         case Lvn_DescriptorType_StorageBufferDynamic: { return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; }
+        case LVN_DESCRIPTORTYPE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid descriptor type enum");
@@ -612,6 +614,7 @@ static VkPrimitiveTopology lvn_getVkTopologyTypeEnum(LvnTopologyType topologyTyp
         case Lvn_TopologyType_LineStrip: { return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP; }
         case Lvn_TopologyType_Triangle: { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; }
         case Lvn_TopologyType_TriangleStrip: { return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP; }
+        case LVN_TOPOLOGYTYPE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid topology type enum");
@@ -625,6 +628,7 @@ static VkPolygonMode lvn_getVkPolygonModeEnum(LvnPolygonMode polygonMode)
         case Lvn_PolygonMode_Fill: { return VK_POLYGON_MODE_FILL; }
         case Lvn_PolygonMode_Line: { return VK_POLYGON_MODE_LINE; }
         case Lvn_PolygonMode_Point: { return VK_POLYGON_MODE_POINT; }
+        case LVN_POLYGONMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid polygon mode enum");
@@ -639,6 +643,7 @@ static VkCullModeFlags lvn_getVkCullModeFlagEnum(LvnCullFaceMode cullFaceMode)
         case Lvn_CullFaceMode_Front: { return VK_CULL_MODE_FRONT_BIT; }
         case Lvn_CullFaceMode_Back: { return VK_CULL_MODE_BACK_BIT; }
         case Lvn_CullFaceMode_Both: { return VK_CULL_MODE_FRONT_AND_BACK; }
+        case LVN_CULLFACEMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid cull face mode enum");
@@ -651,6 +656,7 @@ static VkFrontFace lvn_getVkCullFrontFaceEnum(LvnCullFrontFace cullFrontFace)
     {
         case Lvn_CullFrontFace_Clockwise: { return VK_FRONT_FACE_CLOCKWISE; }
         case Lvn_CullFrontFace_CounterClockwise: { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+        case LVN_CULLFRONTFACE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid cull front face enum");
@@ -668,6 +674,7 @@ static VkSampleCountFlagBits lvn_getVkSampleCountFlagEnum(LvnSampleCountFlagBits
         case Lvn_SampleCountFlag_16_Bit: { return VK_SAMPLE_COUNT_16_BIT; }
         case Lvn_SampleCountFlag_32_Bit: { return VK_SAMPLE_COUNT_32_BIT; }
         case Lvn_SampleCountFlag_64_Bit: { return VK_SAMPLE_COUNT_64_BIT; }
+        case LVN_SAMPLECOUNTFLAG_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid sampler count enum");
@@ -709,6 +716,7 @@ static VkBlendFactor lvn_getVkBlendFactorEnum(LvnColorBlendFactor blendFactor)
         case Lvn_ColorBlendFactor_OneMinusSrc1Color:     { return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR; }
         case Lvn_ColorBlendFactor_Src1_Alpha:            { return VK_BLEND_FACTOR_SRC1_ALPHA; }
         case Lvn_ColorBlendFactor_OneMinusSrc1Alpha:     { return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA; }
+        case LVN_COLORBLENDFACTOR_ENUM_MAX:              { break; }
     }
 
     LVN_ASSERT(false, "invalid blend factor enum");
@@ -724,6 +732,7 @@ static VkBlendOp lvn_getVkBlendOperationEnum(LvnColorBlendOperation blendOp)
         case Lvn_ColorBlendOp_ReverseSubtract: { return VK_BLEND_OP_REVERSE_SUBTRACT; }
         case Lvn_ColorBlendOp_Min: { return VK_BLEND_OP_MIN; }
         case Lvn_ColorBlendOp_Max: { return VK_BLEND_OP_MAX; }
+        case LVN_COLORBLENDOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid blend operation enum");
@@ -742,6 +751,7 @@ static VkCompareOp lvn_getVkCompareOpEnum(LvnCompareOperation compare)
         case Lvn_CompareOp_NotEqual: { return VK_COMPARE_OP_NOT_EQUAL; }
         case Lvn_CompareOp_GreaterOrEqual: { return VK_COMPARE_OP_GREATER_OR_EQUAL; }
         case Lvn_CompareOp_Always: { return VK_COMPARE_OP_ALWAYS; }
+        case LVN_COMPAREOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid compare enum");
@@ -760,6 +770,7 @@ static VkStencilOp lvn_getVkStencilOpEnum(LvnStencilOperation stencilOp)
         case Lvn_StencilOp_Invert: { return VK_STENCIL_OP_INVERT; }
         case Lvn_StencilOp_IncrementAndWrap: { return VK_STENCIL_OP_INCREMENT_AND_WRAP; }
         case Lvn_StencilOp_DecrementAndWrap: { return VK_STENCIL_OP_DECREMENT_AND_WRAP; }
+        case LVN_STENCILOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid stencil operation enum");
@@ -786,6 +797,7 @@ static VkLogicOp lvn_getVkLogicOpEnum(LvnLogicOperation logicOp)
         case Lvn_LogicOp_OrInverted: { return VK_LOGIC_OP_OR_INVERTED; }
         case Lvn_LogicOp_Nand: { return VK_LOGIC_OP_NAND; }
         case Lvn_LogicOp_Set: { return VK_LOGIC_OP_SET; }
+        case LVN_LOGICOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid logic operation enum");
@@ -799,6 +811,7 @@ static VkAttachmentLoadOp lvn_getVkAttackmentLoadOpEnum(LvnAttachmentLoadOp load
         case Lvn_AttachmentLoadOp_Load: { return VK_ATTACHMENT_LOAD_OP_LOAD; }
         case Lvn_AttachmentLoadOp_Clear: { return VK_ATTACHMENT_LOAD_OP_CLEAR; }
         case Lvn_AttachmentLoadOp_DontCare: { return VK_ATTACHMENT_LOAD_OP_DONT_CARE; }
+        case LVN_ATTACHMENTLOADOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid attachment load operator enum");
@@ -811,6 +824,7 @@ static VkAttachmentStoreOp lvn_getVkAttackmentStoreOpEnum(LvnAttachmentStoreOp s
     {
         case Lvn_AttachmentStoreOp_Store: { return VK_ATTACHMENT_STORE_OP_STORE; }
         case Lvn_AttachmentStoreOp_DontCare: { return VK_ATTACHMENT_STORE_OP_DONT_CARE; }
+        case LVN_ATTACHMENTSTOREOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid attachment store operator enum");
@@ -824,6 +838,7 @@ static VkImageLayout lvn_getVkImageLayoutEnumUsage(LvnAttachmentUsage usage)
         case Lvn_AttachmentUsage_ColorAttachment: { return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; }
         case Lvn_AttachmentUsage_ShaderReadOnly: { return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; }
         case Lvn_AttachmentUsage_PresentSrc: { return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; }
+        case LVN_ATTACHMENTUSAGE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid attachment usage (VkImageLayout) enum");
@@ -875,6 +890,7 @@ static VkFormat lvn_getVkFormatEnum(LvnFormat format)
         case Lvn_Format_D24_UNORM_S8_UINT: { return VK_FORMAT_D24_UNORM_S8_UINT; }
         case Lvn_Format_D32_FLOAT: { return VK_FORMAT_D32_SFLOAT; }
         case Lvn_Format_D32_FLOAT_S8_UINT: { return VK_FORMAT_D32_SFLOAT_S8_UINT; }
+        case LVN_FORMAT_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid format enum");
@@ -888,6 +904,7 @@ static VkPresentModeKHR lvn_getVkPresentModeEnum(LvnPresentMode presentMode)
         case Lvn_PresentMode_FIFO: { return VK_PRESENT_MODE_FIFO_KHR; }
         case Lvn_PresentMode_Mailbox: { return VK_PRESENT_MODE_MAILBOX_KHR; }
         case Lvn_PresentMode_Immediate: { return VK_PRESENT_MODE_IMMEDIATE_KHR; }
+        case LVN_PRESENTMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid present mode enum");
@@ -900,6 +917,7 @@ static VkFilter lvn_getVkTextureFilterEnum(LvnTextureFilter filter)
     {
         case Lvn_TextureFilter_Nearest: { return VK_FILTER_NEAREST; }
         case Lvn_TextureFilter_Linear: { return VK_FILTER_LINEAR; }
+        case LVN_TEXTUREFILTER_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid texture filter enum");
@@ -914,6 +932,7 @@ static VkSamplerAddressMode lvn_getVkTextureModeEnum(LvnTextureMode mode)
         case Lvn_TextureMode_MirrorRepeat: { return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; }
         case Lvn_TextureMode_ClampToEdge: { return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; }
         case Lvn_TextureMode_ClampToBorder: { return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER; }
+        case LVN_TEXTUREMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid wrap mode enum");

@@ -33,6 +33,7 @@ typedef enum LvnFileType
 {
     Lvn_FileType_Src,
     Lvn_FileType_Bin,
+    LVN_FILETYPE_ENUM_MAX = 0x7fffffff,
 } LvnFileType;
 
 typedef enum LvnLogLevel
@@ -44,6 +45,7 @@ typedef enum LvnLogLevel
     Lvn_LogLevel_Warn,
     Lvn_LogLevel_Error,
     Lvn_LogLevel_Fatal,
+    LVN_LOGLEVEL_ENUM_MAX = 0x7fffffff,
 } LvnLogLevel;
 
 

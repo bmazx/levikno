@@ -203,6 +203,7 @@ static GLenum lvn_getOglTextureModeEnum(LvnTextureMode mode)
         case Lvn_TextureMode_MirrorRepeat: { return GL_MIRRORED_REPEAT; }
         case Lvn_TextureMode_ClampToEdge: { return GL_CLAMP_TO_EDGE; }
         case Lvn_TextureMode_ClampToBorder: { return GL_CLAMP_TO_BORDER; }
+        case LVN_TEXTUREMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid wrap mode enum");
@@ -228,6 +229,7 @@ static GLenum lvn_getOglShaderStageEnum(LvnShaderStageFlagBits stage)
     {
         case Lvn_ShaderStageFlag_Vertex: { return GL_VERTEX_SHADER; }
         case Lvn_ShaderStageFlag_Fragment: { return GL_FRAGMENT_SHADER; }
+        case LVN_SHADERSTAGEFLAG_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid shader stage enum");
@@ -243,6 +245,7 @@ static GLenum lvn_getOglTopologyEnum(LvnTopologyType topology)
         case Lvn_TopologyType_LineStrip: { return GL_LINE_STRIP; }
         case Lvn_TopologyType_Triangle: { return GL_TRIANGLES; }
         case Lvn_TopologyType_TriangleStrip: { return GL_TRIANGLE_STRIP; }
+        case LVN_TOPOLOGYTYPE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid topology enum");
@@ -257,6 +260,7 @@ static GLenum lvn_getOglCullModeFlagEnum(LvnCullFaceMode cullFaceMode)
         case Lvn_CullFaceMode_Front: { return GL_FRONT; }
         case Lvn_CullFaceMode_Back: { return GL_BACK; }
         case Lvn_CullFaceMode_Both: { return GL_FRONT_AND_BACK; }
+        case LVN_CULLFACEMODE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid cull face mode enum");
@@ -269,6 +273,7 @@ static GLenum lvn_getOglCullFrontFaceEnum(LvnCullFrontFace frontFace)
     {
         case Lvn_CullFrontFace_Clockwise: { return GL_CW; }
         case Lvn_CullFrontFace_CounterClockwise: { return GL_CCW; }
+        case LVN_CULLFRONTFACE_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid cull front face enum");
@@ -298,6 +303,7 @@ static GLenum lvn_getOglBlendFactorEnum(LvnColorBlendFactor blendFactor)
         case Lvn_ColorBlendFactor_OneMinusSrc1Color: { return GL_ONE_MINUS_SRC1_COLOR; }
         case Lvn_ColorBlendFactor_Src1_Alpha: { return GL_SRC1_ALPHA; }
         case Lvn_ColorBlendFactor_OneMinusSrc1Alpha: { return GL_ONE_MINUS_SRC1_ALPHA; }
+        case LVN_COLORBLENDFACTOR_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid blend factor enum");
@@ -313,6 +319,7 @@ static GLenum lvn_getOglBlendOperationEnum(LvnColorBlendOperation blendOp)
         case Lvn_ColorBlendOp_ReverseSubtract: { return GL_FUNC_REVERSE_SUBTRACT; }
         case Lvn_ColorBlendOp_Min: { return GL_MIN; }
         case Lvn_ColorBlendOp_Max: { return GL_MAX; }
+        case LVN_COLORBLENDOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid blend operation enum");
@@ -331,6 +338,7 @@ static GLenum lvn_getOglCompareOpEnum(LvnCompareOperation compareOp)
         case Lvn_CompareOp_NotEqual: { return GL_NOTEQUAL; }
         case Lvn_CompareOp_GreaterOrEqual: { return GL_GEQUAL; }
         case Lvn_CompareOp_Always: { return GL_ALWAYS; }
+        case LVN_COMPAREOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid compare operation enum");
@@ -349,6 +357,7 @@ static GLenum lvn_getOglStencilOpEnum(LvnStencilOperation stencilOp)
         case Lvn_StencilOp_Invert: { return GL_INVERT; }
         case Lvn_StencilOp_IncrementAndWrap: { return GL_INCR_WRAP; }
         case Lvn_StencilOp_DecrementAndWrap: { return GL_DECR_WRAP; }
+        case LVN_STENCILOP_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid stencil operation enum");
@@ -2438,6 +2447,7 @@ LvnResult lvnImplOglRenderPresent(const LvnGraphicsContext* graphicsctx, const L
             case Lvn_PresentMode_Immediate:
                 oglBackends->ogllSwapInterval(oglBackends, 0);
                 break;
+            case LVN_PRESENTMODE_ENUM_MAX: { break; }
         }
 
         if (swapchainData->srgb)

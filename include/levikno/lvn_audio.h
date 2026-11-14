@@ -11,6 +11,7 @@ typedef enum LvnSoundFlags
     Lvn_SoundFlag_Decode                = 0x00000002,
     Lvn_SoundFlag_Async                 = 0x00000004,
     Lvn_SoundFlag_WaitInit              = 0x00000008,
+    LVN_SOUNDFLAG_ENUM_MAX              = 0x7fffffff,
 } LvnSoundBufferFlags;
 typedef LvnFlags LvnSoundFlagBits;
 
@@ -18,6 +19,7 @@ typedef enum LvnSoundPositioning
 {
     Lvn_SoundPositioning_Absolute,
     Lvn_SoundPositioning_Relative,
+    LVN_SOUNDPOSITIONING_ENUM_MAX = 0x7fffffff,
 } LvnSoundPositioning;
 
 typedef enum LvnSoundAttenuation
@@ -26,6 +28,7 @@ typedef enum LvnSoundAttenuation
     Lvn_Attenuation_Inverse,
     Lvn_Attenuation_Linear,
     Lvn_Attenuation_Exponential,
+    LVN_ATTENUATION_ENUM_MAX = 0x7fffffff,
 } LvnSoundAttenuation;
 
 

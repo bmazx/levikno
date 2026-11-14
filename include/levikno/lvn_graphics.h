@@ -9,12 +9,14 @@ typedef enum LvnGraphicsApi
     Lvn_GraphicsApi_None = 0,
     Lvn_GraphicsApi_Opengl,
     Lvn_GraphicsApi_Vulkan,
+    LVN_GRAPHICSAPI_ENUM_MAX = 0x7fffffff,
 } LvnGraphicsApi;
 
 typedef enum LvnPresentationModeFlagBits
 {
     Lvn_PresentationModeFlag_Headless = 0x00000001,
     Lvn_PresentationModeFlag_Surface  = 0x00000002,
+    LVN_PRESENTATIONMODEFLAG_ENUM_MAX = 0x7fffffff,
 } LvnPresentationModeFlagBits;
 typedef LvnFlags LvnPresentationModeFlags;
 
@@ -23,12 +25,14 @@ typedef enum LvnAttachmentLoadOp
     Lvn_AttachmentLoadOp_Load,
     Lvn_AttachmentLoadOp_Clear,
     Lvn_AttachmentLoadOp_DontCare,
+    LVN_ATTACHMENTLOADOP_ENUM_MAX = 0x7fffffff,
 } LvnAttachmentLoadOp;
 
 typedef enum LvnAttachmentStoreOp
 {
     Lvn_AttachmentStoreOp_Store,
     Lvn_AttachmentStoreOp_DontCare,
+    LVN_ATTACHMENTSTOREOP_ENUM_MAX = 0x7fffffff,
 } LvnAttachmentStoreOp;
 
 typedef enum LvnAttachmentUsage
@@ -36,6 +40,7 @@ typedef enum LvnAttachmentUsage
     Lvn_AttachmentUsage_ColorAttachment,
     Lvn_AttachmentUsage_ShaderReadOnly,
     Lvn_AttachmentUsage_PresentSrc,
+    LVN_ATTACHMENTUSAGE_ENUM_MAX = 0x7fffffff,
 } LvnAttachmentUsage;
 
 typedef enum LvnTopologyType
@@ -45,6 +50,7 @@ typedef enum LvnTopologyType
     Lvn_TopologyType_LineStrip,
     Lvn_TopologyType_Triangle,
     Lvn_TopologyType_TriangleStrip,
+    LVN_TOPOLOGYTYPE_ENUM_MAX = 0x7fffffff,
 } LvnTopologyType;
 
 typedef enum LvnPolygonMode
@@ -52,6 +58,7 @@ typedef enum LvnPolygonMode
     Lvn_PolygonMode_Fill,
     Lvn_PolygonMode_Line,
     Lvn_PolygonMode_Point,
+    LVN_POLYGONMODE_ENUM_MAX = 0x7fffffff,
 } LvnPolygonMode;
 
 typedef enum LvnCullFaceMode
@@ -60,15 +67,16 @@ typedef enum LvnCullFaceMode
     Lvn_CullFaceMode_Front,
     Lvn_CullFaceMode_Back,
     Lvn_CullFaceMode_Both,
+    LVN_CULLFACEMODE_ENUM_MAX = 0x7fffffff,
 } LvnCullFaceMode;
 
 typedef enum LvnCullFrontFace
 {
     Lvn_CullFrontFace_Clockwise,
     Lvn_CullFrontFace_CounterClockwise,
-
     Lvn_CullFrontFace_CW = Lvn_CullFrontFace_Clockwise,
     Lvn_CullFrontFace_CCW = Lvn_CullFrontFace_CounterClockwise,
+    LVN_CULLFRONTFACE_ENUM_MAX = 0x7fffffff,
 } LvnCullFrontFace;
 
 typedef enum LvnSampleCountFlagBits
@@ -80,6 +88,7 @@ typedef enum LvnSampleCountFlagBits
     Lvn_SampleCountFlag_16_Bit = 0x00000010,
     Lvn_SampleCountFlag_32_Bit = 0x00000020,
     Lvn_SampleCountFlag_64_Bit = 0x00000040,
+    LVN_SAMPLECOUNTFLAG_ENUM_MAX = 0x7fffffff,
 } LvnSampleCountFlagBits;
 typedef LvnFlags LvnSampleCountFlags;
 
@@ -89,6 +98,7 @@ typedef enum LvnColorComponentFlagBits
     Lvn_ColorComponentFlag_G = 0x00000002,
     Lvn_ColorComponentFlag_B = 0x00000004,
     Lvn_ColorComponentFlag_A = 0x00000008,
+    LVN_COLORCOMPONENTFLAG_ENUM_MAX = 0x7fffffff,
 } LvnColorComponentFlagBits;
 typedef LvnFlags LvnColorComponentFlags;
 
@@ -113,6 +123,7 @@ typedef enum LvnColorBlendFactor
     Lvn_ColorBlendFactor_OneMinusSrc1Color,
     Lvn_ColorBlendFactor_Src1_Alpha,
     Lvn_ColorBlendFactor_OneMinusSrc1Alpha,
+    LVN_COLORBLENDFACTOR_ENUM_MAX = 0x7fffffff,
 } LvnColorBlendFactor;
 
 typedef enum LvnColorBlendOperation
@@ -122,6 +133,7 @@ typedef enum LvnColorBlendOperation
     Lvn_ColorBlendOp_ReverseSubtract,
     Lvn_ColorBlendOp_Min,
     Lvn_ColorBlendOp_Max,
+    LVN_COLORBLENDOP_ENUM_MAX = 0x7fffffff,
 } LvnColorBlendOperation;
 
 typedef enum LvnStencilOperation
@@ -134,6 +146,7 @@ typedef enum LvnStencilOperation
     Lvn_StencilOp_Invert,
     Lvn_StencilOp_IncrementAndWrap,
     Lvn_StencilOp_DecrementAndWrap,
+    LVN_STENCILOP_ENUM_MAX = 0x7fffffff,
 } LvnStencilOperation;
 
 typedef enum LvnCompareOperation
@@ -146,6 +159,7 @@ typedef enum LvnCompareOperation
     Lvn_CompareOp_NotEqual,
     Lvn_CompareOp_GreaterOrEqual,
     Lvn_CompareOp_Always,
+    LVN_COMPAREOP_ENUM_MAX = 0x7fffffff,
 } LvnCompareOperation;
 
 typedef enum LvnLogicOperation
@@ -166,70 +180,61 @@ typedef enum LvnLogicOperation
     Lvn_LogicOp_OrInverted,
     Lvn_LogicOp_Nand,
     Lvn_LogicOp_Set,
+    LVN_LOGICOP_ENUM_MAX = 0x7fffffff,
 } LvnLogicOperation;
 
 typedef enum LvnShaderStageFlagBits
 {
     Lvn_ShaderStageFlag_Vertex   = 0x00000001,
     Lvn_ShaderStageFlag_Fragment = 0x00000002,
+    LVN_SHADERSTAGEFLAG_ENUM_MAX = 0x7fffffff,
 } LvnShaderStageFlagBits;
 typedef LvnFlags LvnShaderStageFlags;
 
 typedef enum LvnFormat
 {
     Lvn_Format_Undefined = 0,
-
     Lvn_Format_R8_UNORM,
     Lvn_Format_R8_SNORM,
     Lvn_Format_R8_UINT,
     Lvn_Format_R8_SINT,
-
     Lvn_Format_R16_UNORM,
     Lvn_Format_R16_SNORM,
     Lvn_Format_R16_UINT,
     Lvn_Format_R16_SINT,
     Lvn_Format_R16_FLOAT,
-
     Lvn_Format_R32_UINT,
     Lvn_Format_R32_SINT,
     Lvn_Format_R32_FLOAT,
-
     Lvn_Format_R8G8_UNORM,
     Lvn_Format_R8G8_SNORM,
     Lvn_Format_R8G8_UINT,
     Lvn_Format_R8G8_SINT,
-
     Lvn_Format_R16G16_FLOAT,
     Lvn_Format_R32G32_FLOAT,
     Lvn_Format_R32G32_UINT,
     Lvn_Format_R32G32_SINT,
-
     Lvn_Format_R32G32B32_FLOAT,
     Lvn_Format_R32G32B32_UINT,
     Lvn_Format_R32G32B32_SINT,
-
     Lvn_Format_R8G8B8A8_UNORM,
     Lvn_Format_R8G8B8A8_SNORM,
     Lvn_Format_R8G8B8A8_UINT,
     Lvn_Format_R8G8B8A8_SINT,
     Lvn_Format_R8G8B8A8_SRGB,
-
     Lvn_Format_R16G16B16A16_FLOAT,
-
     Lvn_Format_R32G32B32A32_FLOAT,
     Lvn_Format_R32G32B32A32_UINT,
     Lvn_Format_R32G32B32A32_SINT,
-
     Lvn_Format_B8G8R8A8_UNORM,
     Lvn_Format_B8G8R8A8_SRGB,
-
     Lvn_Format_A2B10G10R10_UNORM,
     Lvn_Format_A2B10G10R10_UINT,
-
     Lvn_Format_D16_UNORM,
     Lvn_Format_D24_UNORM_S8_UINT,
     Lvn_Format_D32_FLOAT,
     Lvn_Format_D32_FLOAT_S8_UINT,
+    LVN_FORMAT_ENUM_MAX = 0x7fffffff,
 } LvnFormat;
 
 typedef enum LvnPresentMode
@@ -237,6 +242,7 @@ typedef enum LvnPresentMode
     Lvn_PresentMode_FIFO,
     Lvn_PresentMode_Mailbox,
     Lvn_PresentMode_Immediate,
+    LVN_PRESENTMODE_ENUM_MAX = 0x7fffffff,
 } LvnPresentMode;
 
 typedef enum LvnBufferTypeFlagBits
@@ -246,6 +252,7 @@ typedef enum LvnBufferTypeFlagBits
     Lvn_BufferTypeFlag_Index   = 0x00000002,
     Lvn_BufferTypeFlag_Uniform = 0x00000004,
     Lvn_BufferTypeFlag_Storage = 0x00000008,
+    LVN_BUFFERTYPEFLAG_ENUM_MAX = 0x7fffffff,
 } LvnBufferTypeFlagBits;
 typedef uint32_t LvnBufferTypeFlags;
 
@@ -254,12 +261,14 @@ typedef enum LvnBufferMemoryUsage
     Lvn_BufferMemoryUsage_GpuOnly,
     Lvn_BufferMemoryUsage_CpuToGpu,
     Lvn_BufferMemoryUsage_GpuToCpu,
+    LVN_BUFFERMEMORYUSAGE_ENUM_MAX = 0x7fffffff,
 } LvnBufferMemoryUsage;
 
 typedef enum LvnTextureFilter
 {
     Lvn_TextureFilter_Nearest,
     Lvn_TextureFilter_Linear,
+    LVN_TEXTUREFILTER_ENUM_MAX = 0x7fffffff,
 } LvnTextureFilter;
 
 typedef enum LvnMipmapMode
@@ -267,6 +276,7 @@ typedef enum LvnMipmapMode
     Lvn_MipmapMode_Disabled = 0,
     Lvn_MipmapMode_Nearest,
     Lvn_MipmapMode_Linear,
+    LVN_MIPMAPMODE_ENUM_MAX = 0x7fffffff,
 } LvnMipmapMode;
 
 typedef enum LvnTextureMode
@@ -275,6 +285,7 @@ typedef enum LvnTextureMode
     Lvn_TextureMode_MirrorRepeat,
     Lvn_TextureMode_ClampToEdge,
     Lvn_TextureMode_ClampToBorder,
+    LVN_TEXTUREMODE_ENUM_MAX = 0x7fffffff,
 } LvnTextureMode;
 
 typedef enum LvnDescriptorType
@@ -286,6 +297,7 @@ typedef enum LvnDescriptorType
     Lvn_DescriptorType_StorageBuffer,
     Lvn_DescriptorType_UniformBufferDynamic,
     Lvn_DescriptorType_StorageBufferDynamic,
+    LVN_DESCRIPTORTYPE_ENUM_MAX = 0x7fffffff,
 } LvnDescriptorType;
 
 typedef struct LvnGraphicsContext LvnGraphicsContext;

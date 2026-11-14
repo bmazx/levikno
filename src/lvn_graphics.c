@@ -20,6 +20,7 @@ static const char* lvn_getGraphicsApiEnumName(LvnGraphicsApi api)
         case Lvn_GraphicsApi_None:   { return "none"; }
         case Lvn_GraphicsApi_Opengl: { return "opengl"; }
         case Lvn_GraphicsApi_Vulkan: { return "vulkan"; }
+        case LVN_GRAPHICSAPI_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid graphics api enum value");
@@ -146,6 +147,7 @@ LvnResult lvnCreateGraphicsContext(struct LvnContext* ctx, LvnGraphicsContext** 
             result = lvnImplVkInit(gctxPtr, createInfo);
 #endif
             break;
+        case LVN_GRAPHICSAPI_ENUM_MAX: { break; }
     }
 
     if (result != Lvn_Result_Success)
@@ -253,6 +255,7 @@ void lvnDestroyGraphicsContext(LvnGraphicsContext* graphicsctx)
             lvnImplVkTerminate(graphicsctx);
 #endif
             break;
+        case LVN_GRAPHICSAPI_ENUM_MAX: { break; }
     }
 
     LVN_LOG_TRACE(graphicsctx->coreLogger, "graphics context terminated: (%p)", graphicsctx);
@@ -1330,6 +1333,7 @@ const char* lvn_getShaderStageEnumName(LvnShaderStageFlagBits stage)
     {
         case Lvn_ShaderStageFlag_Vertex:   { return "vertex"; }
         case Lvn_ShaderStageFlag_Fragment: { return "fragment"; }
+        case LVN_SHADERSTAGEFLAG_ENUM_MAX: { break; }
     }
 
     LVN_ASSERT(false, "invalid stage enum value");
