@@ -47,67 +47,76 @@ typedef enum LvnLogLevel
 } LvnLogLevel;
 
 
+typedef struct LvnFile LvnFile;
+typedef struct LvnImage LvnImage;
+typedef struct LvnLoadImageInfo LvnLoadImageInfo;
+typedef struct LvnWindowPlatformSupport LvnWindowPlatformSupport;
+typedef struct LvnLogMessage LvnLogMessage;
+typedef struct LvnSink LvnSink;
+typedef struct LvnLogPattern LvnLogPattern;
+typedef struct LvnLoggerCreateInfo LvnLoggerCreateInfo;
+typedef struct LvnContextCreateInfo LvnContextCreateInfo;
 typedef struct LvnContext LvnContext;
 typedef struct LvnLogger LvnLogger;
 
 
-typedef struct LvnFile
+struct LvnFile
 {
     uint8_t*    data;
     size_t      size;
-} LvnFile;
+};
 
-typedef struct LvnImage
+struct LvnImage
 {
     uint8_t*    data;
     uint32_t    width;
     uint32_t    height;
     uint32_t    channels;
-} LvnImage;
+};
 
-typedef struct LvnLoadImageInfo
+struct LvnLoadImageInfo
 {
     const char*    filepath;
     int            forceChannels;
     bool           flipVertically;
-} LvnLoadImageInfo;
+};
 
-typedef struct LvnWindowPlatformSupport
+struct LvnWindowPlatformSupport
 {
     bool win32;
     bool wayland;
     bool x11;
-} LvnWindowPlatformSupport;
+};
 
-typedef struct LvnLogMessage
+struct LvnLogMessage
 {
     const char*    msg;
     const char*    loggerName;
     LvnLogLevel    level;
     size_t         timeEpoch;
-} LvnLogMessage;
+};
 
-typedef struct LvnSink
+struct LvnSink
 {
     void (*logFunc)(const LvnLogMessage*);
-} LvnSink;
+};
 
-typedef struct LvnLogPattern
+struct LvnLogPattern
 {
     char     symbol;
     char*    (*func)(const LvnLogMessage*);
-} LvnLogPattern;
+};
 
-typedef struct LvnLoggerCreateInfo
+struct LvnLoggerCreateInfo
 {
     const char*       name;
     const char*       format;
     LvnLogLevel       level;
     const LvnSink*    pSinks;
     uint32_t          sinkCount;
-} LvnLoggerCreateInfo;
+};
 
-typedef struct LvnContextCreateInfo
+struct LvnContextCreateInfo
 {
     const char*           appName;
 
@@ -119,7 +128,7 @@ typedef struct LvnContextCreateInfo
         const LvnSink*    pCoreSinks;            // array of output sinks for the core logger
         uint32_t          coreSinkCount;         // number of output sinks in pCoreSinks
     } logging;
-} LvnContextCreateInfo;
+};
 
 
 
