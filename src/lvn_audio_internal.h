@@ -88,4 +88,5 @@ struct LvnAudioContext
     PFN_lvnSoundGetTimeMilliseconds              implSoundGetTimeMilliseconds;
     PFN_lvnSoundGetTimePcmFrames                 implSoundGetTimePcmFrames;
     PFN_lvnSoundGetLengthSeconds                 implSoundGetLengthSeconds;
+    PFN_lvnSoundGetLengthPcmFrames               implSoundGetLengthPcmFrames;
 };

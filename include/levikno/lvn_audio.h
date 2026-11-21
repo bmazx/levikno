@@ -108,6 +108,7 @@ typedef bool                     (*PFN_lvnSoundAtEnd)(const LvnSound* sound);
 typedef uint64_t                 (*PFN_lvnSoundGetTimeMilliseconds)(const LvnSound* sound);
 typedef uint64_t                 (*PFN_lvnSoundGetTimePcmFrames)(const LvnSound* sound);
 typedef float                    (*PFN_lvnSoundGetLengthSeconds)(LvnSound* sound);
+typedef uint64_t                 (*PFN_lvnSoundGetLengthPcmFrames)(LvnSound* sound);
 
 struct LvnSoundBufferCreateInfo
 {
@@ -277,6 +278,7 @@ LVN_API bool                        lvnSoundAtEnd(const LvnSound* sound);
 LVN_API uint64_t                    lvnSoundGetTimeMilliseconds(const LvnSound* sound);
 LVN_API uint64_t                    lvnSoundGetTimePcmFrames(const LvnSound* sound);
 LVN_API float                       lvnSoundGetLengthSeconds(LvnSound* sound);
+LVN_API uint64_t                    lvnSoundGetLengthPcmFrames(LvnSound* sound);
 
 #ifdef __cplusplus
 }

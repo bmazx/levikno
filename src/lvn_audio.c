@@ -160,6 +160,7 @@ static bool                        lvn_ImplMaSoundAtEnd(const LvnSound* sound);
 static uint64_t                    lvn_ImplMaSoundGetTimeMilliseconds(const LvnSound* sound);
 static uint64_t                    lvn_ImplMaSoundGetTimePcmFrames(const LvnSound* sound);
 static float                       lvn_ImplMaSoundGetLengthSeconds(LvnSound* sound);
+static uint64_t                    lvn_ImplMaSoundGetLengthPcmFrames(LvnSound* sound);
 
 
 static LvnResult lvn_ImplMaInitEngine(LvnAudioContext* audioctx)
@@ -241,6 +242,7 @@ static LvnResult lvn_ImplMaInitEngine(LvnAudioContext* audioctx)
     audioctx->implSoundGetTimeMilliseconds = lvn_ImplMaSoundGetTimeMilliseconds;
     audioctx->implSoundGetTimePcmFrames = lvn_ImplMaSoundGetTimePcmFrames;
     audioctx->implSoundGetLengthSeconds = lvn_ImplMaSoundGetLengthSeconds;
+    audioctx->implSoundGetLengthPcmFrames = lvn_ImplMaSoundGetLengthPcmFrames;
 
     return Lvn_Result_Success;
 }
@@ -835,6 +837,15 @@ static float lvn_ImplMaSoundGetLengthSeconds(LvnSound* sound)
     return length;
 }
 
+static uint64_t lvn_ImplMaSoundGetLengthPcmFrames(LvnSound* sound)
+{
+    LVN_ASSERT(sound, "sound cannot be null");
+    LvnMaSound* maSound = (LvnMaSound*) sound->soundData;
+    ma_uint64 length = 0;
+    ma_sound_get_length_in_pcm_frames(&maSound->sound, &length);
+    return length;
+}
+
 #endif
 
 static LvnResult lvn_setCustomAudioContextPfn(LvnAudioContext* audioctx, const LvnAudioContextCreateInfo* createInfo);
@@ -1178,322 +1189,329 @@ void lvnDestroySound(LvnSound* sound)
 
 void lvnSoundSetVolume(LvnSound* sound, float volume)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetVolume(sound, volume);
 }
 
 void lvnSoundSetPan(LvnSound* sound, float pan)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetPan(sound, pan);
 }
 
 void lvnSoundSetPitch(LvnSound* sound, float pitch)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetPitch(sound, pitch);
 }
 
 void lvnSoundSetPositioning(LvnSound* sound, LvnSoundPositioning positioning)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetPositioning(sound, positioning);
 }
 
 void lvnSoundSetPosition(LvnSound* sound, float x, float y, float z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetPosition(sound, x, y, z);
 }
 
 void lvnSoundSetDirection(LvnSound* sound, float x, float y, float z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetDirection(sound, x, y, z);
 }
 
 void lvnSoundSetVelocity(LvnSound* sound, float x, float y, float z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetVelocity(sound, x, y, z);
 }
 
 void lvnSoundSetCone(LvnSound* sound, float innerAngleRad, float outerAngleRad, float outerGain)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetCone(sound, innerAngleRad, outerAngleRad, outerGain);
 }
 
 void lvnSoundSetAttenuation(LvnSound* sound, LvnSoundAttenuation attenuation)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetAttenuation(sound, attenuation);
 }
 
 void lvnSoundSetRolloff(LvnSound* sound, float rolloff)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetRolloff(sound, rolloff);
 }
 
 void lvnSoundSetMinGain(LvnSound* sound, float minGain)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetMinGain(sound, minGain);
 }
 
 void lvnSoundSetMaxGain(LvnSound* sound, float maxGain)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetMaxGain(sound, maxGain);
 }
 
 void lvnSoundSetMinDistance(LvnSound* sound, float minDist)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetMinDistance(sound, minDist);
 }
 
 void lvnSoundSetMaxDistance(LvnSound* sound, float maxDist)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetMaxDistance(sound, maxDist);
 }
 
 void lvnSoundSetDopplerFactor(LvnSound* sound, float dopplerFactor)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetDopplerFactor(sound, dopplerFactor);
 }
 
 void lvnSoundSetLooping(LvnSound* sound, bool looping)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetLooping(sound, looping);
 }
 
 void lvnSoundStart(LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundStart(sound);
 }
 
 void lvnSoundStop(LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundStop(sound);
 }
 
 void lvnSoundScheduleStartTimePcmFrames(LvnSound* sound, uint64_t pcm)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundScheduleStartTimePcmFrames(sound, pcm);
 }
 
 void lvnSoundScheduleStartTimeMilliseconds(LvnSound* sound, uint64_t ms)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundScheduleStartTimeMilliseconds(sound, ms);
 }
 
 void lvnSoundScheduleStopTimePcmFrames(LvnSound* sound, uint64_t pcm)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundScheduleStopTimePcmFrames(sound, pcm);
 }
 
 void lvnSoundScheduleStopTimeMilliseconds(LvnSound* sound, uint64_t ms)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundScheduleStopTimeMilliseconds(sound, ms);
 }
 
 void lvnSoundSetFadeMilliseconds(LvnSound* sound, float volBegin, float volEnd, uint64_t ms)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetFadeMilliseconds(sound, volBegin, volEnd, ms);
 }
 
 void lvnSoundSetFadePcmFrames(LvnSound* sound, float volBegin, float volEnd, uint64_t pcm)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSetFadePcmFrames(sound, volBegin, volEnd, pcm);
 }
 
 void lvnSoundSeekToPcmFrame(LvnSound* sound, uint64_t pcm)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundSeekToPcmFrame(sound, pcm);
 }
 
 float lvnSoundGetVolume(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetVolume(sound);
 }
 
 float lvnSoundGetPan(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetPan(sound);
 }
 
 float lvnSoundGetPitch(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetPitch(sound);
 }
 
 LvnSoundPositioning lvnSoundGetPositioning(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetPositioning(sound);
 }
 
 void lvnSoundGetPosition(const LvnSound* sound, float* x, float* y, float* z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundGetPosition(sound, x, y, z);
 }
 
 void lvnSoundGetDirection(const LvnSound* sound, float* x, float* y, float* z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundGetDirection(sound, x, y, z);
 }
 
 void lvnSoundGetVelocity(const LvnSound* sound, float* x, float* y, float* z)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundGetVelocity(sound, x, y, z);
 }
 
 void lvnSoundGetCone(const LvnSound* sound, float* innerAngleRad, float* outerAngleRad, float* outerGain)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     audioctx->implSoundGetCone(sound, innerAngleRad, outerAngleRad, outerGain);
 }
 
 LvnSoundAttenuation lvnSoundGetAttenuation(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetAttenuation(sound);
 }
 
 float lvnSoundGetRolloff(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetRolloff(sound);
 }
 
 float lvnSoundGetMinGain(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetMinGain(sound);
 }
 
 float lvnSoundGetMaxGain(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetMaxGain(sound);
 }
 
 float lvnSoundGetMinDistance(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetMinDistance(sound);
 }
 
 float lvnSoundGetMaxDistance(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetMaxDistance(sound);
 }
 
 float lvnSoundGetDopplerFactor(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetDopplerFactor(sound);
 }
 
 bool lvnSoundIsLooping(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundIsLooping(sound);
 }
 
 bool lvnSoundIsPlaying(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundIsPlaying(sound);
 }
 
 bool lvnSoundAtEnd(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundAtEnd(sound);
 }
 
 uint64_t lvnSoundGetTimeMilliseconds(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetTimeMilliseconds(sound);
 }
 
 uint64_t lvnSoundGetTimePcmFrames(const LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetTimePcmFrames(sound);
 }
 
 float lvnSoundGetLengthSeconds(LvnSound* sound)
 {
-    LVN_ASSERT(sound, "sound cannot be nulll");
+    LVN_ASSERT(sound, "sound cannot be null");
     const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
     return audioctx->implSoundGetLengthSeconds(sound);
+}
+
+uint64_t lvnSoundGetLengthPcmFrames(LvnSound* sound)
+{
+    LVN_ASSERT(sound, "sound cannot be null");
+    const LvnAudioContext* audioctx = (const LvnAudioContext*) sound->audioctx;
+    return audioctx->implSoundGetLengthPcmFrames(sound);
 }
