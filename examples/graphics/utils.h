@@ -30,7 +30,7 @@ static WindowData s_WindowData = {0};
 
 static size_t s_MemAllocCount = 0;
 
-static void* customMalloc(size_t size, void* userData)
+static inline void* customMalloc(size_t size, void* userData)
 {
     if (!size) { return NULL; }
     void* ptr = malloc(size);
@@ -39,14 +39,14 @@ static void* customMalloc(size_t size, void* userData)
     return ptr;
 }
 
-static void customFree(void* ptr, void* userData)
+static inline void customFree(void* ptr, void* userData)
 {
     if (!ptr) { return; }
     s_MemAllocCount--;
     free(ptr);
 }
 
-static void* customRealloc(void* ptr, size_t size, void* userData)
+static inline void* customRealloc(void* ptr, size_t size, void* userData)
 {
     if (!ptr) { return customMalloc(size, userData); }
     void* newptr = realloc(ptr, size);
